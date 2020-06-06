@@ -1,29 +1,69 @@
 <template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
-  </div>
+  <v-app id="sandbox">
+    <v-navigation-drawer
+      :clipped="true"
+      :permanent="true"
+      :temporary="false"
+      app
+      overflow
+    ></v-navigation-drawer>
+
+    <v-app-bar
+      :clipped-left="true"
+      app
+    >
+      <v-icon>mdi-cat</v-icon>
+      <v-toolbar-title>TFE Cat</v-toolbar-title>
+    </v-app-bar>
+
+    <v-content>
+      <v-container fluid>
+        <v-row
+          align="center"
+          justify="center"
+        >
+          <v-col cols="10">
+
+            <HelloWorld />
+
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-content>
+
+    <v-footer
+      :inset="footer.inset"
+      app
+    >
+      <span class="px-4">&copy; {{ new Date().getFullYear() }}</span>
+    </v-footer>
+  </v-app>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+
+import Vue from 'vue';
 import HelloWorld from './components/HelloWorld.vue';
 
-@Component({
+export default Vue.extend({
+  name: 'App',
+
   components: {
     HelloWorld,
   },
-})
-export default class App extends Vue {}
-</script>
 
-<style lang="scss">
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
+  data: () => ({
+    drawers: ['Default (no property)', 'Permanent', 'Temporary'],
+    primaryDrawer: {
+      model: null,
+      type: 'permanent',
+      clipped: true,
+      floating: false,
+      mini: false,
+    },
+    footer: {
+      inset: false,
+    },
+  }),
+});
+</script>
