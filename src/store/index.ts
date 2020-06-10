@@ -20,9 +20,7 @@ export default new Vuex.Store({
   },
   actions: {
     GET_CATALOG : async (context) => {
-      const { data } = await Axios.get('./catalog.json')
-
-      console.log('loaded the catalog!', data);
+      const { data } = await Axios.get('./catalog.json?_='+ (new Date().getTime()).toString() )
 
       let catalog: any[] = [];
       Object.keys(data).forEach(key => {
