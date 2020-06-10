@@ -12,7 +12,11 @@
         clearable
       ></v-text-field>
 
-      <v-list-item v-for="(item, vnum) in catalog" :key="vnum">
+      <v-list-item
+        v-for="(item, vnum) in catalog"
+        :key="vnum"
+        :disabled="selectedItem==item"
+      >
         <v-list-item-content>
           <v-list-item-title v-on:click="selectedItem=item">{{item.name}}</v-list-item-title>
         </v-list-item-content>
@@ -21,15 +25,15 @@
 
     <v-app-bar :clipped-left="true" app>
       <v-icon>mdi-cat</v-icon>
-      <v-toolbar-title>TFE Item Catalogue</v-toolbar-title>
+      <v-toolbar-title>TFE Items</v-toolbar-title>
     </v-app-bar>
 
     <v-content>
       <v-container fluid>
-        <!-- <v-expansion-panels>
+        <v-expansion-panels>
           <v-expansion-panel>
             <v-expansion-panel-header>Filter Items</v-expansion-panel-header>
-            <v-expansion-panel-content> -->
+            <v-expansion-panel-content>
 
               <v-row align="center">
                 <v-col class="d-flex" cols="12">
@@ -58,11 +62,14 @@
                 </v-col>
               </v-row>
 
-            <!-- </v-expansion-panel-content>
+            </v-expansion-panel-content>
           </v-expansion-panel>
-        </v-expansion-panels> -->
+        </v-expansion-panels>
 
-        <pre>{{ selectedItem ? selectedItem.buffer : ''}}</pre>
+        <v-card v-if="selectedItem" class="pa-5">
+          <pre>{{ selectedItem ? selectedItem.buffer : ''}}</pre>
+        </v-card>
+
       </v-container>
     </v-content>
 
@@ -100,7 +107,7 @@ export default Vue.extend({
         // if search text is provided search on that first
         if (this.$data.searchText) {
           if (
-            item.unidentifiedName
+            item["Unidentified Name"]
               .toLowerCase()
               .indexOf(this.$data.searchText.toLowerCase()) === -1 &&
             item.buffer
@@ -143,13 +150,13 @@ export default Vue.extend({
 
           // clerics (and i think druids) can't use bladed weapons
           if (this.$data.charClass == 'Cleric' || this.$data.charClass == 'Druid') {
-            if (item.restrictions.indexOf('bladed') > -1) {
+            if (item.Restrictions.indexOf('bladed') > -1) {
               return false;
             }
           }
           // paladins can't use dishonorable things
           if (this.$data.charClass == 'Paladin' ) {
-            if (item.restrictions.indexOf('dishonorable') > -1) {
+            if (item.Restrictions.indexOf('dishonorable') > -1) {
               return false;
             }
           }
@@ -159,7 +166,7 @@ export default Vue.extend({
         // check any anti flags
         if (checkAntiFlags.length) {
           for (const flag of checkAntiFlags) {
-            if (item.antiFlags.indexOf(flag) > -1) {
+            if (item["Anti-Flags"] && item["Anti-Flags"].indexOf(flag) > -1) {
               return false;
             }
           }
@@ -168,8 +175,8 @@ export default Vue.extend({
 
         // filter on level range
         if (
-          item.level < this.$data.levelRange[0] ||
-          item.level > this.$data.levelRange[1]
+          item.Level < this.$data.levelRange[0] ||
+          item.Level > this.$data.levelRange[1]
         ) {
           return false;
         }
