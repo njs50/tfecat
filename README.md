@@ -1,6 +1,16 @@
-# tfecat
+# TFE Item catalog
 
-## Project setup
+## Exporting your catalog!
+to export items from your catalog that aren't in this one copy and paste this line into mudlet:
+```
+lua local a="https://github.com/njs50/tfecat/raw/master/mudlet/tfecat.module/tfecat.xml"local b,c local d=function(e)cecho('\n<green>TFECAT: <white>package '..e..'!\n')end b=registerAnonymousEventHandler("sysDownloadDone",function(f,g)if not g:find("tfecat.xml",1,true)then return end killAnonymousEventHandler(b)d('downloaded')installPackage(g)os.remove(g)end)c=registerAnonymousEventHandler("sysInstallPackage",function(f,h)if h~="tfecat"then return end killAnonymousEventHandler(c)d('installed')catalog.export(function()uninstallPackage(h)d('uninstalled')end)end)downloadFile(getMudletHomeDir().."/tfecat.xml",a..'?_='..tostring(getEpoch))
+```
+send me the file it produces:
+i.e `~/mudlet-data/profiles/<your profile>/catalog_dif.json` it will tell you where it is at the end of the export.
+
+
+
+## Running the web app locally:
 ```
 npm install
 ```
@@ -14,11 +24,7 @@ npm run serve
 ```
 npm run build
 ```
-
-### Lints and fixes files
+### Deploying to github pages
 ```
-npm run lint
+npm run deploy
 ```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
