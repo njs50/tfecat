@@ -512,6 +512,40 @@ catalog.export = function(cb)
 
 end
 
+catalog.mergeDiff = function(cb)
+
+  local filepath = getMudletHomeDir().."/catalog_dif.json"
+
+  catalog.load(function(publicCatalog) 
+  
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt;loaded ' .. tostring(#table.keys(publicCatalog)) .. ' items from github!\n\n')
+  
+    local file, s, catJson = io.open(filepath)
+    
+    if file then 
+      catJson = file:read("*all"); 
+      io.close(file) 
+    end  
+    
+    local diffItems = common.json.decode(catJson)
+    
+    local diffCount = 0
+    
+    for itemName, item in pairs(diffItems) do
+      
+      if (not publicCatalog[itemName]) then
+        publicCatalog[itemName] = item
+        diffCount = diffCount + 1
+      end
+      
+    end
+    
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(diffCount) .. ' new items added to catalog\n\n') 
+  
+  end)
+
+end
+
 
 catalog.load = function(cb)
   
