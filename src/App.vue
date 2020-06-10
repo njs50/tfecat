@@ -1,8 +1,9 @@
 <template>
 
-  <v-app id="sandbox">
+  <v-app id="tfecat">
 
     <v-navigation-drawer :clipped="true" :permanent="true" :temporary="false" app overflow>
+
       <v-text-field
         v-model="searchText"
         append-icon="mdi-magnify"

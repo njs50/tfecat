@@ -1,0 +1,871 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE MudletPackage>
+<MudletPackage version="1.001">
+	<TriggerPackage />
+	<TimerPackage />
+	<AliasPackage />
+	<ActionPackage />
+	<ScriptPackage>
+		<ScriptGroup isActive="yes" isFolder="yes">
+			<name>catalog_export</name>
+			<packageName></packageName>
+			<script></script>
+			<eventHandlerList />
+			<Script isActive="yes" isFolder="no">
+				<name>JSON</name>
+				<packageName></packageName>
+				<script>-------------------------------------------------
+--         Put your Lua functions here.        --
+--                                             --
+-- Note that you can also use external scripts --
+-------------------------------------------------
+common = common or {}
+
+--
+-- json.lua
+--
+-- Copyright (c) 2019 rxi
+--
+-- Permission is hereby granted, free of charge, to any person obtaining a copy of
+-- this software and associated documentation files (the "Software"), to deal in
+-- the Software without restriction, including without limitation the rights to
+-- use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+-- of the Software, and to permit persons to whom the Software is furnished to do
+-- so, subject to the following conditions:
+--
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+--
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
+--
+
+local json = { _version = "0.1.2" }
+
+-------------------------------------------------------------------------------
+-- Encode
+-------------------------------------------------------------------------------
+
+local encode
+
+local escape_char_map = {
+  [ "\\" ] = "\\\\",
+  [ "\"" ] = "\\\"",
+  [ "\b" ] = "\\b",
+  [ "\f" ] = "\\f",
+  [ "\n" ] = "\\n",
+  [ "\r" ] = "\\r",
+  [ "\t" ] = "\\t",
+}
+
+local escape_char_map_inv = { [ "\\/" ] = "/" }
+for k, v in pairs(escape_char_map) do
+  escape_char_map_inv[v] = k
+end
+
+
+local function escape_char(c)
+  return escape_char_map[c] or string.format("\\u%04x", c:byte())
+end
+
+
+local function encode_nil(val)
+  return "null"
+end
+
+
+local function encode_table(val, stack)
+  local res = {}
+  stack = stack or {}
+
+  -- Circular reference?
+  if stack[val] then error("circular reference") end
+
+  stack[val] = true
+
+  if rawget(val, 1) ~= nil or next(val) == nil then
+    -- Treat as array -- check keys are valid and it is not sparse
+    local n = 0
+    for k in pairs(val) do
+      if type(k) ~= "number" then
+        error("invalid table: mixed or invalid key types")
+      end
+      n = n + 1
+    end
+    if n ~= #val then
+      error("invalid table: sparse array")
+    end
+    -- Encode
+    for i, v in ipairs(val) do
+      table.insert(res, encode(v, stack))
+    end
+    stack[val] = nil
+    return "[" .. table.concat(res, ",") .. "]"
+
+  else
+    -- Treat as an object
+    for k, v in pairs(val) do
+      if type(k) ~= "string" then
+        error("invalid table: mixed or invalid key types")
+      end
+      table.insert(res, encode(k, stack) .. ":" .. encode(v, stack))
+    end
+    stack[val] = nil
+    return "{" .. table.concat(res, ",") .. "}"
+  end
+end
+
+
+local function encode_string(val)
+  return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
+end
+
+
+local function encode_number(val)
+  -- Check for NaN, -inf and inf
+  if val ~= val or val &lt;= -math.huge or val &gt;= math.huge then
+    error("unexpected number value '" .. tostring(val) .. "'")
+  end
+  return string.format("%.14g", val)
+end
+
+
+local type_func_map = {
+  [ "nil"     ] = encode_nil,
+  [ "table"   ] = encode_table,
+  [ "string"  ] = encode_string,
+  [ "number"  ] = encode_number,
+  [ "boolean" ] = tostring,
+}
+
+
+encode = function(val, stack)
+  local t = type(val)
+  local f = type_func_map[t]
+  if f then
+    return f(val, stack)
+  end
+  error("unexpected type '" .. t .. "'")
+end
+
+
+function json.encode(val)
+  return ( encode(val) )
+end
+
+
+-------------------------------------------------------------------------------
+-- Decode
+-------------------------------------------------------------------------------
+
+local parse
+
+local function create_set(...)
+  local res = {}
+  for i = 1, select("#", ...) do
+    res[ select(i, ...) ] = true
+  end
+  return res
+end
+
+local space_chars   = create_set(" ", "\t", "\r", "\n")
+local delim_chars   = create_set(" ", "\t", "\r", "\n", "]", "}", ",")
+local escape_chars  = create_set("\\", "/", '"', "b", "f", "n", "r", "t", "u")
+local literals      = create_set("true", "false", "null")
+
+local literal_map = {
+  [ "true"  ] = true,
+  [ "false" ] = false,
+  [ "null"  ] = nil,
+}
+
+
+local function next_char(str, idx, set, negate)
+  for i = idx, #str do
+    if set[str:sub(i, i)] ~= negate then
+      return i
+    end
+  end
+  return #str + 1
+end
+
+
+local function decode_error(str, idx, msg)
+  local line_count = 1
+  local col_count = 1
+  for i = 1, idx - 1 do
+    col_count = col_count + 1
+    if str:sub(i, i) == "\n" then
+      line_count = line_count + 1
+      col_count = 1
+    end
+  end
+  error( string.format("%s at line %d col %d", msg, line_count, col_count) )
+end
+
+
+local function codepoint_to_utf8(n)
+  -- http://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&amp;id=iws-appendixa
+  local f = math.floor
+  if n &lt;= 0x7f then
+    return string.char(n)
+  elseif n &lt;= 0x7ff then
+    return string.char(f(n / 64) + 192, n % 64 + 128)
+  elseif n &lt;= 0xffff then
+    return string.char(f(n / 4096) + 224, f(n % 4096 / 64) + 128, n % 64 + 128)
+  elseif n &lt;= 0x10ffff then
+    return string.char(f(n / 262144) + 240, f(n % 262144 / 4096) + 128,
+                       f(n % 4096 / 64) + 128, n % 64 + 128)
+  end
+  error( string.format("invalid unicode codepoint '%x'", n) )
+end
+
+
+local function parse_unicode_escape(s)
+  local n1 = tonumber( s:sub(3, 6),  16 )
+  local n2 = tonumber( s:sub(9, 12), 16 )
+  -- Surrogate pair?
+  if n2 then
+    return codepoint_to_utf8((n1 - 0xd800) * 0x400 + (n2 - 0xdc00) + 0x10000)
+  else
+    return codepoint_to_utf8(n1)
+  end
+end
+
+
+local function parse_string(str, i)
+  local has_unicode_escape = false
+  local has_surrogate_escape = false
+  local has_escape = false
+  local last
+  for j = i + 1, #str do
+    local x = str:byte(j)
+
+    if x &lt; 32 then
+      decode_error(str, j, "control character in string")
+    end
+
+    if last == 92 then -- "\\" (escape char)
+      if x == 117 then -- "u" (unicode escape sequence)
+        local hex = str:sub(j + 1, j + 5)
+        if not hex:find("%x%x%x%x") then
+          decode_error(str, j, "invalid unicode escape in string")
+        end
+        if hex:find("^[dD][89aAbB]") then
+          has_surrogate_escape = true
+        else
+          has_unicode_escape = true
+        end
+      else
+        local c = string.char(x)
+        if not escape_chars[c] then
+          decode_error(str, j, "invalid escape char '" .. c .. "' in string")
+        end
+        has_escape = true
+      end
+      last = nil
+
+    elseif x == 34 then -- '"' (end of string)
+      local s = str:sub(i + 1, j - 1)
+      if has_surrogate_escape then
+        s = s:gsub("\\u[dD][89aAbB]..\\u....", parse_unicode_escape)
+      end
+      if has_unicode_escape then
+        s = s:gsub("\\u....", parse_unicode_escape)
+      end
+      if has_escape then
+        s = s:gsub("\\.", escape_char_map_inv)
+      end
+      return s, j + 1
+
+    else
+      last = x
+    end
+  end
+  decode_error(str, i, "expected closing quote for string")
+end
+
+
+local function parse_number(str, i)
+  local x = next_char(str, i, delim_chars)
+  local s = str:sub(i, x - 1)
+  local n = tonumber(s)
+  if not n then
+    decode_error(str, i, "invalid number '" .. s .. "'")
+  end
+  return n, x
+end
+
+
+local function parse_literal(str, i)
+  local x = next_char(str, i, delim_chars)
+  local word = str:sub(i, x - 1)
+  if not literals[word] then
+    decode_error(str, i, "invalid literal '" .. word .. "'")
+  end
+  return literal_map[word], x
+end
+
+
+local function parse_array(str, i)
+  local res = {}
+  local n = 1
+  i = i + 1
+  while 1 do
+    local x
+    i = next_char(str, i, space_chars, true)
+    -- Empty / end of array?
+    if str:sub(i, i) == "]" then
+      i = i + 1
+      break
+    end
+    -- Read token
+    x, i = parse(str, i)
+    res[n] = x
+    n = n + 1
+    -- Next token
+    i = next_char(str, i, space_chars, true)
+    local chr = str:sub(i, i)
+    i = i + 1
+    if chr == "]" then break end
+    if chr ~= "," then decode_error(str, i, "expected ']' or ','") end
+  end
+  return res, i
+end
+
+
+local function parse_object(str, i)
+  local res = {}
+  i = i + 1
+  while 1 do
+    local key, val
+    i = next_char(str, i, space_chars, true)
+    -- Empty / end of object?
+    if str:sub(i, i) == "}" then
+      i = i + 1
+      break
+    end
+    -- Read key
+    if str:sub(i, i) ~= '"' then
+      decode_error(str, i, "expected string for key")
+    end
+    key, i = parse(str, i)
+    -- Read ':' delimiter
+    i = next_char(str, i, space_chars, true)
+    if str:sub(i, i) ~= ":" then
+      decode_error(str, i, "expected ':' after key")
+    end
+    i = next_char(str, i + 1, space_chars, true)
+    -- Read value
+    val, i = parse(str, i)
+    -- Set
+    res[key] = val
+    -- Next token
+    i = next_char(str, i, space_chars, true)
+    local chr = str:sub(i, i)
+    i = i + 1
+    if chr == "}" then break end
+    if chr ~= "," then decode_error(str, i, "expected '}' or ','") end
+  end
+  return res, i
+end
+
+
+local char_func_map = {
+  [ '"' ] = parse_string,
+  [ "0" ] = parse_number,
+  [ "1" ] = parse_number,
+  [ "2" ] = parse_number,
+  [ "3" ] = parse_number,
+  [ "4" ] = parse_number,
+  [ "5" ] = parse_number,
+  [ "6" ] = parse_number,
+  [ "7" ] = parse_number,
+  [ "8" ] = parse_number,
+  [ "9" ] = parse_number,
+  [ "-" ] = parse_number,
+  [ "t" ] = parse_literal,
+  [ "f" ] = parse_literal,
+  [ "n" ] = parse_literal,
+  [ "[" ] = parse_array,
+  [ "{" ] = parse_object,
+}
+
+
+parse = function(str, idx)
+  local chr = str:sub(idx, idx)
+  local f = char_func_map[chr]
+  if f then
+    return f(str, idx)
+  end
+  decode_error(str, idx, "unexpected character '" .. chr .. "'")
+end
+
+
+function json.decode(str)
+  if type(str) ~= "string" then
+    error("expected argument of type string, got " .. type(str))
+  end
+  local res, idx = parse(str, next_char(str, 1, space_chars, true))
+  idx = next_char(str, idx, space_chars, true)
+  if idx &lt;= #str then
+    decode_error(str, idx, "trailing garbage")
+  end
+  return res
+end
+
+
+common.json = json</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>catalog</name>
+				<packageName></packageName>
+				<script>catalog = catalog or {}
+catalog.events = catalog.events or {}
+
+catalog.items = catalog.items or {}
+
+catalog.parsing = false
+
+
+-- this is the code that will be in the one liner to export
+catalog.install = function ()
+  
+  local URL = "https://github.com/njs50/tfecat/raw/master/mudlet/tfecat.module/tfecat.xml"
+  
+  local downloadHandler, installHandler
+  
+  local log = function(msg) 
+    cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;package ' .. msg .. '!\n') 
+  end
+  
+  downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
+    if not filename:find("tfecat.xml", 1, true) then 
+      return 
+    end
+    killAnonymousEventHandler(downloadHandler)
+    log('downloaded')
+    
+    installPackage(filename)
+    os.remove(filename)
+
+  end)
+  
+  installHandler = registerAnonymousEventHandler("sysInstallPackage", function(_, name)
+    -- stop if what got installed isn't my thing
+    if name ~= "tfecat" then 
+      return 
+    end
+    
+    killAnonymousEventHandler(installHandler)
+    log('installed')
+  
+    catalog.export(function()
+      uninstallPackage(name)
+      log('uninstalled')
+    end)
+  
+  end)
+  
+
+  downloadFile(getMudletHomeDir().."/tfecat.xml", URL .. '?_=' .. tostring(getEpoch))
+
+end
+
+
+
+
+
+
+catalog.export = function(cb)
+
+  catalog.load( function(publicCatalog)
+    
+    catalog.getAllItems(function(items)
+      
+      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt;loaded ' .. tostring(#table.keys(publicCatalog)) .. ' items from github!\n\n')
+      
+      local newItems = #table.keys(items)
+      if (newItems &gt; 0) then
+        local filepath = getMudletHomeDir().."/catalog_dif.json"
+        local file = io.open(filepath,"w")
+        file:write(common.json.encode(items))
+        file:close()
+        cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
+      else
+        cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to export!\n\n') 
+      end
+      
+      if (cb) then
+        cb(items)
+      end
+            
+    end)
+    
+  end)
+
+end
+
+
+catalog.load = function(cb)
+  
+  local src='https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json'
+
+  local downloadHandler
+
+  
+  -- register our function to run on the event that something was downloaded
+  downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
+    -- is the file that downloaded ours?
+    if not filename:find("catalog.json", 1, true) then return end
+    
+    killAnonymousEventHandler(downloadHandler)
+    
+    -- read the contents of the webpage in
+    local file, s, catJson = io.open(filename)
+    
+    if file then 
+      catJson = file:read("*all"); 
+      io.close(file) 
+    end
+    
+    -- delete the file on disk, don't clutter
+    os.remove(filename)
+  
+  
+    catalog.items = common.json.decode(catJson)
+    
+    if (cb) then
+      cb(catalog.items)
+    end
+
+  end)
+  
+  -- download a list of fake users for a demo
+  downloadFile(getMudletHomeDir().."/catalog.json", src .. '?_=' .. tostring(getEpoch))
+
+
+
+end
+
+
+catalog.getAllItems = function(cb)
+  
+  tempRegexTrigger([[^\s+Lines \((\d+)\)\s+Columns \((\d+)\)\s*$]], function()
+    
+    local lines = matches[2]
+    local cols = matches[3]
+    
+    send('color lines 500 &amp; color columns 300')
+    
+  
+    catalog.getItemList(function(itemList)
+    
+      catalog.itemGetLoop(itemList, function(items)
+        -- restore previous settings
+        send('color lines ' .. tostring(lines) .. ' &amp; color columns ' .. tostring(cols))  
+        cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; parsed all items in catalog!\n\n') 
+        cb(items)  
+        
+      end)
+
+    end)
+    
+  end, 1)
+  
+  send('color') 
+
+end
+
+
+catalog.itemGetLoop = function(items, cb)
+  
+  local dt = getEpoch()
+
+  local newItems = {}
+
+  co = coroutine.create(function()
+  
+    for itemId, itemStub in pairs(items) do 
+    
+      -- display(itemId)
+      
+      catalog.getItem(itemId, function(item) 
+
+        
+        item.name = itemStub.name
+        item.itemType = itemStub.itemType
+        item.datetime = dt
+        
+        newItems[item.name] = item
+        
+        coroutine.resume(co)
+      end)
+      
+      coroutine.yield()
+    
+    end
+    
+    cb(newItems)
+  
+  end)
+
+  coroutine.resume(co)
+
+
+end
+
+
+
+
+
+catalog.getItemList = function(cb)
+
+  tempRegexTrigger([[^Number\s+Name\s+Level\s+Type\s*$]], function()
+  
+    cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;parsing catalog list\n\n')
+    
+    local temptrigs = {}
+    local items = {}
+    
+    -- trigger to hit enter on any "more" prompts
+    temptrigs.moreCatcher = tempRegexTrigger([[^\s*--\s+MORE\s+--\s*&lt;]], function ()
+      send('\n')
+      -- send('sigh')
+      cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;continuing catalog listing\n\n')
+    end)
+    
+    
+    temptrigs.catEntryCatcher = tempRegexTrigger([[^\[\s*(\d+)\]\s*(.+?)\s+(\d+)\s+(\S+)]], function ()
+      
+      if (not catalog.items[matches[3]]) then
+        cecho(' &lt;-- &lt;green&gt;CATALOG: &lt;white&gt;new item\n')
+        items[matches[2]] = {
+          name = matches[3],
+          -- level = tonumber(matches[4]),
+          itemType = matches[5],
+        }
+      end
+    end)
+    
+
+    -- next regular prompt means we're done
+    tempRegexTrigger([[^&lt;]], function ()
+      killTrigger(temptrigs.moreCatcher)
+      killTrigger(temptrigs.catEntryCatcher)
+      temptrigs.moreCatcher = nil
+      temptrigs.catEntryCatcher = nil
+      cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;catalog listing ended\n\n')
+      cb(items)
+    end, 1)  
+  
+  end, 1)
+  
+  send('catalog')
+
+end
+
+
+catalog.getItem = function(itemId, cb)
+  
+  tempRegexTrigger([[You read catalog entry #]] .. tostring(itemId) .. [[\.$]], function ()
+    
+    local splitString = function(str) 
+      local ret = {}
+      for i in str:gmatch("[^ ,]+") do
+         table.insert(ret, i)
+      end
+      return ret
+    end
+    
+    local joinString = function(tbl, joiner)
+      local str = ''
+      for k, v in pairs(tbl) do
+        str = str .. v .. joiner
+      end
+      return str
+    end
+    
+    local catalogId = matches[3]
+    
+    cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;parsing an item\n\n')
+    
+    local item = { 
+      buffer = {}, 
+    }
+    
+    
+    local temptrigs = {}
+    
+    temptrigs.catEntryCatcher = tempRegexTrigger([[^.*$]], function ()
+    	  
+      if (rex.match(matches[1], [[^\s*(-=)+-\s*$]])) then
+      
+        if (item.parsingStarted) then
+          item.parsingEnding = true
+        else
+          item.parsingStarted = true
+        end
+        
+        
+      elseif (item.parsingStarted and not item.parsingEnding) then 
+      
+        table.insert(item.buffer, matches[1])
+        
+        -- find anything like "foo: bar"
+        for i, j in rex.gmatch(matches[1], [[(?:\s\s+|^\s*)(\S+[ -]?\S+):\s+(\S.*?)(?:\s\s|\s*$)]]) do
+          -- display(i,j)
+          item[i] = j
+        end
+        
+        
+      end       
+        
+
+        
+      
+      -- catch affects
+      if (item.matchAffects) then
+        
+        item.affects = item.affects or {}
+        if matches[1] == '' then
+          item.matchAffects = nil
+        else
+        
+          local aff = rex.gsub(matches[1], [[^\s+]], '')
+    
+          -- handle affects that are split over two lines (no . on the end of em :p)
+          if (#item.affects &gt; 0) then
+            local lastItem = item.affects[#item.affects]
+            if rex.match(lastItem, [[[^.]$]]) then
+              lastItem = lastItem .. ' ' .. aff
+              item.affects[#item.affects] = lastItem
+            else 
+             table.insert(item.affects, aff)
+            end
+          else
+            table.insert(item.affects, aff)
+          end  
+        end
+        
+      end
+      
+      
+      if (item.parsingEnding) then
+      
+   	
+        -- clear things we don't want to record
+        item.parsingEnding = nil
+        item.parsingStarted = nil
+        
+        -- kill those triggers
+        for k, v in pairs(temptrigs) do
+          killTrigger(v)
+        end
+        
+        -- reformat affects
+        if (item.affects) then
+          local newAffects = {}
+          for k, v in pairs(item.affects) do
+            local aff = { name = v, type = 'affect' }
+            if (v:match(' by [+-]%d+.$')) then
+              aff.name = rex.gsub(v, [[^(.*)( by .*)$]], '%1')
+              aff.type = 'property'
+              aff.amount = rex.gsub(v, [[^(.* by \+?)(.*)\.$]], '%2')
+              aff.amount = tonumber(aff.amount)
+            end
+            table.insert(newAffects, aff)
+          end
+          item.affects = newAffects
+        end
+        
+        -- reformat things which are arrays
+        local arrayProps = { 'Restrictions', 'Wear Loc.', 'Layer', 'Anti-Flags', 'Materials' } 
+        
+        for i, k in ipairs(arrayProps) do
+          if (item[k]) then
+            item[k] = string.split(item[k], ', ')
+          end
+        end
+        
+        -- turn numbers back into numbers
+        for key, val in pairs(item) do
+        
+          if (not table.contains(arrayProps, key) and not table.contains({'buffer', 'affects'}, key)) then
+            
+            local match = rex.match(val, [[^(\d+(\.\d+)?)(?:\s+lbs|%)?$]])
+            
+            if (match) then
+              item[key] = tonumber(match)
+            end
+              
+          end
+        
+        end
+        
+        -- if item has Damage calc the average damage:
+          if(item.Damage) then
+            rex.gsub(item.Damage, [[^(\d+)d(\d+)\+?(\d+)?$]], function(n, d, b)
+              item.averageDamage = ((d + 1) / 2) * n
+              if (b) then 
+               item.averageDamage = item.averageDamage + b 
+              end
+          end)
+        end
+        
+        
+        item["Unidentified Name"] = rex.gsub(item.buffer[1], [[^\s*(.+?)\s*$]], '%1')
+        
+        item.buffer = joinString(item.buffer, '\n')
+        
+        cb(item)      
+      
+      end  
+      
+    end)
+    
+    
+    temptrigs.affects = tempRegexTrigger([[^\s*Affects:]], function ()
+      	item.matchAffects = true
+    end)
+    -- 
+    -- 
+    -- temptrigs.weapon = tempRegexTrigger([[Damage:\s+(\S+)\s+Class:\s+(.+?)\s+Attack:]], function ()
+    	-- item.damage = matches[2]
+      -- item.weaponClass = matches[3]
+      -- item.itemType = 'weapon'
+      -- 
+      -- rex.gsub(item.damage, [[^(\d+)d(\d+)\+?(\d+)?$]], function(n, d, b)
+        -- item.averageDamage = ((d + 1) / 2) * n
+        -- if (b) then 
+          -- item.averageDamage = item.averageDamage + b 
+        -- end
+      -- end)
+      -- 
+      -- cecho('\nAverage Damage: ' .. tostring(item.averageDamage) .. '\n')
+      -- 
+    -- end)
+    -- 
+    
+  
+  end, 1) -- end of read catalog entry temp regex.
+
+
+  send('catalog -b ' .. tostring(itemId))
+
+end</script>
+				<eventHandlerList />
+			</Script>
+		</ScriptGroup>
+	</ScriptPackage>
+	<KeyPackage />
+	<HelpPackage>
+		<helpURL></helpURL>
+	</HelpPackage>
+</MudletPackage>
