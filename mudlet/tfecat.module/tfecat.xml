@@ -773,11 +773,17 @@ catalog.getItem = function(itemId, cb)
         else
         
           local aff = rex.gsub(matches[1], [[^\s+]], '')
+          
+           local affectMissingDot = {
+              ["Grants Haste"] = true,
+            }
     
           -- handle affects that are split over two lines (no . on the end of em :p)
           if (#item.affects &gt; 0) then
+
             local lastItem = item.affects[#item.affects]
-            if rex.match(lastItem, [[[^.]$]]) then
+            
+            if not affectMissingDot[lastIte] and rex.match(lastItem, [[[^.]$]]) then
               lastItem = lastItem .. ' ' .. aff
               item.affects[#item.affects] = lastItem
             else 
@@ -808,7 +814,7 @@ catalog.getItem = function(itemId, cb)
           local newAffects = {}
           for k, v in pairs(item.affects) do
             local aff = { name = v, type = 'affect' }
-            if (v:match(' by [+-]%d+.$')) then
+            if (rex.match(v, [[ by [+-]\d+\.?\d*\.$]])) then
               aff.name = rex.gsub(v, [[^(.*)( by .*)$]], '%1')
               aff.type = 'property'
               aff.amount = rex.gsub(v, [[^(.* by \+?)(.*)\.$]], '%2')
@@ -857,6 +863,8 @@ catalog.getItem = function(itemId, cb)
         item["Unidentified Name"] = rex.gsub(item.buffer[1], [[^\s*(.+?)\s*$]], '%1')
         
         item.buffer = joinString(item.buffer, '\n')
+        
+        item.source = gmcp.Char.Score.account
         
         cb(item)      
       

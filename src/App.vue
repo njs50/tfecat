@@ -63,6 +63,38 @@
                 </v-col>
               </v-row>
 
+              <v-row align="center">
+
+                <v-col class="d-flex" cols="4">
+                  <v-select v-model="itemType" :items="itemTypes" label="Item Type" dense clearable></v-select>
+                </v-col>
+
+                <v-col class="d-flex" cols="4">
+                  <v-select v-model="itemClass" :items="itemClasses" label="Item Class" dense clearable></v-select>
+                </v-col>
+
+                <v-col class="d-flex" cols="4">
+                  <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" dense clearable></v-autocomplete>
+                </v-col>
+
+              </v-row>
+
+              <v-row align="center">
+
+                <v-col class="d-flex" cols="4">
+                  <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" dense clearable></v-select>
+                </v-col>
+
+                <v-col class="d-flex" cols="4">
+                  <v-select v-model="itemLayer" :items="itemLayers" label="Layer" dense clearable></v-select>
+                </v-col>
+
+                <v-col class="d-flex" cols="4">
+                  <v-autocomplete v-model="itemProperty" :items="itemProperties" label="Item Property" dense clearable></v-autocomplete>
+                </v-col>
+
+              </v-row>
+
             </v-expansion-panel-content>
           </v-expansion-panel>
         </v-expansion-panels>
@@ -96,6 +128,40 @@ export default Vue.extend({
   },
 
   computed: {
+
+    itemTypes() {
+      const itemTypes = this.$store.getters.ITEM_TYPES;
+      if (!itemTypes) {
+        return [];
+      }
+      return itemTypes;
+    },
+
+
+    itemClasses() {
+      const itemClasses = this.$store.getters.ITEM_CLASSES;
+      if (!itemClasses) {
+        return [];
+      }
+      return itemClasses;
+    },
+
+    itemAffects() {
+      const itemAffects = this.$store.getters.ITEM_AFFECTS;
+      if (!itemAffects) {
+        return [];
+      }
+      return itemAffects;
+    },
+
+    itemProperties() {
+      const itemProperties = this.$store.getters.ITEM_PROPERTIES;
+      if (!itemProperties) {
+        return [];
+      }
+      return itemProperties;
+    },
+
     catalog() {
 
       const catalog = this.$store.getters.CATALOG;
@@ -118,6 +184,40 @@ export default Vue.extend({
               .toLowerCase()
               .indexOf(this.$data.searchText.toLowerCase()) === -1
           ) {
+            return false;
+          }
+        }
+
+        if (this.$data.itemType) {
+          if (item.itemType !== this.$data.itemType) {
+            return false;
+          }
+        }
+        if (this.$data.itemClass) {
+          if (!item.Class || item.Class !== this.$data.itemClass) {
+            return false;
+          }
+        }
+        if (this.$data.itemAffect) {
+          if (!item.affects || !item.affects.find((aff: any) => aff.name === this.$data.itemAffect)) {
+            return false;
+          }
+        }
+        if (this.$data.itemProperty) {
+          if (!item.affects || !item.affects.find((aff: any) => aff.name === this.$data.itemProperty)) {
+            return false;
+          }
+        }
+
+
+        // item wear location / layer
+        if (this.$data.itemSlot) {
+          if (!item["Wear Loc."] || item["Wear Loc."].indexOf(this.$data.itemSlot) < 0) {
+            return false;
+          }
+        }
+        if (this.$data.itemLayer) {
+          if (!item.Layer || item.Layer.indexOf(this.$data.itemLayer) < 0) {
             return false;
           }
         }
@@ -188,13 +288,44 @@ export default Vue.extend({
   },
 
   data: () => ({
+
     searchText: "",
+
     levelRange: [0, 90],
+
     charAlignment: null,
     charClass: null,
     charRace: null,
 
+    itemType: null,
+    itemClass: null,
+    itemAffect: null,
+    itemProperty: null,
+
+    itemSlot: null,
+    itemLayer: null,
+
     selectedItem: null,
+
+
+
+    itemSlots: [
+      "arms",
+      "body",
+      "feet",
+      "finger",
+      "hands",
+      "head",
+      "left_hand",
+      "legs",
+      "nearby",
+      "neck",
+      "right_hand",
+      "waist",
+      "wrist",
+    ],
+
+    itemLayers: [ 'bottom', 'under', 'base', 'over', 'top' ],
 
     charClasses: [
       "Bard",
