@@ -337,7 +337,7 @@ export default Vue.extend({
       "Ranger",
       "Thief",
       "Warrior"
-    ],
+    ].sort(),
     charRaces: [
       "Ogre",
       "Troll",
@@ -351,7 +351,7 @@ export default Vue.extend({
       "Gnome",
       "Ent",
       "Elf"
-    ],
+    ].sort(),
     charAlignments: [
       "Lawful Good",
       "Lawful Neutral",
@@ -362,7 +362,7 @@ export default Vue.extend({
       "Chaotic Good",
       "Chaotic Neutral",
       "Chaotic Evil"
-    ],
+    ].sort(),
 
     drawers: ["Default (no property)", "Permanent", "Temporary"],
     primaryDrawer: {
