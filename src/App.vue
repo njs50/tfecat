@@ -250,13 +250,13 @@ export default Vue.extend({
           checkAntiFlags.push('anti-' + this.$data.charClass.toLowerCase())
 
           // clerics (and i think druids) can't use bladed weapons
-          if (this.$data.charClass == 'Cleric' || this.$data.charClass == 'Druid') {
+          if (item.Restrictions && (this.$data.charClass == 'Cleric' || this.$data.charClass == 'Druid')) {
             if (item.Restrictions.indexOf('bladed') > -1) {
               return false;
             }
           }
           // paladins can't use dishonorable things
-          if (this.$data.charClass == 'Paladin' ) {
+          if (item.Restrictions && this.$data.charClass == 'Paladin' ) {
             if (item.Restrictions.indexOf('dishonorable') > -1) {
               return false;
             }
