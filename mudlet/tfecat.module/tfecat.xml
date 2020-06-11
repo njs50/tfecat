@@ -469,7 +469,7 @@ catalog.install = function ()
     catalog.export(function()
       -- some delay here might help prevent mudlet crashing and burning
       tempTimer(5, function()
-        uninstallPackage(name)
+        uninstallPackage('tfecat')
         log('uninstalled')
       end)
     end)
