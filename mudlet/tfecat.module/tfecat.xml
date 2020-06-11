@@ -467,8 +467,11 @@ catalog.install = function ()
     log('installed')
   
     catalog.export(function()
-      uninstallPackage(name)
-      log('uninstalled')
+      -- some delay here might help prevent mudlet crashing and burning
+      tempTimer(5, function()
+        uninstallPackage(name)
+        log('uninstalled')
+      end)
     end)
   
   end)
@@ -515,6 +518,7 @@ end
 catalog.mergeDiff = function(cb)
 
   local filepath = getMudletHomeDir().."/catalog_dif.json"
+  local outputFile = getMudletHomeDir().."/catalog.json"
 
   catalog.load(function(publicCatalog) 
   
@@ -540,7 +544,16 @@ catalog.mergeDiff = function(cb)
       
     end
     
-    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(diffCount) .. ' new items added to catalog\n\n') 
+    if (diffCount &gt; 0) then
+      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(diffCount) .. ' new items added to catalog\n\n')
+      local outfile = io.open(outputFile,"w")
+      outfile:write(common.json.encode(publicCatalog))
+      outfile:close()
+    else
+      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to merge to catalog!\n\n')
+    end
+    
+     
   
   end)
 
