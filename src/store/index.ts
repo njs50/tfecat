@@ -59,6 +59,10 @@ export default new Vuex.Store({
       // const
       Object.keys(data).forEach(key => {
         const item = data[key];
+
+        item.name = item.name.replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
+        item['Unidentified Name'] = item['Unidentified Name'].replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
+
         itemTypes[item.itemType] = true;
         if (item.Class) {
           itemClasses[item.Class] = true;

@@ -2,28 +2,6 @@
 
   <v-app id="tfecat">
 
-    <v-navigation-drawer :clipped="true" :permanent="true" :temporary="false" app overflow>
-
-      <v-text-field
-        v-model="searchText"
-        append-icon="mdi-magnify"
-        placeholder="Search Items"
-        solo
-        hide-details="true"
-        clearable
-      ></v-text-field>
-
-      <v-list-item
-        v-for="(item, vnum) in catalog"
-        :key="vnum"
-        :disabled="selectedItem==item"
-      >
-        <v-list-item-content>
-          <v-list-item-title v-on:click="selectedItem=item">{{item.name}}</v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
-    </v-navigation-drawer>
-
     <v-app-bar :clipped-left="true" app>
       <v-icon>mdi-cat</v-icon>
       <v-toolbar-title>TFE Items</v-toolbar-title>
@@ -99,9 +77,81 @@
           </v-expansion-panel>
         </v-expansion-panels>
 
-        <v-card v-if="selectedItem" class="pa-5">
-          <pre>{{ selectedItem ? selectedItem.buffer : ''}}</pre>
-        </v-card>
+<v-card>
+  <v-card-title>
+
+    <v-spacer></v-spacer>
+    <v-text-field
+        v-model="searchText"
+        append-icon="mdi-magnify"
+        label="Search"
+        single-line
+        hide-details
+        clearable
+    ></v-text-field>
+
+  </v-card-title>
+
+  <v-data-table
+    :headers="headers"
+    :items="catalog"
+    @click:row="rowClicked"
+    :footer-props="footerProps"
+  >
+    <template v-slot:item.Weight="{ item }">
+      <span v-if="item.Weight">{{item.Weight.toFixed(2)}} lbs</span>
+    </template>
+
+    <template v-slot:item.averageDamage="{ item }">
+      <span v-if="item.averageDamage">{{item.averageDamage.toFixed(1)}}</span>
+    </template>
+
+  </v-data-table>
+</v-card>
+
+
+
+        <v-dialog
+          v-model="showSelectedItem"
+          max-width="900"
+        >
+          <v-card v-if="selectedItem" class="pa-5" width="auto">
+
+            <v-btn icon @click.stop="showSelectedItem = false" class="float-right">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+
+            <v-card-title style="text-transform: capitalize;">
+              {{selectedItem.name}}
+            </v-card-title>
+
+            <v-card-subtitle style="text-transform: capitalize;" v-if="selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()">
+              {{selectedItem["Unidentified Name"]}}
+            </v-card-subtitle>
+
+            <!-- <v-expansion-panels v-model="itemPanel">
+
+              <v-expansion-panel>
+                <v-expansion-panel-header>Item</v-expansion-panel-header>
+                <v-expansion-panel-content>
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                </v-expansion-panel-content>
+              </v-expansion-panel>
+
+              <v-expansion-panel>
+                <v-expansion-panel-header>Raw Identification</v-expansion-panel-header>
+                <v-expansion-panel-content> -->
+                <div class="d-inline-flex">
+                  <pre>{{ selectedItem ? selectedItem.buffer : ''}}</pre>
+                </div>
+                <!-- </v-expansion-panel-content>
+              </v-expansion-panel>
+
+            </v-expansion-panels> -->
+
+
+          </v-card>
+        </v-dialog>
 
       </v-container>
     </v-content>
@@ -307,7 +357,30 @@ export default Vue.extend({
 
     selectedItem: null,
 
+    showSelectedItem: false,
+    itemPanel: 0,
 
+    headers: [
+      {
+        text: 'Item',
+        align: 'start',
+        value: 'name',
+      },
+      { text: 'Wear Loc.', value: 'Wear Loc.', align: 'start' },
+      { text: 'Layer', value: 'Layer', align: 'start' },
+      { text: 'Level', value: 'Level', align: 'end' },
+      { text: 'Weight', value: 'Weight', align: 'end' },
+      // { text: '', value: 'Damage' },
+      // { text: 'Damage', value: 'Damage', align: 'center'},
+      { text: 'Av. Damage', value: 'averageDamage', align: 'end'},
+
+      { text: 'Armor Class', value: 'Armor Class', align: 'end' },
+      // { text: 'Global Armor', value: 'Global Armor', align: 'center' },
+    ],
+
+    footerProps: {
+      "items-per-page-options": [5,10,15,20,25,30,-1]
+    },
 
     itemSlots: [
       "arms",
@@ -377,6 +450,12 @@ export default Vue.extend({
     }
   }),
 
-  methods: {}
+  methods: {
+    rowClicked (item: any, row: any) {
+      this.$data.selectedItem = item;
+      this.$data.showSelectedItem = true;
+      console.info('item selected', item)
+    }
+  }
 });
 </script>
