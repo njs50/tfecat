@@ -79,6 +79,110 @@ export default new Vuex.Store({
           }
         }
 
+        item.charAlignments = {
+          "Lawful Good":  true,
+          "Lawful Neutral":  true,
+          "Lawful Evil":  true,
+          "Neutral Good":  true,
+          "True Neutral":  true,
+          "Neutral Evil":  true,
+          "Chaotic Good":  true,
+          "Chaotic Neutral":  true,
+          "Chaotic Evil": true,
+        }
+
+        item.charRaces = {
+          "ogre": true,
+          "troll": true,
+          "orc": true,
+          "vyan": true,
+          "goblin": true,
+          "human": true,
+          "lizardman": true,
+          "dwarf": true,
+          "halfling": true,
+          "gnome": true,
+          "ent": true,
+          "elf": true,
+          "centaur": true,
+        }
+
+        item.charClasses = {
+          "bard": true,
+          "cleric": true,
+          "druid": true,
+          "mage": true,
+          "monk": true,
+          "paladin": true,
+          "ranger": true,
+          "thief": true,
+          "warrior": true,
+        }
+
+        item.charGenders = {
+          male: true,
+          female: true,
+        }
+
+        // process anti flags
+        if (item["Anti-Flags"]) {
+          for (let flag of item["Anti-Flags"]) {
+            flag = flag.replace(/^anti-/, '');
+            if (item.charRaces[flag]) {
+              item.charRaces[flag] = false
+            } else if (item.charClasses[flag]) {
+              item.charClasses[flag] = false
+            } else if (item.charGenders[flag]) {
+              item.charGenders[flag] = false
+            } else {
+              switch(flag) {
+                case 'good':
+                  item.charAlignments['Lawful Good'] = false;
+                  item.charAlignments['Neutral Good'] = false;
+                  item.charAlignments['Chaotic Good'] = false;
+                  break;
+                case 'evil':
+                  item.charAlignments['Lawful Evil'] = false;
+                  item.charAlignments['Neutral Evil'] = false;
+                  item.charAlignments['Chaotic Evil'] = false;
+                  break;
+                case 'lawful':
+                  item.charAlignments['Lawful Good'] = false;
+                  item.charAlignments['Lawful Neutral'] = false;
+                  item.charAlignments['Lawful Evil'] = false;
+                  break;
+                case 'chaotic':
+                  item.charAlignments['Chaotic Good'] = false;
+                  item.charAlignments['Chaotic Neutral'] = false;
+                  item.charAlignments['Chaotic Evil'] = false;
+                  break;
+                case 'only-good-evil':
+                  item.charAlignments['Lawful Neutral'] = false;
+                  item.charAlignments['True Neutral'] = false;
+                  item.charAlignments['Chaotic Neutral'] = false;
+                  break;
+                case 'only-law-chaos':
+                  item.charAlignments['Neutral Good'] = false;
+                  item.charAlignments['True Neutral'] = false;
+                  item.charAlignments['Neutral Evil'] = false;
+                  break;
+                default:
+                  console.error('Unknown anti flag! - ' + flag)
+              }
+            }
+          }
+        }
+
+        // process restrictions
+        if (item.Restrictions && item.Restrictions.indexOf('bladed') > -1) {
+          item.charClasses.cleric = false;
+          item.charClasses.druid = false;
+        }
+
+        if (item.Restrictions && item.Restrictions.indexOf('dishonorable') > -1) {
+          item.charClasses.paladin = false;
+        }
+
         catalog.push(item);
 
       });

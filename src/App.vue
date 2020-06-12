@@ -28,17 +28,22 @@
               </v-row>
 
               <v-row align="center">
-                <v-col class="d-flex" cols="4">
+                <v-col class="d-flex" cols="3">
                   <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" dense clearable></v-select>
                 </v-col>
 
-                <v-col class="d-flex" cols="4">
+                <v-col class="d-flex" cols="3">
                   <v-select v-model="charRace" :items="charRaces" label="Race" dense clearable></v-select>
                 </v-col>
 
-                <v-col class="d-flex" cols="4">
+                <v-col class="d-flex" cols="3">
                   <v-select v-model="charClass" :items="charClasses" label="Class" dense clearable></v-select>
                 </v-col>
+
+                <v-col class="d-flex" cols="3">
+                  <v-select v-model="charGender" :items="charGenders" label="Gender" dense clearable></v-select>
+                </v-col>
+
               </v-row>
 
               <v-row align="center">
@@ -272,55 +277,20 @@ export default Vue.extend({
           }
         }
 
-        const checkAntiFlags = [];
-        const checkRestrictions = [];
-
-        if (this.$data.charAlignment) {
-          // checkAntiFlags.push('anti-' + this.$data.charRace.toLowerCase())
-          const parts = this.$data.charAlignment.split(' ');
-
-          if ( parts[0] !== 'True') {
-            checkAntiFlags.push('anti-' + parts[0].toLowerCase())
-          }
-
-          if ( parts[0] !== 'Neutral') {
-            checkAntiFlags.push('anti-' + parts[1].toLowerCase())
-          } else {
-            checkAntiFlags.push('only-good-evil')
-          }
-
+        if (this.$data.charAlignment && !item.charAlignments[this.$data.charAlignment]) {
+          return false;
         }
 
-
-        if (this.$data.charRace) {
-          checkAntiFlags.push('anti-' + this.$data.charRace.toLowerCase())
+        if (this.$data.charRace && !item.charRaces[this.$data.charRace.toLowerCase()]) {
+          return false;
         }
 
-        if (this.$data.charClass) {
-          checkAntiFlags.push('anti-' + this.$data.charClass.toLowerCase())
-
-          // clerics (and i think druids) can't use bladed weapons
-          if (item.Restrictions && (this.$data.charClass == 'Cleric' || this.$data.charClass == 'Druid')) {
-            if (item.Restrictions.indexOf('bladed') > -1) {
-              return false;
-            }
-          }
-          // paladins can't use dishonorable things
-          if (item.Restrictions && this.$data.charClass == 'Paladin' ) {
-            if (item.Restrictions.indexOf('dishonorable') > -1) {
-              return false;
-            }
-          }
-
+        if (this.$data.charClass && !item.charClasses[this.$data.charClass.toLowerCase()]) {
+          return false;
         }
 
-        // check any anti flags
-        if (checkAntiFlags.length) {
-          for (const flag of checkAntiFlags) {
-            if (item["Anti-Flags"] && item["Anti-Flags"].indexOf(flag) > -1) {
-              return false;
-            }
-          }
+        if (this.$data.charGender && !item.charGenders[this.$data.charGender.toLowerCase()]) {
+          return false;
         }
 
 
@@ -346,6 +316,7 @@ export default Vue.extend({
     charAlignment: null,
     charClass: null,
     charRace: null,
+    charGender: null,
 
     itemType: null,
     itemClass: null,
@@ -418,9 +389,9 @@ export default Vue.extend({
       "Vyan",
       "Goblin",
       "Human",
-      "Lizard",
+      "Lizardman",
       "Dwarf",
-      "Halfing",
+      "Halfling",
       "Gnome",
       "Ent",
       "Elf"
@@ -435,6 +406,11 @@ export default Vue.extend({
       "Chaotic Good",
       "Chaotic Neutral",
       "Chaotic Evil"
+    ].sort(),
+
+    charGenders: [
+      "Female",
+      "Male",
     ].sort(),
 
     drawers: ["Default (no property)", "Permanent", "Temporary"],
