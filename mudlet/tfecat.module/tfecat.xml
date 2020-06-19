@@ -207,15 +207,28 @@ end</script>
   end, 
   
   
-  mergeTells = function()
-    -- lua catalog.writeTellDataToDiff()
+  merge = function()
+    catalog.writeTellDataToDiff(function()
+      catalog.mergeDiff(function()
+        cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; merged!\n\n') 
+      end)
+    end)
+  end,
+  
+  
+  update = function()
+    catalog.install()
   end,
   
   
   help = function()
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate          - generate list of new items\n') 
-        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit &lt;player&gt; - send generated list of items to player via tells\n\n') 
+        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit &lt;player&gt; - send generated list to player via tells\n') 
+        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat update            - update this package!\n\n') 
+        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat merge             - merge generated list into json from github\n\n') 
   end,
+
+
 
 
 }
@@ -226,11 +239,14 @@ local param = matches[3]
 if (commands[cmd]) then
   commands[cmd](param)
 else
-  cecho('\n\n&lt;orange&gt;CATALOG:&lt;white&gt; unknown command ' .. cmd .. '!\n\n') 
+  if (cmd and cmd ~= '') then
+    cecho('\n\n&lt;orange&gt;CATALOG:&lt;white&gt; unknown command ' .. cmd .. '!\n') 
+  end
+  commands.help()
 end</script>
 			<command></command>
 			<packageName></packageName>
-			<regex>^tfecat (\w+) ?(.*)$</regex>
+			<regex>^tfecat ?(\w*) ?(.*)$</regex>
 		</Alias>
 	</AliasPackage>
 	<ActionPackage />
@@ -697,10 +713,7 @@ catalog.install = function ()
     killAnonymousEventHandler(installHandler)
     log('installed')
   
-    catalog.export(function()
-      -- some delay here might help prevent mudlet crashing and burning
-      
-    end)
+    expandAlias('tfecat help')
   
   end)
   
@@ -830,7 +843,10 @@ catalog.writeTellDataToDiff = function(cb)
     file:write(tellData.result)
     file:close()
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; data from tells written to ' .. filepath .. '\n\n')   
-  
+    if (cb) then
+      cb()
+    end
+
   else
     cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; have not recieved any data in a tell yet!\n\n')
   end
