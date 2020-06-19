@@ -468,21 +468,67 @@ catalog.install = function ()
   
     catalog.export(function()
       -- some delay here might help prevent mudlet crashing and burning
-      tempTimer(5, function()
-        uninstallPackage('tfecat')
-        log('uninstalled')
-      end)
+      
     end)
   
   end)
   
-
-  downloadFile(getMudletHomeDir().."/tfecat.xml", URL .. '?_=' .. tostring(getEpoch))
+  log('uninstalling any existing...')
+  uninstallPackage('tfecat')
+  tempTimer(5, function()
+    log('downloading...')
+    downloadFile(getMudletHomeDir().."/tfecat.xml", URL .. '?_=' .. tostring(getEpoch))
+  end)
 
 end
 
 
+catalog.transmit = function(player)
 
+  local char_to_hex = function(c)
+    return string.format("%%%02X", string.byte(c))
+  end
+  
+  local function urlencode(url)
+    if url == nil then
+      return
+    end
+    url = url:gsub("\n", "\r\n")
+    url = url:gsub("([^%w ])", char_to_hex)
+    url = url:gsub(" ", "+")
+    return url
+  end
+  
+  
+  local function splitByChunk(text, chunkSize)
+    local s = {}
+    for i=1, #text, chunkSize do
+      s[#s+1] = text:sub(i,i+chunkSize - 1)
+    end
+    return s
+  end
+  
+  local filepath = getMudletHomeDir().."/catalog_dif.json"
+  
+  local file, s, catJson = io.open(filepath)
+  if file then 
+    catJson = file:read("*all"); 
+    io.close(file) 
+  end
+  
+
+  local chunks = splitByChunk(urlencode(catJson), 250)
+    
+  send('tell ' .. player .. ' ' .. tostring(#chunks) .. ' chunks incoming, total size: ' .. tostring(#catJson))
+  
+  for i = 1, #chunks do
+    tempTimer(i * 0.35, function()
+      send('tell ' .. player .. ' ' .. tostring(i) .. ':' .. chunks[i])
+    end)
+  end
+
+
+end
 
 
 
@@ -514,6 +560,23 @@ catalog.export = function(cb)
   end)
 
 end
+
+catalog.writeTellDataToDiff = function(cb)
+  
+  if (tellData and tellData.result) then
+        
+    local filepath = getMudletHomeDir().."/catalog_dif.json"
+    local file = io.open(filepath,"w")
+    file:write(tellData.result)
+    file:close()
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; data from tells written to ' .. filepath .. '\n\n')   
+  
+  else
+    cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; have not recieved any data in a tell yet!\n\n')
+  end
+
+end
+
 
 catalog.mergeDiff = function(cb)
 
@@ -552,9 +615,7 @@ catalog.mergeDiff = function(cb)
     else
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to merge to catalog!\n\n')
     end
-    
-     
-  
+ 
   end)
 
 end
