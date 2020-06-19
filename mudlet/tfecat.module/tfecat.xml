@@ -1,9 +1,194 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE MudletPackage>
 <MudletPackage version="1.001">
-	<TriggerPackage />
+	<TriggerPackage>
+		<TriggerGroup isActive="yes" isFolder="yes" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>data tells</name>
+			<script></script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList />
+			<regexCodePropertyList />
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>tells you</name>
+				<script></script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>1</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^(&lt;[^&gt;]+&gt;)?\w+ tells you:</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+				</regexCodePropertyList>
+				<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+					<name>find actual string</name>
+					<script>
+tellData.chunks[matches[2]] = matches[3]
+</script>
+					<triggerType>0</triggerType>
+					<conditonLineDelta>0</conditonLineDelta>
+					<mStayOpen>0</mStayOpen>
+					<mCommand></mCommand>
+					<packageName></packageName>
+					<mFgColor>#ff0000</mFgColor>
+					<mBgColor>#ffff00</mBgColor>
+					<mSoundFile></mSoundFile>
+					<colorTriggerFgColor>#000000</colorTriggerFgColor>
+					<colorTriggerBgColor>#000000</colorTriggerBgColor>
+					<regexCodeList>
+						<string>"(\d+):(.*)"</string>
+					</regexCodeList>
+					<regexCodePropertyList>
+						<integer>1</integer>
+					</regexCodePropertyList>
+				</Trigger>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>incoming chunks</name>
+				<script>tellData = {}
+
+tellData.from = matches[2]
+tellData.chunkCount = tonumber(matches[3])
+tellData.totalSize = tonumber(matches[4])
+tellData.chunks = {}
+
+</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^(\w+) tells you: "(\d+) chunks incoming, total size: (\d+)"</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+				</regexCodePropertyList>
+			</Trigger>
+			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+				<name>chunks recieved</name>
+				<script>local hex_to_char = function(x)
+  return string.char(tonumber(x, 16))
+end
+
+
+local urldecode = function(url)
+  if url == nil then
+    return
+  end
+  url = url:gsub("+", " ")
+  url = url:gsub("%%(%x%x)", hex_to_char)
+  return url
+end
+
+if (#table.keys(tellData.chunks) == tellData.chunkCount) then
+  
+  cecho('\n&lt;green&gt;TELL DATA:&lt;white&gt; all chunks have been caught!\n\n')
+  
+  result = ""
+  for i = 1, tellData.chunkCount do
+    result = result .. tellData.chunks[tostring(i)]
+  end
+  tellData.result = urldecode(result)
+
+  if (#tellData.result == tellData.totalSize) then
+    cecho('\n&lt;green&gt;TELL DATA:&lt;white&gt; resulting data is the correct size!\n\n')
+  else
+    cecho('\n&lt;red&gt;TELL DATA:&lt;white&gt; resulting data is not the correct size!\n\n')
+  end
+
+else
+
+  cecho('\n&lt;red&gt;TELL DATA:&lt;white&gt; some data was lost, try again :-[\n\n')
+
+end
+</script>
+				<triggerType>0</triggerType>
+				<conditonLineDelta>0</conditonLineDelta>
+				<mStayOpen>0</mStayOpen>
+				<mCommand></mCommand>
+				<packageName></packageName>
+				<mFgColor>#ff0000</mFgColor>
+				<mBgColor>#ffff00</mBgColor>
+				<mSoundFile></mSoundFile>
+				<colorTriggerFgColor>#000000</colorTriggerFgColor>
+				<colorTriggerBgColor>#000000</colorTriggerBgColor>
+				<regexCodeList>
+					<string>^(\w+) tells you: "transmission complete"</string>
+				</regexCodeList>
+				<regexCodePropertyList>
+					<integer>1</integer>
+				</regexCodePropertyList>
+			</Trigger>
+		</TriggerGroup>
+	</TriggerPackage>
 	<TimerPackage />
-	<AliasPackage />
+	<AliasPackage>
+		<Alias isActive="yes" isFolder="no">
+			<name>tfecat</name>
+			<script>local commands = {
+
+  generate = function()
+    catalog.export()
+  end,
+ 
+ 
+  transmit = function(player)
+    if  (player and player ~= '') then
+      catalog.transmit(player)
+    else
+      cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; invalid player to transmit items to ' .. player .. '!\n\n')
+    end
+  end, 
+  
+  
+  mergeTells = function()
+    -- lua catalog.writeTellDataToDiff()
+  end,
+  
+  
+  help = function()
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate          - generate list of new items\n') 
+        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit &lt;player&gt; - send generated list of items to player via tells\n\n') 
+  end,
+
+
+}
+
+local cmd = matches[2]
+local param = matches[3]
+
+if (commands[cmd]) then
+  commands[cmd](param)
+else
+  cecho('\n\n&lt;orange&gt;CATALOG:&lt;white&gt; unknown command ' .. cmd .. '!\n\n') 
+end</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^tfecat (\w+) ?(.*)$</regex>
+		</Alias>
+	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
 		<ScriptGroup isActive="yes" isFolder="yes">
@@ -485,6 +670,8 @@ end
 
 catalog.transmit = function(player)
 
+  display('yo!')
+
   local char_to_hex = function(c)
     return string.format("%%%02X", string.byte(c))
   end
@@ -517,15 +704,42 @@ catalog.transmit = function(player)
   end
   
 
-  local chunks = splitByChunk(urlencode(catJson), 250)
+  local chunks = splitByChunk(urlencode(catJson), 275)
     
   send('tell ' .. player .. ' ' .. tostring(#chunks) .. ' chunks incoming, total size: ' .. tostring(#catJson))
   
-  for i = 1, #chunks do
-    tempTimer(i * 0.35, function()
-      send('tell ' .. player .. ' ' .. tostring(i) .. ':' .. chunks[i])
+  local co, tt, tt2 
+  
+  catalog.setColors(function()
+  
+    co = coroutine.create(function()
+
+      for i = 1, #chunks do
+        
+        local resendTruncated = tempTrigger('!! Truncating input !!', function()
+          i = i - 1
+        end)
+        
+        tempRegexTrigger([[You tell \w+: "]] .. tostring(i) .. ':' , function ()
+          killTrigger(resendTruncated)
+          coroutine.resume(co)
+        end, 1)
+   
+        send('+tell ' .. player .. ' ' .. tostring(i) .. ':' .. chunks[i])
+        
+        coroutine.yield()
+        
+      end
+  
+      catalog.resetColors()
+      send('tell ' .. player .. ' transmission complete')
+    
     end)
-  end
+  
+
+    coroutine.resume(co)
+    
+  end)
 
 
 end
@@ -663,21 +877,47 @@ catalog.load = function(cb)
 end
 
 
-catalog.getAllItems = function(cb)
-  
+catalog.prevLines = 500
+catalog.prevCols = 300
+
+catalog.setColors = function(cb)
+
   tempRegexTrigger([[^\s+Lines \((\d+)\)\s+Columns \((\d+)\)\s*$]], function()
     
-    local lines = matches[2]
-    local cols = matches[3]
+    catalog.prevLines = matches[2]
+    catalog.prevCols = matches[3]
+
+    if (cb) then
+      tempTrigger([[Number of screen columns set to]], cb, 1);
+    end
     
     send('color lines 500 &amp; color columns 300')
     
+  end, 1)
   
+  send('color') 
+
+end
+
+catalog.resetColors = function(cb)
+  
+   if (cb) then
+    tempTrigger([[Number of screen columns set to]], cb, 1);
+  end
+  send('color lines ' .. tostring(catalog.prevLines) .. ' &amp; color columns ' .. tostring(catalog.prevCols))  
+
+end
+
+
+catalog.getAllItems = function(cb)
+  
+  catalog.setColors(function()
+    
     catalog.getItemList(function(itemList)
     
       catalog.itemGetLoop(itemList, function(items)
         -- restore previous settings
-        send('color lines ' .. tostring(lines) .. ' &amp; color columns ' .. tostring(cols))  
+        catalog.resetColors()
         cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; parsed all items in catalog!\n\n') 
         cb(items)  
         
@@ -685,9 +925,8 @@ catalog.getAllItems = function(cb)
 
     end)
     
-  end, 1)
-  
-  send('color') 
+  end)
+
 
 end
 
