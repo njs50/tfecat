@@ -208,11 +208,17 @@ end</script>
   
   
   merge = function()
-    catalog.writeTellDataToDiff(function()
+    if (tellData and tellData.result) then
+      catalog.writeTellDataToDiff(function()
+        catalog.mergeDiff(function()
+          cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; merged!\n\n') 
+        end)
+      end)
+    else
       catalog.mergeDiff(function()
         cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; merged!\n\n') 
-      end)
-    end)
+      end)    
+    end
   end,
   
   

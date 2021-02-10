@@ -18,8 +18,18 @@ tfecat transmit Mojune
 
 
 
+
+
+
 ## developer info
 feel free to fork this project. will prob need a recent node.js installed
+
+## how to merge new catalog data.
+* get diff json file
+* copy it to your profile dir
+* run `tfecat merge`
+* copy catalog.json to `/public`
+* build then deploy tfecat app
 
 ### Running the web app locally:
 ```
