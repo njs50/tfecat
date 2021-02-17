@@ -222,16 +222,22 @@ end</script>
   end,
   
   
+  summary = function()
+    catalog.loadSummary(function(summary)
+      display(summary)
+    end)
+  end,
+  
   update = function()
     catalog.install()
   end,
   
   
   help = function()
-    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate          - generate list of new items\n') 
-        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit          - upload generated list\n') 
-        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat update            - update this package!\n\n') 
-        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat merge             - merge generated list into json from github\n\n') 
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate - generate list of new items\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit - upload generated list\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat update   - update this package!\n\n') 
   end,
 
 
@@ -683,6 +689,7 @@ catalog.events = catalog.events or {}
 catalog.events.CHECK_PROMPT =  'tfecat: checked yo prompt'
 
 catalog.items = catalog.items or {}
+catalog.summary = catalog.summary or {}
 
 catalog.parsing = false
 
@@ -883,6 +890,44 @@ catalog.load = function(cb)
   -- download a list of fake users for a demo
   downloadFile(getMudletHomeDir().."/catalog.json", src .. '?_=' .. tostring(getEpoch))
 
+
+
+end
+
+catalog.loadSummary = function(cb)
+  
+  local src='https://raw.githubusercontent.com/njs50/tfecat/master/public/summary.json'
+
+  local downloadHandler
+
+  
+  -- register our function to run on the event that something was downloaded
+  downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
+    -- is the file that downloaded ours?
+    if not filename:find("summary.json", 1, true) then return end
+    
+    killAnonymousEventHandler(downloadHandler)
+    
+    -- read the contents of the webpage in
+    local file, s, catJson = io.open(filename)
+    
+    if file then 
+      catJson = file:read("*all"); 
+      io.close(file) 
+    end
+    
+    -- delete the file on disk, don't clutter
+    os.remove(filename)
+  
+    catalog.summary = common.json.decode(catJson)
+    
+    if (cb) then
+      cb(catalog.summary)
+    end
+
+  end)
+  
+  downloadFile(getMudletHomeDir().."/summary.json", src .. '?_=' .. tostring(getEpoch))
 
 
 end
