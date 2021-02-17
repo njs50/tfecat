@@ -7,7 +7,8 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "deploy": "npm run build; push-dir --dir=dist --branch=gh-pages --cleanup",
-    "update-catalog": "curl http://vault-thirteen.net:49160/catalog > ./public/catalog.json"
+    "update-catalog": "curl http://vault-thirteen.net:49160/catalog > ./public/catalog.json",
+    "update-summary": "curl http://vault-thirteen.net:49160/catalog/summary > ./public/summary.json"
   },
   "dependencies": {
     "body-parser": "^1.19.0",
