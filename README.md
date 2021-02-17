@@ -10,10 +10,12 @@ generate a diff file with the following command:
 tfecat generate
 ```
 
-if it's not huge you can send it to me via tells when i'm around:
+upload the new items to my server:
 ```
-tfecat transmit Mojune
+tfecat transmit
 ```
+
+send me a tell or mudmail to let me know about the new items!
 
 
 
@@ -24,30 +26,28 @@ tfecat transmit Mojune
 ## developer info
 feel free to fork this project. will prob need a recent node.js installed
 
-## how to merge new catalog data.
-* get diff json file
-* copy it to your profile dir
-* run `tfecat merge`
-* copy catalog.json to `/public`
-* build then deploy tfecat app
-
 ### Running the web app locally:
 ```
 npm install
 ```
 
-#### Update catalog.json from vault-thirteen.net server
-```
-npm run update-catalog
-```
-
-
-#### Compiles and hot-reloads for development
+### Compiles and hot-reloads for development
 ```
 npm run serve
 ```
 
-#### Compiles and minifies for production
+
+
+
+## updating the deployed website
+
+### Update catalog.json from vault-thirteen.net server
+```
+npm run update-catalog
+npm run update-summary
+```
+
+### Compile and minifies for production
 ```
 npm run build
 ```
