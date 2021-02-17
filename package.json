@@ -6,16 +6,13 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "deploy": "npm run build; push-dir --dir=dist --branch=gh-pages --cleanup"
+    "deploy": "npm run build; push-dir --dir=dist --branch=gh-pages --cleanup",
+    "update-catalog": "curl http://vault-thirteen.net:49160/catalog > ./public/catalog.json"
   },
   "dependencies": {
-    "core-js": "^3.6.5",
-    "roboto-fontface": "*",
-    "vue": "^2.6.11",
-    "vue-class-component": "^7.2.3",
-    "vue-property-decorator": "^8.4.2",
-    "vuetify": "^2.2.11",
-    "vuex": "^3.4.0"
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1",
+    "got": "^11.8.1"
   },
   "devDependencies": {
     "@mdi/font": "^3.9.97",
@@ -28,15 +25,22 @@
     "@vue/cli-service": "~4.4.0",
     "@vue/eslint-config-typescript": "^5.0.2",
     "axios": "^0.21.1",
+    "core-js": "^3.6.5",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
     "node-sass": "^4.12.0",
     "push-dir": "^0.4.1",
+    "roboto-fontface": "*",
     "sass-loader": "^8.0.2",
     "typescript": "~3.9.3",
+    "vue": "^2.6.11",
+    "vue-class-component": "^7.2.3",
     "vue-cli-plugin-axios": "0.0.4",
     "vue-cli-plugin-vuetify": "~2.0.5",
-    "vue-template-compiler": "^2.6.11"
+    "vue-property-decorator": "^8.4.2",
+    "vue-template-compiler": "^2.6.11",
+    "vuetify": "^2.2.11",
+    "vuex": "^3.4.0"
   },
   "eslintConfig": {
     "root": true,

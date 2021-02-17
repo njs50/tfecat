@@ -36,6 +36,12 @@ feel free to fork this project. will prob need a recent node.js installed
 npm install
 ```
 
+#### Update catalog.json from vault-thirteen.net server
+```
+npm run update-catalog
+```
+
+
 #### Compiles and hot-reloads for development
 ```
 npm run serve
@@ -48,4 +54,16 @@ npm run build
 #### Deploying to github pages
 ```
 npm run deploy
+```
+
+#### building docker image
+```
+docker build -t tfecat .
+```
+
+#### deploying to docker server
+```
+docker stop tfecat
+docker rm tfecat
+docker run -p 49160:3000 -d -it --name=tfecat --restart=always tfecat
 ```

@@ -198,12 +198,12 @@ end</script>
   end,
  
  
-  transmit = function(player)
-    if  (player and player ~= '') then
-      catalog.transmit(player)
-    else
-      cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; invalid player to transmit items to ' .. player .. '!\n\n')
-    end
+  transmit = function()
+    -- if  (player and player ~= '') then
+      catalog.transmit()
+    -- else
+      -- cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; invalid player to transmit items to ' .. player .. '!\n\n')
+    -- end
   end, 
   
   
@@ -229,7 +229,7 @@ end</script>
   
   help = function()
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate          - generate list of new items\n') 
-        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit &lt;player&gt; - send generated list to player via tells\n') 
+        cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit          - upload generated list\n') 
         cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat update            - update this package!\n\n') 
         cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat merge             - merge generated list into json from github\n\n') 
   end,
@@ -686,6 +686,8 @@ catalog.items = catalog.items or {}
 
 catalog.parsing = false
 
+catalog.serverUrl = 'http://vault-thirteen.net:49160' 
+
 
 -- this is the code that will be in the one liner to export
 catalog.install = function ()
@@ -735,31 +737,6 @@ end
 
 catalog.transmit = function(player)
 
-  display('yo!')
-
-  local char_to_hex = function(c)
-    return string.format("%%%02X", string.byte(c))
-  end
-  
-  local function urlencode(url)
-    if url == nil then
-      return
-    end
-    url = url:gsub("\n", "\r\n")
-    url = url:gsub("([^%w ])", char_to_hex)
-    url = url:gsub(" ", "+")
-    return url
-  end
-  
-  
-  local function splitByChunk(text, chunkSize)
-    local s = {}
-    for i=1, #text, chunkSize do
-      s[#s+1] = text:sub(i,i+chunkSize - 1)
-    end
-    return s
-  end
-  
   local filepath = getMudletHomeDir().."/catalog_dif.json"
   
   local file, s, catJson = io.open(filepath)
@@ -767,44 +744,10 @@ catalog.transmit = function(player)
     catJson = file:read("*all"); 
     io.close(file) 
   end
+      
+  postHTTP(catJson, catalog.serverUrl .. "/catalog/diff", {["Content-type"] = "application/json"})
   
-
-  local chunks = splitByChunk(urlencode(catJson), 275)
-    
-  send('tell ' .. player .. ' ' .. tostring(#chunks) .. ' chunks incoming, total size: ' .. tostring(#catJson))
-  
-  local co, tt, tt2 
-  
-  catalog.setColors(function()
-  
-    co = coroutine.create(function()
-
-      for i = 1, #chunks do
-        
-        local resendTruncated = tempTrigger('!! Truncating input !!', function()
-          i = i - 1
-        end)
-        
-        tempRegexTrigger([[You tell \w+: "]] .. tostring(i) .. ':' , function ()
-          killTrigger(resendTruncated)
-          coroutine.resume(co)
-        end, 1)
-   
-        send('+tell ' .. player .. ' ' .. tostring(i) .. ':' .. chunks[i])
-        
-        coroutine.yield()
-        
-      end
-  
-      catalog.resetColors()
-      send('tell ' .. player .. ' transmission complete')
-    
-    end)
-  
-
-    coroutine.resume(co)
-    
-  end)
+  cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;new items sent to server!\n')
 
 
 end
