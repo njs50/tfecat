@@ -1,5 +1,6 @@
 const express = require("express");
 const app = express();
+
 const bodyParser = require('body-parser')
 const got = require('got');
 
@@ -31,7 +32,7 @@ const updateSummary = () => {
 
 
 // parse application/json
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '5mb' }))
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
