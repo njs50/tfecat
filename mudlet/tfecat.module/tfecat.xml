@@ -223,9 +223,7 @@ end</script>
   
   
   summary = function()
-    catalog.loadSummary(function(summary)
-      display(summary)
-    end)
+    catalog.showSummary()
   end,
   
   update = function()
@@ -894,9 +892,8 @@ catalog.load = function(cb)
 
 end
 
-catalog.loadSummary = function(cb)
-  
-  local src='https://raw.githubusercontent.com/njs50/tfecat/master/public/summary.json'
+catalog.loadSummary = function(src, cb)
+
 
   local downloadHandler
 
@@ -918,17 +915,48 @@ catalog.loadSummary = function(cb)
     
     -- delete the file on disk, don't clutter
     os.remove(filename)
-  
-    catalog.summary = common.json.decode(catJson)
-    
+
     if (cb) then
-      cb(catalog.summary)
+      cb(common.json.decode(catJson))
     end
 
   end)
   
   downloadFile(getMudletHomeDir().."/summary.json", src .. '?_=' .. tostring(getEpoch))
 
+end
+
+
+catalog.showSummary = function()
+  
+  catalog.loadSummary('https://raw.githubusercontent.com/njs50/tfecat/master/public/summary.json', function(summary)
+    catalog.summary = summary
+    
+    local st = demonnic.TableMaker:new({
+      edgeCharacter = '|'
+    })
+    
+    
+    st:addColumn({name = "Account", width = 25, textColor = "&lt;green&gt;"})
+    st:addColumn({name = "Items", width = 20, textColor = "&lt;white&gt;"})
+    st:addColumn({name = "Unprocessed Items", width = 20, textColor = "&lt;purple&gt;"})
+    
+    
+    catalog.loadSummary(catalog.serverUrl .. "/catalog/summary", function(pending)
+          
+      for sucker, count in pairs(pending) do
+        
+        local pending = count - (summary[sucker] or 0)
+        count = count - pending
+        
+        st:addRow({sucker, tostring(count), tostring(pending)})
+      end
+      
+      cecho(st:assemble())
+    
+    end)
+    
+  end)
 
 end
 
