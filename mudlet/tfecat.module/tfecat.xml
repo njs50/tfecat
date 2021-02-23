@@ -892,16 +892,15 @@ catalog.load = function(cb)
 
 end
 
-catalog.loadSummary = function(src, cb)
-
+catalog.loadFile = function(src, cb)
 
   local downloadHandler
-
+  local srcFilename = rex.match(src, [[^.*/(.*)$]])
   
   -- register our function to run on the event that something was downloaded
   downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
     -- is the file that downloaded ours?
-    if not filename:find("summary.json", 1, true) then return end
+    if not filename:find(srcFilename, 1, true) then return end
     
     killAnonymousEventHandler(downloadHandler)
     
@@ -922,14 +921,14 @@ catalog.loadSummary = function(src, cb)
 
   end)
   
-  downloadFile(getMudletHomeDir().."/summary.json", src .. '?_=' .. tostring(getEpoch))
+  downloadFile(getMudletHomeDir().."/" .. srcFilename, src .. '?_=' .. tostring(getEpoch))
 
 end
 
 
 catalog.showSummary = function()
   
-  catalog.loadSummary('https://raw.githubusercontent.com/njs50/tfecat/master/public/summary.json', function(summary)
+  catalog.loadFile('https://raw.githubusercontent.com/njs50/tfecat/master/public/summary.json', function(summary)
     catalog.summary = summary
     
     local st = demonnic.TableMaker:new({
@@ -942,7 +941,7 @@ catalog.showSummary = function()
     st:addColumn({name = "Unprocessed Items", width = 20, textColor = "&lt;purple&gt;"})
     
     
-    catalog.loadSummary(catalog.serverUrl .. "/catalog/summary", function(pending)
+    catalog.loadFile(catalog.serverUrl .. "/catalog/summary", function(pending)
           
       for sucker, count in pairs(pending) do
         
@@ -950,6 +949,45 @@ catalog.showSummary = function()
         count = count - pending
         
         st:addRow({sucker, tostring(count), tostring(pending)})
+      end
+      
+      cecho(st:assemble())
+    
+    end)
+    
+  end)
+
+end
+
+
+
+catalog.showDiff = function()
+  
+  catalog.loadFile('https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json', function(published)
+    catalog.summary = summary
+    
+    local st = demonnic.TableMaker:new({
+      edgeCharacter = '|'
+    })
+    
+    
+    st:addColumn({name = "Account", width = 15, textColor = "&lt;green&gt;"})
+    st:addColumn({name = "Item", width = 40, textColor = "&lt;white&gt;"})
+    st:addColumn({name = "Item", width = 25, textColor = "&lt;white&gt;"})
+    
+    catalog.loadFile(catalog.serverUrl .. "/catalog", function(pending)
+          
+      for item, itemData in pairs(pending) do
+        
+        if (not published[item]) then
+          st:addRow({itemData.source, item, '&lt;green&gt;added'})
+        end
+       
+        if (not published[item] or published[item].source ~= itemData.source) then
+          st:addRow({itemData.source, item, '&lt;red&gt;updated ' .. published[item].source})
+        end
+       
+        
       end
       
       cecho(st:assemble())
