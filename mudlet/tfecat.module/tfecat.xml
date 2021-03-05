@@ -226,6 +226,11 @@ end</script>
     catalog.showSummary()
   end,
   
+  diff = function()
+    catalog.showDiff()
+  end,
+  
+  
   update = function()
     catalog.install()
   end,
@@ -233,9 +238,12 @@ end</script>
   
   help = function()
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate - generate list of new items\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit - upload generated list\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat update   - update this package!\n\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit - upload generated list\n\n') 
+    
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat diff  - shows the items that are still pending\n\n') 
+    
+    cecho('&lt;orange&gt;CATALOG:&lt;white&gt; tfecat update   - update this package!\n\n') 
   end,
 
 
@@ -983,7 +991,7 @@ catalog.showDiff = function()
           st:addRow({itemData.source, item, '&lt;green&gt;added'})
         end
        
-        if (not published[item] or published[item].source ~= itemData.source) then
+        if (published[item] and published[item].source ~= itemData.source) then
           st:addRow({itemData.source, item, '&lt;red&gt;updated ' .. published[item].source})
         end
        
