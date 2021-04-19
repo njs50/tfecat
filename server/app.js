@@ -4,6 +4,8 @@ const app = express();
 const bodyParser = require('body-parser')
 const got = require('got');
 
+const NPuzzleSolver = require('./solver')
+
 let catalog, summary
 
 // load catalog from github
@@ -51,4 +53,24 @@ app.post("/catalog/diff", (req, res, next) => {
     catalog[itemName] = req.body[itemName]
   }
   updateSummary()
+});
+
+app.post("/puzzle/tile", (req, res, next) => {
+
+  const solver = new NPuzzleSolver(req.body);
+
+  const solution = solver.solve();
+  
+  const moves = [];
+  
+  if (!solution) {
+      console.error('unsolvable puzzle...')
+  } else {
+    for (x in solution) {
+      moves.push(solution[x].number);
+    }
+  }
+
+  res.json(moves);
+
 });
