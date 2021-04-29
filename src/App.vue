@@ -362,7 +362,7 @@ export default Vue.extend({
       "head",
       "left_hand",
       "legs",
-      "nearby",
+      "float_nearby",
       "neck",
       "right_hand",
       "waist",
