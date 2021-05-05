@@ -36,6 +36,11 @@
     end
   end,
   
+  load = function()
+    catalog.load(function()
+      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; loaded ' .. tostring(#catalog.itemsIndex) .. ' items into catalog.items!\n\n') 
+    end)
+  end,  
   
   summary = function()
     catalog.showSummary()
@@ -56,7 +61,10 @@
     cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit - upload generated list\n\n') 
     
     cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat diff  - shows the items that are still pending\n\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat diff  - shows the items that are still pending\n\n')
+     
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat load  - loads the current catalog data for use by cat\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; cat &lt;item&gt;  - searches the catalog for &lt;item&gt;\n\n') 
     
     cecho('&lt;orange&gt;CATALOG:&lt;white&gt; tfecat update   - update this package!\n\n') 
   end,
@@ -80,6 +88,75 @@ end</script>
 			<command></command>
 			<packageName></packageName>
 			<regex>^tfecat ?(\w*) ?(.*)$</regex>
+		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>tfecat search (tc)</name>
+			<script>local params = matches[2]
+
+local searchString = params
+
+
+-- if query has params pass through to the old catalog for now
+
+if (rex.match(searchString, '-')) then
+  cecho('\n&lt;orange&gt;TFECAT: &lt;white&gt;catalog query parameters not yet supported...\n\n')
+  send(matches[1], false)
+  return
+end
+
+
+
+-- display(params)
+
+
+local item = catalog.items[catalog.itemsIndex[3407]]
+
+-- 
+-- cecho(demonnic:cfText('Number', {alignment = "left", width = 6, nogap=true}) .. ' ')
+-- cecho(demonnic:cfText('Name', {alignment = "left", width = 50, nogap=true}) .. ' ')
+-- cecho(demonnic:cfText('Level  ', {alignment = "right", width = 7, nogap=true}) .. ' ')
+-- cecho(demonnic:cfText('Type', {alignment = "left", width = 9, nogap=true}))
+cecho('Number Name                                                Level  Type\n')
+cecho('------ ----                                                -----  ----\n')
+   
+for idx, item in ipairs(catalog.itemsIndex) do
+  data = catalog.items[item]
+  
+
+  if (searchString == '' or rex.match(item .. ' ' .. data.name, [[(?i)]] .. searchString)) then
+ 
+    
+    local vnum = '[' .. demonnic:cfText('&lt;green&gt;' .. tostring(idx) .. '&lt;reset&gt;', {alignment="right", width=4, nogap=true}) .. ']'
+    
+    cechoLink(vnum, function() catalog.displayItem(idx) end, "display item", true)
+    
+    cecho(' ' .. demonnic:cfText(string.sub(data.name, 1, 50), {alignment = "left", width = 50, nogap=true}) .. ' ')
+    
+    cecho(demonnic:cfText(tostring(data.Level) .. '  ', {alignment = "right", width = 7, nogap=true}) .. ' ')
+    cecho(demonnic:cfText(tostring(data.itemType), {alignment = "left", width = 9, nogap=true}) .. ' ')    
+    
+    if (data.itemType == 'weapon') then
+      cecho(string.format("%.1f", data.averageDamage or 0) .. ' dps' .. ' (' .. data.Class .. ')')
+    end
+    
+    if (data.itemType == 'armor') then
+      cecho('AC: ' .. tostring(data["Armor Class"]))
+    end
+    
+    cecho('\n')
+    
+  end
+  
+  
+  
+  
+  
+end
+
+</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^cat (.*)$</regex>
 		</Alias>
 	</AliasPackage>
 	<ActionPackage />
@@ -517,6 +594,39 @@ catalog.parsing = false
 catalog.serverUrl = 'http://vault-thirteen.net:49160' 
 
 
+
+local titleCase = function(first, rest )
+   return first:upper()..rest:lower()
+end
+
+
+
+catalog.displayItem = function(idx)
+  
+  local item = catalog.items[catalog.itemsIndex[idx]]
+  -- 
+  -- display(item)
+  -- 
+  -- 
+  
+  cecho('\n\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
+  if (item.name:lower() ~= item['Unidentified Name']:lower()) then
+    local ts = string.gsub(item.name, "(%a)([%w_']*)", titleCase) 
+    local title = demonnic:cfText('&lt;white&gt;' .. ts, {alignment = "center", width = 80, nogap=true})
+    cecho(title .. '\n')
+    cecho(demonnic:cfText(rex.gsub(ts, '[^ ]', '-'), {alignment = "center", width = 80, nogap=true}) .. '\n\n')
+    
+
+  end
+  cecho(item.buffer)
+  cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
+  -- cecho('Identified: ' .. item.name .. '\n')
+  -- cecho('Source: ' .. item.source .. '\n')
+  -- cecho('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
+  -- 
+end
+
+
 -- this is the code that will be in the one liner to export
 catalog.install = function ()
   
@@ -701,6 +811,7 @@ catalog.load = function(cb)
   
   
     catalog.items = common.json.decode(catJson)
+    catalog.itemsIndex = table.keys(catalog.items)
     
     if (cb) then
       cb(catalog.items)
