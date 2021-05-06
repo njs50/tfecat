@@ -98,7 +98,7 @@ export default new Vuex.Store({
           "vyan": true,
           "goblin": true,
           "human": true,
-          "lizardman": true,
+          "lizardfolk": true,
           "dwarf": true,
           "halfling": true,
           "gnome": true,
@@ -128,6 +128,7 @@ export default new Vuex.Store({
         if (item["Anti-Flags"]) {
           for (let flag of item["Anti-Flags"]) {
             flag = flag.replace(/^anti-/, '');
+            flag = flag.replace(/^lizardman/, 'lizardfolk');
             if (item.charRaces[flag]) {
               item.charRaces[flag] = false
             } else if (item.charClasses[flag]) {

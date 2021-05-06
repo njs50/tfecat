@@ -63,8 +63,8 @@
     cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n') 
     cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat diff  - shows the items that are still pending\n\n')
      
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat load  - loads the current catalog data for use by cat\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; cat &lt;item&gt;  - searches the catalog for &lt;item&gt;\n\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat load  - refreshes the current catalog data for use by tcat\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tcat &lt;item&gt;  - searches the catalog for &lt;item&gt;\n\n') 
     
     cecho('&lt;orange&gt;CATALOG:&lt;white&gt; tfecat update   - update this package!\n\n') 
   end,
@@ -90,31 +90,246 @@ end</script>
 			<regex>^tfecat ?(\w*) ?(.*)$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
-			<name>tfecat search (tc)</name>
-			<script>local params = matches[2]
+			<name>tfecat search (tcat)</name>
+			<script>
+-- load items if not already loaded
 
-local searchString = params
+if (not catalog.itemsIndex or #catalog.itemsIndex == 0) then
+  cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;loading items from server... please hold\n\n')
+  local cmd = matches[1]
+  catalog.load(function()
+    expandAlias(cmd)
+  end)
+  return
+end
 
+if matches[2] == 'help' then
+  cecho('&lt;green&gt;SYNTAX\n')
+  cecho('\n')
+  cecho('&lt;white&gt;tcat&lt;reset&gt;          - View the contents of your catalog\n')
+  cecho('&lt;white&gt;tcat #&lt;reset&gt;        - View the catalog entry specified\n')
+  cecho('&lt;white&gt;tcat &lt;text&gt;&lt;reset&gt;   - Search your catalog for names containing &lt;text&gt;\n')
+  cecho('\n')
+  cecho('&lt;green&gt;SEARCH OPTIONS\n')
+  cecho('\n')
+  cecho('&lt;white&gt;-l #[-#]&lt;reset&gt;               Show items that are level #, or between # and #\n')
+  cecho('&lt;white&gt;-a &lt;stat&gt;&lt;reset&gt;              Show items that affect the stat specified\n')
+  cecho('&lt;white&gt;-a &lt;stat&gt;.lt.#&lt;reset&gt;         Show items that affect the stat specifie by less than #\n')
+  cecho('&lt;white&gt;-a &lt;stat&gt;.gt.#&lt;reset&gt;         Show items that affect the stat specified by more than #\n')
+  cecho('&lt;white&gt;-w &lt;location&gt;&lt;reset&gt;          Show items that are worn in specified location\n')
+  cecho('&lt;white&gt;-w &lt;location&gt;.&lt;layer&gt;&lt;reset&gt;  Show items that are worn in specified location and layer\n')
+  cecho('&lt;white&gt;-p &lt;layer&gt;&lt;reset&gt;             Show items that are worn on specified layer.\n')
+  
+  cecho('&lt;white&gt;-A &lt;alignment&gt;&lt;reset&gt;         Show items that can be used by the alignment specified\n')
+  cecho('&lt;white&gt;-c &lt;class&gt;&lt;reset&gt;             Show items that can be used by the class specified\n')
+  cecho('&lt;white&gt;-g &lt;gender&gt;&lt;reset&gt;            Show items that can be used by the class specified\n')
+  cecho('&lt;white&gt;-r &lt;race&gt;&lt;reset&gt;              Show items that can be used by the race specified\n')
+  
+  -- cecho('-f &lt;flag&gt;     Show items that have the specified anti-flag\n')
+  -- cecho('-r &lt;flag&gt;     Show items that have the specified restriction flag\n')
+  -- cecho('-m &lt;flag&gt;     Show items that have the specified material flag\n')
+  
+  cecho('&lt;white&gt;-t &lt;type&gt;&lt;reset&gt;              Show items that are of the specified type\n')
+  cecho('&lt;white&gt;-W &lt;class&gt;&lt;reset&gt;             Show weapons of the specified weapon class\n')
+  cecho('&lt;white&gt;-d #&lt;reset&gt;                   Show weapons with an average dps of at least #\n')  
+  
+  cecho('\n') 
+  cecho('&lt;green&gt;SEARCH EXAMPLES\n')
+  cecho('\n')
+  
+  cecho('Find all items between levels 1 and 20 that affect hit regen and go on the\n')
+  cecho('body.base slot:\n')
+  cecho('tcat -l 1-20 -a hit_regen -w body.base\n')
+  cecho('\n')
+  
+  
+  cecho('Find all items between levels 1 and 50 that reduce your wisdom\n')
+  cecho('tcat -l 1-50 -a wisdom.lt.0\n')
+  cecho('\n')  
+  -- 
+  cecho('Find all items that go in the hand slot and increase mana_regen for an ogre druid\n')
+  cecho('can wear:\n')
+  cecho('tcat -a mana_regen.gt.0 -w hands -c druid -r ogre\n')
+  cecho('\n')
+  
+  cecho('Find all axe weapons between levels 1 and 40:\n')
+  cecho('tcat -W axe -l 1-40\n')
+  
+  cecho('\n') 
+  cecho('&lt;green&gt;OPTION DETAILS\n') 
+
+  cecho('&lt;white&gt;Affects (-a):&lt;reset&gt; hit_points, hit_regen, mana_points, mana_regen, move_points,\n') 
+  cecho('move_regen, strength, intelligence, wisdom, dexterity, constitution, magic,\n') 
+  cecho('fire, cold, electricity, mind, acid, age, hitroll, damroll\n') 
+  cecho('\n') 
+  
+  cecho('&lt;white&gt;Wear Locations (-w):&lt;reset&gt; finger, neck, body, head, legs, feet, hands, arms, waist,\n') 
+  cecho('wrist, right_hand, left_hand, float_nearby, horse_body, horse_back, horse_foot\n') 
+  cecho('\n') 
+  
+    
+  cecho('&lt;white&gt;Wear Layers (-p):&lt;reset&gt; bottom, under, base, over, top\n') 
+  cecho('\n') 
+-- 
+-- Anti-Flags (-f): anti-human, anti-elf, anti-gnome, anti-dwarf, anti-halfling,
+-- anti-ent, anti-centaur, anti-lizardman, anti-ogre, anti-troll, anti-orc, anti-
+-- goblin, anti-vyan, anti-mage, anti-cleric, anti-thief, anti-warrior, anti-
+-- paladin, anti-ranger, anti-druid, anti-monk, anti-bard, anti-male, anti-
+-- femaile, anti-good, anti-evil, only-good-evil, anti-lawful, anti-chaotic,
+-- only-law-chaos
+
+  cecho('&lt;white&gt;Item Types (-t):&lt;reset&gt; scroll, wand, weapon, armor, potion, key, other\n') 
+  cecho('\n') 
+  
+  cecho('&lt;white&gt;Weapon Classes (-W):&lt;reset&gt; axe, bow, club, dagger, mace, polearm, spear, staff,\n') 
+  cecho('sword, whip, unarmed\n') 
+  
+  
+  cecho('&lt;white&gt;Aligntments (-A):&lt;reset&gt; CE, CG, CN, LE, LG, LN, NE, NG, PN\n') 
+  cecho('\n') 
+  
+  return
+end
+
+local searchString = ' ' .. matches[2]
+
+-- 
+-- {
+  -- Acid = 90,
+  -- ["Anti-Flags"] = { "anti-mage", "anti-cleric", "anti-thief", "anti-bard" },
+  -- ["Armor Class"] = 20,
+  -- ["Base Cost"] = 18000,
+  -- Cold = 99,
+  -- Fire = 99,
+  -- Layer = { "base" },
+  -- Level = 45,
+  -- Materials = { "mithril" },
+  -- Rarity = "very rare",
+  -- ["Unidentified Name"] = "A Pair Of Mithril Plate Cuisses",
+  -- ["Wear Loc."] = { "legs" },
+  -- Weight = 7.2,
+  -- buffer = "                        A Pair Of Mithril Plate Cuisses\n    ...",
+  -- datetime = 1612993408.648,
+  -- itemType = "armor",
+  -- name = "a pair of mithril plate cuisses",
+  -- source = "Shazzul"
+  -- affects = { {
+    -- amount = -1,
+    -- name = "Hitroll",
+    -- type = "property"
+  -- }, {
+    -- amount = -1,
+    -- name = "Damroll",
+    -- type = "property"
+  -- }, {
+    -- amount = 20,
+    -- name = "Mana_points",
+    -- type = "property"
+  -- }, {
+    -- amount = 1,
+    -- name = "Intelligence",
+    -- type = "property"
+  -- }, {
+    -- name = "Is evil.",
+    -- type = "affect"
+  -- }
+  -- },
+-- }
+
+
+local levQuery, levMin, levMax = rex.match(searchString, [[( -l (\d+)-?(\d*))]])
+
+if (levQuery) then
+  searchString = rex.gsub(searchString, levQuery, '')
+  levMin = tonumber(levMin)
+  if (levMax == '') then
+    levMax = levMin
+  else
+    levMax = tonumber(levMax)
+  end
+end
+
+
+local weapQuery, weapType = rex.match(searchString, [[( -W (\w+))]])
+if (weapQuery) then
+  searchString = rex.gsub(searchString, weapQuery, '')
+end
+
+local weapDpsQuery, weapDPS = rex.match(searchString, [[( -d (\d+\.?\d+))]])
+if (weapDpsQuery) then
+  searchString = rex.gsub(searchString, weapDpsQuery, '')
+  weapDPS = tonumber(weapDPS)
+end
+
+local itemTypeQuery, itemType = rex.match(searchString, [[( -t (\w+))]])
+if (itemTypeQuery) then
+  searchString = rex.gsub(searchString, itemTypeQuery, '')
+end
+
+
+local alignQuery, align = rex.match(searchString, [[( -A (\w\w))]])
+if (alignQuery) then
+  searchString = rex.gsub(searchString, alignQuery, '')
+end
+
+local classQuery, charClass = rex.match(searchString, [[( -c (\w+))]])
+if (classQuery) then
+  searchString = rex.gsub(searchString, classQuery, '')
+end
+
+local genderQuery, gender = rex.match(searchString, [[( -g (\w+))]])
+if (genderQuery) then
+  searchString = rex.gsub(searchString, genderQuery, '')
+end
+
+local raceQuery, race = rex.match(searchString, [[( -r (\w+))]])
+if (raceQuery) then
+  searchString = rex.gsub(searchString, raceQuery, '')
+end
+    
+
+local itemLocationQuery, location, layer = rex.match(searchString, [[( -w (\w+)\.?(\w*))]])
+if (itemLocationQuery) then
+  searchString = rex.gsub(searchString, itemLocationQuery, '')
+end
+
+local itemLayerQuery, xlayer = rex.match(searchString, [[( -p (\w+))]])
+if (itemLayerQuery) then
+  layer = xlayer
+  searchString = rex.gsub(searchString, itemLayerQuery, '')
+end
+
+local affectQuery, affect, affectFilterType, affectFilterVal = rex.match(searchString, [[( -a (\w+)\.?(gte|lte|gt|lt|)\.?(-?\d*\.?\d*))]])
+if (affectQuery) then
+  searchString = rex.gsub(searchString, affectQuery, '')
+end
+
+-- display(levQuery, levMin, levMax)
+
+
+-- remove the leading space we added (and any the user added)
+searchString = rex.gsub(searchString, [[^\s+]], '')
+
+
+display('ss: [' .. searchString .. ']')
 
 -- if query has params pass through to the old catalog for now
 
 if (rex.match(searchString, '-')) then
   cecho('\n&lt;orange&gt;TFECAT: &lt;white&gt;catalog query parameters not yet supported...\n\n')
-  send(matches[1], false)
+  -- send(matches[1], false)
   return
 end
 
 
 
-if (rex.match(searchString, '^\d+$')) then
+if (rex.match(searchString, [[^\d+$]])) then
   catalog.displayItem(tonumber(searchString))
   return
 end
 
 -- display(params)
 
-
-local item = catalog.items[catalog.itemsIndex[3407]]
 
 -- 
 -- cecho(demonnic:cfText('Number', {alignment = "left", width = 6, nogap=true}) .. ' ')
@@ -123,18 +338,77 @@ local item = catalog.items[catalog.itemsIndex[3407]]
 -- cecho(demonnic:cfText('Type', {alignment = "left", width = 9, nogap=true}))
 cecho('Number Name                                                Level  Type\n')
 cecho('------ ----                                                -----  ----\n')
+
+local hasAffect = function(item, affect, filterType, filterAmount)
+
+-- affects = { {
+    -- amount = -1,
+    -- name = "Hitroll",
+    -- type = "property"
+  -- }
+  
+  affect = affect:lower()
+  
+  if (filterAmount ~= '') then
+    filterAmount = tonumber(filterAmount)
+  end
+  
+  if (item.affects) then
+    for idx, aff in ipairs(item.affects) do 
+      if (aff.type == 'property' and aff.name:lower() == affect) then
+        if (
+          filterType == '' or  
+          filterAmount == '' or
+          (filterType == 'gt' and aff.amount &gt; filterAmount) or 
+          (filterType == 'gte' and aff.amount &gt;= filterAmount) or 
+          (filterType == 'lt' and aff.amount &lt; filterAmount) or
+          (filterType == 'lte' and aff.amount &lt;= filterAmount) or
+          1 == 0
+        ) then
+          return true
+        end
+      end
+    end
+  end
+  return false
+end   
    
 for idx, item in ipairs(catalog.itemsIndex) do
   data = catalog.items[item]
+  flags = catalog.itemCalculated[item]
   
+  if (
+    (searchString == '' or rex.match(item .. ' ' .. data.name, [[(?i)]] .. searchString)) and
+    (not levQuery or data.Level &lt;= levMax and data.Level &gt;= levMin) and
+    (not weapQuery or (data.itemType == 'weapon' and data.Class == weapType)) and
+    -- weapDpsQuery, weapDPS
+    (not weapDpsQuery or (data.itemType == 'weapon' and data.averageDamage &gt;= weapDPS)) and
+    -- --itemTypeQuery, itemType
+    (not itemTypeQuery or data.itemType == itemType) and
+    -- -- (itemLocationQuery, location, layer  
+    (not itemLocationQuery or table.contains(data["Wear Loc."],location)) and
+    (layer == nil or layer == '' or table.contains(data.Layer,layer)) and
+    -- affectQuery, affect
+    (not affectQuery or hasAffect(data, affect, affectFilterType, affectFilterVal)) and
+    
+    (not alignQuery or flags.charAlignments[align]) and
+    (not classQuery or flags.charClasses[charClass]) and
+    (not genderQuery or flags.charGenders[gender]) and
+    (not raceQuery or flags.charRaces[race]) and
+       -- 
+    -- local alignQuery, align = rex.match(searchString, [[( -A (\w\w))]])
+    -- local classQuery, charClass = rex.match(searchString, [[( -c (\w+))]])
+    -- local genderQuery, gender = rex.match(searchString, [[( -g (\w+))]])
+    -- local raceQuery, race = rex.match(searchString, [[( -r (\w+))]])
 
-  if (searchString == '' or rex.match(item .. ' ' .. data.name, [[(?i)]] .. searchString)) then
+    
+    1 == 1
+  ) then
  
     
     local vnum = '[' .. demonnic:cfText('&lt;green&gt;' .. tostring(idx) .. '&lt;reset&gt;', {alignment="right", width=4, nogap=true}) .. ']'
     
-    cechoLink(vnum, function() catalog.displayItem(idx) end, "display item", true)
-    
+    cechoLink(vnum, function() catalog.displayItem(idx) end, "display item", true)    
     cecho(' ' .. demonnic:cfText(string.sub(data.name, 1, 50), {alignment = "left", width = 50, nogap=true}) .. ' ')
     
     cecho(demonnic:cfText(tostring(data.Level) .. '  ', {alignment = "right", width = 7, nogap=true}) .. ' ')
@@ -161,7 +435,7 @@ end
 </script>
 			<command></command>
 			<packageName></packageName>
-			<regex>^cat (.*)$</regex>
+			<regex>^tcat ?(.*)$</regex>
 		</Alias>
 	</AliasPackage>
 	<ActionPackage />
@@ -592,6 +866,9 @@ catalog.events = catalog.events or {}
 catalog.events.CHECK_PROMPT =  'tfecat: checked yo prompt'
 
 catalog.items = catalog.items or {}
+catalog.itemsIndex = catalog.itemsIndex or {}
+catalog.itemCalculated = catalog.itemCalculated or {}
+
 catalog.summary = catalog.summary or {}
 
 catalog.parsing = false
@@ -609,17 +886,14 @@ end
 catalog.displayItem = function(idx)
   
   local item = catalog.items[catalog.itemsIndex[idx]]
-  -- 
-  -- display(item)
-  -- 
-  -- 
+
   
   cecho('\n\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
   if (item.name:lower() ~= item['Unidentified Name']:lower()) then
     local ts = string.gsub(item.name, "(%a)([%w_']*)", titleCase) 
     local title = demonnic:cfText('&lt;white&gt;' .. ts, {alignment = "center", width = 80, nogap=true})
     cecho(title .. '\n')
-    cecho(demonnic:cfText(rex.gsub(ts, '[^ ]', '-'), {alignment = "center", width = 80, nogap=true}) .. '\n\n')
+    cecho(demonnic:cfText(rex.gsub(ts, '[^ ]', '-'), {alignment = "center", width = 80, nogap=true}) .. '\n')
     
 
   end
@@ -817,6 +1091,133 @@ catalog.load = function(cb)
   
     catalog.items = common.json.decode(catJson)
     catalog.itemsIndex = table.keys(catalog.items)
+    
+    -- process anti flags
+    for idx, item in pairs(catalog.items) do
+    
+      local newFlags = {}
+      
+      newFlags.charAlignments = {
+        LG = true,
+        LN = true,
+        LE = true,
+        NG = true,
+        PN = true,
+        NE = true,
+        CG = true,
+        CN = true,
+        CE = true,
+      }
+
+      newFlags.charRaces = {
+        ogre = true,
+        troll = true,
+        orc = true,
+        vyan = true,
+        goblin = true,
+        human = true,
+        lizardfolk = true,
+        dwarf = true,
+        halfling = true,
+        gnome = true,
+        ent = true,
+        elf = true,
+        centaur = true,
+      }
+
+      newFlags.charClasses = {
+        bard = true,
+        cleric = true,
+        druid = true,
+        mage = true,
+        monk = true,
+        paladin = true,
+        ranger = true,
+        thief = true,
+        warrior = true,
+      }
+
+      newFlags.charGenders = {
+        male = true,
+        female = true,
+      }    
+      
+      -- -- process anti flags
+      if (item["Anti-Flags"]) then
+        
+        for idx, flag in ipairs(item["Anti-Flags"]) do
+        
+          flag = rex.gsub(flag, [[^anti-]], '');
+          flag = rex.gsub(flag, [[^lizardman]], 'lizardfolk');
+          
+          if (newFlags.charRaces[flag]) then
+          
+            newFlags.charRaces[flag] = false
+            
+          elseif (newFlags.charClasses[flag]) then
+            
+            newFlags.charClasses[flag] = false
+            
+          elseif (newFlags.charGenders[flag]) then
+          
+            newFlags.charGenders[flag] = false
+            
+          elseif flag == 'good' then
+          
+            newFlags.charAlignments.LG = false;
+            newFlags.charAlignments.NG = false;
+            newFlags.charAlignments.CG = false;
+           
+          elseif flag == 'evil' then
+          
+            newFlags.charAlignments.LE = false;
+            newFlags.charAlignments.NE = false;
+            newFlags.charAlignments.CE = false;
+            
+          elseif flag == 'lawful' then
+          
+            newFlags.charAlignments.LG = false;
+            newFlags.charAlignments.LN = false;
+            newFlags.charAlignments.LE = false;
+           
+          elseif flag == 'chaotic' then
+          
+            newFlags.charAlignments.CG = false;
+            newFlags.charAlignments.CN = false;
+            newFlags.charAlignments.CE = false;
+           
+          elseif flag == 'only-good-evil' then
+          
+            newFlags.charAlignments.LN = false;
+            newFlags.charAlignments.TN = false;
+            newFlags.charAlignments.CN = false;
+            
+          elseif flag == 'only-law-chaos' then
+          
+            newFlags.charAlignments.NG = false;
+            newFlags.charAlignments.TN = false;
+            newFlags.charAlignments.NE = false;
+            
+          else
+            error('Unknown anti flag! - ' .. flag)
+          end -- flag cases
+        
+        end -- anti flag loop
+        
+      end -- if has anti-flags
+    
+      if (item.Restrictions and table.contains(item.Restrictions, 'bladed')) then
+        newFlags.charClasses.cleric = false;
+        newFlags.charClasses.druid = false;
+      end
+
+      if (item.Restrictions and table.contains(item.Restrictions, 'dishonorable')) then
+        newFlags.charClasses.paladin = false;
+      end
+    
+      catalog.itemCalculated[idx] = newFlags
+      
+    end -- item loop
     
     if (cb) then
       cb(catalog.items)
