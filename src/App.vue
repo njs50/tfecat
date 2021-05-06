@@ -389,7 +389,7 @@ export default Vue.extend({
       "Vyan",
       "Goblin",
       "Human",
-      "Lizardman",
+      "Lizardfolk",
       "Dwarf",
       "Halfling",
       "Gnome",
