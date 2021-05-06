@@ -159,9 +159,10 @@ if matches[2] == 'help' then
   cecho('&lt;green&gt;SEARCH OPTIONS\n')
   cecho('\n')
   cecho('&lt;white&gt;-l #[-#]&lt;reset&gt;               Show items that are level #, or between # and #\n')
-  cecho('&lt;white&gt;-a &lt;stat&gt;&lt;reset&gt;              Show items that affect the stat specified\n')
-  cecho('&lt;white&gt;-a &lt;stat&gt;.lt.#&lt;reset&gt;         Show items that affect the stat specifie by less than #\n')
-  cecho('&lt;white&gt;-a &lt;stat&gt;.gt.#&lt;reset&gt;         Show items that affect the stat specified by more than #\n')
+  cecho('&lt;white&gt;-a &lt;affect&gt;&lt;reset&gt;            Show items with the affect or property specified\n')
+  cecho('&lt;white&gt;-a "&lt;affect&gt;"&lt;reset&gt;          Show items with the affect or property specified\n')
+  cecho('&lt;white&gt;-a &lt;affect&gt;.lt.#&lt;reset&gt;       Show items with the affect specified of less than #\n')
+  cecho('&lt;white&gt;-a &lt;affect&gt;.gt.#&lt;reset&gt;       Show items with the affect specified of more than #\n')
   cecho('&lt;white&gt;-w &lt;location&gt;&lt;reset&gt;          Show items that are worn in specified location\n')
   cecho('&lt;white&gt;-w &lt;location&gt;.&lt;layer&gt;&lt;reset&gt;  Show items that are worn in specified location and layer\n')
   cecho('&lt;white&gt;-p &lt;layer&gt;&lt;reset&gt;             Show items that are worn on specified layer.\n')
@@ -189,17 +190,20 @@ if matches[2] == 'help' then
   cecho('\n')
   
   
-  cecho('Find all items between levels 1 and 50 that reduce your wisdom\n')
+  cecho('Find all items between levels 1 and 50 that reduce your wisdom:\n')
   cecho('tcat -l 1-50 -a wisdom.lt.0\n')
   cecho('\n')  
   -- 
-  cecho('Find all items that go in the hand slot and increase mana_regen for an ogre druid\n')
-  cecho('can wear:\n')
+  cecho('Find all items that go in the hand slot and increase mana_regen for an ogre druid:\n')
   cecho('tcat -a mana_regen.gt.0 -w hands -c druid -r ogre\n')
   cecho('\n')
   
-  cecho('Find all axe weapons between levels 1 and 40:\n')
-  cecho('tcat -W axe -l 1-40\n')
+  cecho('Find all items that grant water breathing:\n')
+  cecho('tcat -a "grants the ability to breathe underwater."\n')
+  cecho('\n')
+  
+  cecho('Find all axe weapons between levels 1 and 40 with a dps of at least 10:\n')
+  cecho('tcat -W axe -l 1-40 -d 10\n')
   
   cecho('\n') 
   cecho('&lt;green&gt;OPTION DETAILS\n') 
@@ -302,7 +306,7 @@ if (weapQuery) then
   searchString = rex.gsub(searchString, weapQuery, '')
 end
 
-local weapDpsQuery, weapDPS = rex.match(searchString, [[( -d (\d+\.?\d+))]])
+local weapDpsQuery, weapDPS = rex.match(searchString, [[( -d (\d+\.?\d*))]])
 if (weapDpsQuery) then
   searchString = rex.gsub(searchString, weapDpsQuery, '')
   weapDPS = tonumber(weapDPS)
@@ -352,10 +356,13 @@ if (useUnIDnameSearch) then
   searchString = rex.gsub(searchString, useUnIDnameSearch, '')
 end
 
-local affectQuery, affect, affectFilterType, affectFilterVal = rex.match(searchString, [[( -a (\w+)\.?(gte|lte|gt|lt|)\.?(-?\d*\.?\d*))]])
+local affectQuery, affect, affectFilterType, affectFilterVal = rex.match(searchString, [[( -a (".+?"|\w+)\.?(gte|lte|gt|lt|)\.?(-?\d*\.?\d*))]])
 if (affectQuery) then
+  affect = rex.gsub(affect, [[^"(.*)"$]], '%1')
   searchString = rex.gsub(searchString, affectQuery, '')
 end
+
+
 
 -- display(levQuery, levMin, levMax)
 
@@ -408,6 +415,12 @@ local hasAffect = function(item, affect, filterType, filterAmount)
   
   if (item.affects) then
     for idx, aff in ipairs(item.affects) do 
+    
+      if (aff.type == 'affect' and aff.name:lower() == affect) then
+        return true
+      end
+    
+    
       if (aff.type == 'property' and aff.name:lower() == affect) then
         if (
           filterType == '' or  
@@ -494,7 +507,7 @@ end
 			<packageName></packageName>
 			<regex>^tcat ?(.*)$</regex>
 		</Alias>
-		<Alias isActive="yes" isFolder="no">
+		<Alias isActive="no" isFolder="no">
 			<name>audit</name>
 			<script>-- common.slots = {
   -- "right hand",
@@ -517,57 +530,126 @@ end
 -- common.layers = { 'bottom', 'under', 'base', 'over', 'top' }
 
 
-  -- co = coroutine.create(function()
-  -- 
-    -- for itemId, itemStub in pairs(items) do 
-    -- 
-      -- -- display(itemId)
-      -- 
-      -- catalog.getItem(itemId, function(item) 
--- 
-        -- 
-        -- item.name = itemStub.name
-        -- item.itemType = itemStub.itemType
-        -- item.datetime = dt
-        -- 
-        -- newItems[item.name] = item
-        -- 
-        -- coroutine.resume(co)
-      -- end)
-      -- 
-      -- coroutine.yield()
-    -- 
-    -- end
-    -- 
-    -- cb(newItems)
-  -- 
-  -- end)
--- 
-  -- coroutine.resume(co)
+catalog.slotConversion = { 
+  ["waist"] = "waist", 
+  ["left hand finger"] = "finger", 
+  ["head"] = "head", 
+  ["neck"] = "neck", 
+  ["right hand"] = "right_hand", 
+  ["left hand"] = "left_hand",
+  ["nearby"] = "float_nearby", 
+  ["body"] = "body", 
+  ["right hand finger"] = "finger", 
+  ["right wrist"] = "wrist", 
+  ["arms"] = "arms", 
+  ["hands"] = "hands", 
+  ["feet"] = "feet", 
+  ["legs"] = "legs", 
+  ["left wrist"] = "wrist", 
+}
 
 
--- catalog.getItemList(function(localCatalog)
+
+  -- sort catalog into slot/layers
+  
+  local getItemsBySlotLayer = function()
+  
+    local slots = {}
+  
+    for idx, item in pairs(catalog.items) do 
+    
+      if item["Wear Loc."] and item["Layer"] then
+        for idx, slot in ipairs(item["Wear Loc."]) do 
+        
+          slot = catalog.slotConversion[slot]
+        
+          for idx, layer in ipairs(item["Layer"]) do
+          
+            slots[slot] = slots[slot] or {}
+            slots[slot][layer] = slots[slot][layer] or {}
+            
+            table.insert(slots[slot][layer], item)
+          
+          end -- layers
+        end -- slots
+      end
+      
+    
+    end
+  
+    return slots
+    
+  end
+  
+  catalog.getSlotLayerItem = function(slot, layer, itemName)
+    
+    local iname = itemName:lower()
+  
+    slot = slotConversion[slot]
+    display(slot)
+  
+    display(slot,layer,iname)
+  
+    for idx, item in catalog.slots[slot][layer] do 
+    
+      if (
+        (item.name and item.name:lower() == iname) or 
+        (item["Unidentified Name"] and item["Unidentified Name"]:lower() == iname)
+      ) then
+        display(item)
+        return item
+      end
+      
+    end
+  
+  end
+
+  catalog.slots = getItemsBySlotLayer()
   
   
   local co
   
   common.onNextEvent(common.events.PARSED_EQUIPMENT, function()
 
+    local failItems = ''
+
     co = coroutine.create(function()
     
       for sidx, slot in ipairs(common.slots) do 
         for lidx, layer in ipairs(common.layers)  do 
+        
+          local itemName = ''
+          local catNum = ''
         
           if player.gear[slot] and player.gear[slot][layer] then
           
             local thisItem = player.gear[slot][layer].item
             
             -- You look at a defiled morningstar of the Dawnstar +3 you are wielding.
-            tempRegexTrigger([[You look at (.*) you are (wearing|wielding)\.$]], function()
-              cecho('\n&lt;green&gt;Blah - ' .. matches[2] .. '\n')
-              tempTimer(1, function()
-                coroutine.resume(co)
+            tempRegexTrigger([[You look at (.*) (floating nearby|you are wearing|you are wielding)\.$]], function()
+              
+              itemName = matches[2]
+              
+              local catNumTrig = tempRegexTrigger([[^\[ This is item (\d+) in your catalog\. \]$]], function()
+                
+                catNum = matches[2]
+                
+                cecho('\n&lt;green&gt;Blah - ' .. itemName .. ' : ' .. tostring(catNum) .. '\n')
+              
+              
               end)
+              
+              tempRegexTrigger([[^&lt;]], function()
+                killTrigger(catNumTrig)
+                
+                if (catNum == '') then
+                 failItems = failItems .. '\n&lt;orange&gt;Missing ID - ' .. itemName .. '\n'
+                 display(catalog.getSlotLayerItem(slot, layer, itemName))
+                end
+                
+                coroutine.resume(co)
+              end, 1)
+
             end, 1)
             
             
@@ -578,6 +660,9 @@ end
         
         end -- loop layers
       end -- loop slots
+    
+      cecho(failItems)
+    
     
     end)
 
