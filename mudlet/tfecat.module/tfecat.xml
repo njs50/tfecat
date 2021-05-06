@@ -311,12 +311,12 @@ end
 searchString = rex.gsub(searchString, [[^\s+]], '')
 
 
-display('ss: [' .. searchString .. ']')
+-- display('ss: [' .. searchString .. ']')
 
 -- if query has params pass through to the old catalog for now
 
 if (rex.match(searchString, '-')) then
-  cecho('\n&lt;orange&gt;TFECAT: &lt;white&gt;catalog query parameters not yet supported...\n\n')
+  cecho('\n&lt;orange&gt;TFECAT: &lt;white&gt;unknown tcat search option...\n\n')
   -- send(matches[1], false)
   return
 end
@@ -1000,24 +1000,6 @@ catalog.export = function(cb)
 
 end
 
-catalog.writeTellDataToDiff = function(cb)
-  
-  if (tellData and tellData.result) then
-        
-    local filepath = getMudletHomeDir().."/catalog_dif.json"
-    local file = io.open(filepath,"w")
-    file:write(tellData.result)
-    file:close()
-    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; data from tells written to ' .. filepath .. '\n\n')   
-    if (cb) then
-      cb()
-    end
-
-  else
-    cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; have not recieved any data in a tell yet!\n\n')
-  end
-
-end
 
 
 catalog.mergeDiff = function(cb)
