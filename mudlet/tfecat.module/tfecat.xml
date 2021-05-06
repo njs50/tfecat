@@ -202,6 +202,7 @@ if matches[2] == 'help' then
   
   cecho('\n') 
   cecho('&lt;green&gt;OPTION DETAILS\n') 
+  cecho('\n') 
 
   cecho('&lt;white&gt;Affects (-a):&lt;reset&gt; hit_points, hit_regen, mana_points, mana_regen, move_points,\n') 
   cecho('move_regen, strength, intelligence, wisdom, dexterity, constitution, magic,\n') 
@@ -228,7 +229,7 @@ if matches[2] == 'help' then
   
   cecho('&lt;white&gt;Weapon Classes (-W):&lt;reset&gt; axe, bow, club, dagger, mace, polearm, spear, staff,\n') 
   cecho('sword, whip, unarmed\n') 
-  
+  cecho('\n') 
   
   cecho('&lt;white&gt;Aligntments (-A):&lt;reset&gt; CE, CG, CN, LE, LG, LN, NE, NG, PN\n') 
   cecho('\n') 
