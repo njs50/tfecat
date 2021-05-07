@@ -1126,7 +1126,7 @@ catalog.displayItem = function(idx)
   
   local item = catalog.items[catalog.itemsIndex[idx]]
 
-  display(item)
+  -- display(item)
   
   cecho('\n\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
   if (item.name:lower() ~= item['Unidentified Name']:lower()) then
