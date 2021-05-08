@@ -435,7 +435,7 @@ if matches[2] == ' help' or matches[2] == '' then
   cecho('&lt;white&gt;-w &lt;location&gt;&lt;reset&gt;          Only check items in the specified location\n')
   cecho('&lt;white&gt;-w &lt;location&gt;.&lt;layer&gt;&lt;reset&gt;  Only check items in the specified location and layer\n')
   cecho('&lt;white&gt;-p &lt;layer&gt;&lt;reset&gt;             Only check items in the specified layer.\n')
-  
+  cecho('&lt;white&gt;--verbose&lt;layer&gt;&lt;reset&gt;       Show slots even where upgrades are not found.\n')
  
   cecho('\n') 
   cecho('&lt;green&gt;EXAMPLES\n')
@@ -519,6 +519,10 @@ if (affectQuery) then
   searchString = rex.gsub(searchString, affectQuery, '')
 end
 
+local verboseQuery = rex.match(searchString, [[( --verbose)]])
+if (verboseQuery) then
+  searchString = rex.gsub(searchString, verboseQuery, '')
+end
 
 if (not affect or affect == '') then
   cecho('\n&lt;red&gt;TFECAT: &lt;white&gt;an affect must be specified with tcat-audit -a to perform an audit\n\n')
@@ -535,7 +539,7 @@ common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
 
   local failItems = ''
 
-    cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; audit results\n')
+    cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; audit results for ' .. affect .. '\n')
   
   
 
@@ -570,30 +574,25 @@ common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       
         local amt = 0
         local emptySlot = false
+        local slotMessage = ''
+        local tcatItem
       
-        cecho('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']') 
+        
       
         if catalog.player.gear[slot] and catalog.player.gear[slot][layer] then
         
           local thisItem = catalog.player.gear[slot][layer].raw
-          
-          
-          local tcatItem = catalog.getSlotLayerItem(slot, layer, thisItem)
-          
-          
+          tcatItem = catalog.getSlotLayerItem(slot, layer, thisItem)
+                    
           if (not tcatItem) then
-            cecho('&lt;orange&gt; Unable to locate item in catalog - ' .. thisItem .. '\n')
+            slotMessage = '&lt;orange&gt;Unable to locate item in catalog - ' .. thisItem 
           else              
-            
-            cecho('&lt;green&gt;\n')
             amt = catalog.getAffectVal(tcatItem, affect)
-            displayItem(tcatItem.catalogIndex, true)
           end
           
         else 
-          cecho('&lt;yellow&gt; nothing equipped\n')
+          slotMessage = '&lt;yellow&gt;nothing equipped'
           emptySlot = true
-          
         end -- end if this slot has an item...
         
 
@@ -603,22 +602,29 @@ common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
           cmd = cmd .. ' -a ' .. affect .. '.gt.' .. tostring(amt)
         end
         
-        
-        
         local results = catalog.search(cmd)
         
-        if emptySlot and #results == 0 then
-          cecho('No ' .. affect .. ' items available, ') 
-          cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
-          cechoLink('&lt;white&gt;see all items&lt;reset&gt;', function() expandAlias(cmd) end, "show items for " .. slot .. '.' .. layer, true)
-          cecho('\n')
+        if (verboseQuery or #results &gt; 0) then
+          
+          cecho('\n&lt;white&gt;[' .. slot .. '.' .. layer .. '] ' .. slotMessage .. '\n') 
+          
+          if (tcatItem) then
+            displayItem(tcatItem.catalogIndex, true)
+          end        
+          
+          if emptySlot and #results == 0 then
+            cecho('No ' .. affect .. ' items available, ') 
+            cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
+            cechoLink('&lt;white&gt;see all items&lt;reset&gt;', function() expandAlias(cmd) end, "show items for " .. slot .. '.' .. layer, true)
+            cecho('\n')
+          end
+  
+  
+          for zidx, idx in ipairs(results) do
+            displayItem(idx)
+          end
+          
         end
-
-
-        for zidx, idx in ipairs(results) do
-          displayItem(idx)
-        end
-
       
       end -- loop layers
     end -- loop slots
@@ -1913,7 +1919,9 @@ catalog.slotConversion = {
   ["head"] = "head", 
   ["neck"] = "neck", 
   ["right hand"] = "right_hand", 
+  ["right_hand"] = "right_hand", 
   ["left hand"] = "left_hand",
+  ["left_hand"] = "left_hand",
   ["nearby"] = "float_nearby", 
   ["float_nearby"] = "float_nearby", 
   ["body"] = "body", 
@@ -1926,6 +1934,9 @@ catalog.slotConversion = {
   ["legs"] = "legs", 
   ["left wrist"] = "wrist", 
   ["wrist"] = "wrist", 
+  ["horse_body"] = "horse_body", 
+  ["horse_foot"] = "horse_foot", 
+  ["horse_back"] = "horse_back", 
 }
 
 
@@ -1981,9 +1992,13 @@ catalog.getItemsBySlotLayer = function()
     
       for idx, slot in ipairs(item["Wear Loc."]) do 
       
+        -- think a slot may have been remaned at some point?
+        -- we can correct that here if it's the case
+        slot = catalog.slotConversion[slot]
         
-        -- display(slot)
-        -- if not slot then display(item) end
+        if (not slot) then
+          cecho('&lt;red&gt;wtf: ' .. oslot .. '\n\n')
+        end
         
           for idx, layer in ipairs(item["Layer"]) do
           
@@ -2083,10 +2098,6 @@ catalog.getSlotLayerItem = function(slot, layer, itemName)
     end
     
   end    
-  
-  
-  
-
   
   
 
@@ -2268,7 +2279,7 @@ end
       -- --itemTypeQuery, itemType
       (not itemTypeQuery or data.itemType == itemType) and
       -- -- (itemLocationQuery, location, layer  
-      (not itemLocationQuery or table.contains(data["Wear Loc."],location)) and
+      (not itemLocationQuery or table.contains(data["Wear Loc."],catalog.slotConversion[location])) and
       (layer == nil or layer == '' or table.contains(data.Layer,layer)) and
       -- affectQuery, affect
       (not affectQuery or hasAffect(data, affect, affectFilterType, affectFilterVal)) and
