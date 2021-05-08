@@ -507,8 +507,140 @@ end
 			<packageName></packageName>
 			<regex>^tcat ?(.*)$</regex>
 		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>audit - from eq list (short names)</name>
+			<script>-- common.slots = {
+  -- "right hand",
+  -- "left hand",
+  -- "left hand finger",
+  -- "right hand finger",
+  -- "right wrist",
+  -- "left wrist",
+  -- "head",
+  -- "body",
+  -- "nearby",
+  -- "arms",
+  -- "hands",
+  -- "feet",
+  -- "legs",
+  -- "waist",
+  -- "neck"
+-- }
+
+
+
+-- common.layers = { 'bottom', 'under', 'base', 'over', 'top' }
+  
+  local searchString = matches[2]
+  
+  local slots = common.slots
+  local layers = common.layers
+
+  local itemLocationQuery, location, layer = rex.match(searchString, [[( -w (\w+)\.?(\w*))]])
+  if (itemLocationQuery) then
+    if table.contains(slots, location) then
+      slots = { location }
+    end
+    if table.contains(layers, layer) then
+      layers = { layer }
+    end
+    searchString = rex.gsub(searchString, itemLocationQuery, '')
+  end
+  
+  local itemLayerQuery, xlayer = rex.match(searchString, [[( -p (\w+))]])
+  if (itemLayerQuery) then
+    if table.contains(layers, xlayer) then
+      layers = { xlayer }
+    end
+    searchString = rex.gsub(searchString, itemLayerQuery, '')
+  end 
+  
+  local affectQuery, affect = rex.match(searchString, [[( -a (".+?"|\w+))]])
+  if (affectQuery) then
+    affect = rex.gsub(affect, [[^"(.*)"$]], '%1')
+    searchString = rex.gsub(searchString, affectQuery, '')
+  end
+  
+  
+  
+  local co
+  
+
+  
+  
+  
+  common.onNextEvent(common.events.PARSED_EQUIPMENT, function()
+
+    local failItems = ''
+
+    -- co = coroutine.create(function()
+    
+      cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; currently wearing:\n')
+    
+      for sidx, slot in ipairs(slots) do 
+        for lidx, layer in ipairs(layers)  do 
+        
+          local itemName = ''
+          local catNum = ''
+          local amt = 0
+        
+          cecho('&lt;green&gt;[' .. slot .. '.' .. layer .. '] &lt;white&gt;') 
+        
+          if player.gear[slot] and player.gear[slot][layer] then
+          
+            local thisItem = player.gear[slot][layer].raw
+            
+            -- display(thisItem)
+            
+            local tcatItem = catalog.getSlotLayerItem(slot, layer, thisItem)
+            
+            
+            
+            if (not tcatItem) then
+              cecho('&lt;orange&gt;T Unable to locate item in catalog - ' .. thisItem .. '\n')
+            else              
+            
+              cecho(tcatItem.name)
+              
+              if (affect) then
+                amt = catalog.getAffectVal(tcatItem, affect)
+                cecho(' : ' .. affect .. ' is ' .. tostring(amt))
+              end
+              
+              cecho( '\n')
+            end
+            
+          end -- end if this slot has an item...
+          
+          local cmd = 'tcat -w ' .. slot .. '.' .. layer .. '  -c ' .. gmcp.Char.Score.class .. 
+                      ' -l 1-' .. tostring(gmcp.Char.Score.level)
+          if (affect) then            
+            cmd = cmd .. ' -a ' .. affect .. '.gt.' .. tostring(amt)
+          end
+          
+          cecho('\n') 
+          expandAlias(cmd, false)
+        
+        end -- loop layers
+      end -- loop slots
+      
+     
+    
+    -- 
+    -- end)
+-- 
+    -- coroutine.resume(co)
+  
+	end)
+  send('equipment')
+  
+-- end, {checkEverything = true})</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^gear-audit( ?.*)$</regex>
+		</Alias>
 		<Alias isActive="no" isFolder="no">
-			<name>audit</name>
+			<name>audit - looking at each item</name>
 			<script>-- common.slots = {
   -- "right hand",
   -- "left hand",
@@ -528,83 +660,37 @@ end
 -- }
 -- 
 -- common.layers = { 'bottom', 'under', 'base', 'over', 'top' }
-
-
-catalog.slotConversion = { 
-  ["waist"] = "waist", 
-  ["left hand finger"] = "finger", 
-  ["head"] = "head", 
-  ["neck"] = "neck", 
-  ["right hand"] = "right_hand", 
-  ["left hand"] = "left_hand",
-  ["nearby"] = "float_nearby", 
-  ["body"] = "body", 
-  ["right hand finger"] = "finger", 
-  ["right wrist"] = "wrist", 
-  ["arms"] = "arms", 
-  ["hands"] = "hands", 
-  ["feet"] = "feet", 
-  ["legs"] = "legs", 
-  ["left wrist"] = "wrist", 
-}
-
-
-
-  -- sort catalog into slot/layers
   
-  local getItemsBySlotLayer = function()
+  local searchString = matches[2]
   
-    local slots = {}
-  
-    for idx, item in pairs(catalog.items) do 
-    
-      if item["Wear Loc."] and item["Layer"] then
-        for idx, slot in ipairs(item["Wear Loc."]) do 
-        
-          slot = catalog.slotConversion[slot]
-        
-          for idx, layer in ipairs(item["Layer"]) do
-          
-            slots[slot] = slots[slot] or {}
-            slots[slot][layer] = slots[slot][layer] or {}
-            
-            table.insert(slots[slot][layer], item)
-          
-          end -- layers
-        end -- slots
-      end
-      
-    
+  local slots = common.slots
+  local layers = common.layers
+
+  local itemLocationQuery, location, layer = rex.match(searchString, [[( -w (\w+)\.?(\w*))]])
+  if (itemLocationQuery) then
+    if table.contains(slots, location) then
+      slots = { location }
     end
-  
-    return slots
-    
+    if table.contains(layers, layer) then
+      layers = { layer }
+    end
+    searchString = rex.gsub(searchString, itemLocationQuery, '')
   end
   
-  catalog.getSlotLayerItem = function(slot, layer, itemName)
-    
-    local iname = itemName:lower()
-  
-    slot = slotConversion[slot]
-    display(slot)
-  
-    display(slot,layer,iname)
-  
-    for idx, item in catalog.slots[slot][layer] do 
-    
-      if (
-        (item.name and item.name:lower() == iname) or 
-        (item["Unidentified Name"] and item["Unidentified Name"]:lower() == iname)
-      ) then
-        display(item)
-        return item
-      end
-      
+  local itemLayerQuery, xlayer = rex.match(searchString, [[( -p (\w+))]])
+  if (itemLayerQuery) then
+    if table.contains(layers, xlayer) then
+      layers = { xlayer }
     end
+    searchString = rex.gsub(searchString, itemLayerQuery, '')
+  end 
   
+  local affectQuery, affect = rex.match(searchString, [[( -a (".+?"|\w+))]])
+  if (affectQuery) then
+    affect = rex.gsub(affect, [[^"(.*)"$]], '%1')
+    searchString = rex.gsub(searchString, affectQuery, '')
   end
-
-  catalog.slots = getItemsBySlotLayer()
+  
   
   
   local co
@@ -615,8 +701,8 @@ catalog.slotConversion = {
 
     co = coroutine.create(function()
     
-      for sidx, slot in ipairs(common.slots) do 
-        for lidx, layer in ipairs(common.layers)  do 
+      for sidx, slot in ipairs(slots) do 
+        for lidx, layer in ipairs(layers)  do 
         
           local itemName = ''
           local catNum = ''
@@ -626,7 +712,7 @@ catalog.slotConversion = {
             local thisItem = player.gear[slot][layer].item
             
             -- You look at a defiled morningstar of the Dawnstar +3 you are wielding.
-            tempRegexTrigger([[You look at (.*) (floating nearby|you are wearing|you are wielding)\.$]], function()
+            tempRegexTrigger([[You look at (.*) (floating nearby|you are wearing|you are wielding|you are carrying|you are holding)\.$]], function()
               
               itemName = matches[2]
               
@@ -643,8 +729,18 @@ catalog.slotConversion = {
                 killTrigger(catNumTrig)
                 
                 if (catNum == '') then
-                 failItems = failItems .. '\n&lt;orange&gt;Missing ID - ' .. itemName .. '\n'
-                 display(catalog.getSlotLayerItem(slot, layer, itemName))
+                 
+                 
+                 local tcatItem = catalog.getSlotLayerItem(slot, layer, itemName)
+                 
+                 if (not tcatItem) then
+                   failItems = failItems .. '\n&lt;orange&gt;TFECAT:&lt;white&gt; Unable to locate item in catalog - ' .. itemName .. '\n'
+                 else
+                  cecho('\n&lt;green&gt;tcat - ' .. itemName .. ' : ' .. tcatItem.name .. '\n')
+                 end
+                 
+                 
+                 
                 end
                 
                 coroutine.resume(co)
@@ -654,6 +750,7 @@ catalog.slotConversion = {
             
             
             send('look ' .. common.itemShorten(thisItem))
+            
             coroutine.yield()
           
           end
@@ -674,7 +771,7 @@ catalog.slotConversion = {
 -- end, {checkEverything = true})</script>
 			<command></command>
 			<packageName></packageName>
-			<regex>^gear-audit$</regex>
+			<regex>^gear-audit( ?.*)$</regex>
 		</Alias>
 	</AliasPackage>
 	<ActionPackage />
@@ -1921,6 +2018,200 @@ catalog.getItem = function(itemId, cb)
   send('catalog -b ' .. tostring(itemId))
 
 end</script>
+				<eventHandlerList />
+			</Script>
+			<Script isActive="yes" isFolder="no">
+				<name>audit</name>
+				<packageName></packageName>
+				<script>
+catalog = catalog or {}
+
+catalog.slotConversion = { 
+  ["waist"] = "waist", 
+  ["left hand finger"] = "finger", 
+  ["head"] = "head", 
+  ["neck"] = "neck", 
+  ["right hand"] = "right_hand", 
+  ["left hand"] = "left_hand",
+  ["nearby"] = "float_nearby", 
+  ["float_nearby"] = "float_nearby", 
+  ["body"] = "body", 
+  ["right hand finger"] = "finger", 
+  ["finger"] = "finger", 
+  ["right wrist"] = "wrist", 
+  ["arms"] = "arms", 
+  ["hands"] = "hands", 
+  ["feet"] = "feet", 
+  ["legs"] = "legs", 
+  ["left wrist"] = "wrist", 
+  ["wrist"] = "wrist", 
+}
+
+
+
+
+  catalog.getAffectVal = function(item, affect)
+
+    affect = affect:lower()
+
+    local amt = 0
+    
+    if (item.affects) then
+          
+      -- count standing regen from int as well
+      if (affect == 'mana_regen') then
+        local plusVal = catalog.getAffectVal(item, 'Intelligence')
+        -- display(item.name, plusVal)
+        amt = amt + (plusVal * 0.2)
+      end
+
+    
+      for idx, aff in ipairs(item.affects) do 
+      
+        if (aff.type == 'affect' and aff.name:lower() == affect) then
+          return 1
+        end
+      
+        if (aff.type == 'property' and aff.name:lower() == affect) then
+        
+          amt = amt + aff.amount
+          
+          return amt
+        end
+        
+      end -- affect loop
+      
+    end -- if affects
+    
+    
+    
+    return amt
+    
+  end   
+
+  -- sort catalog into slot/layers
+  
+  catalog.getItemsBySlotLayer = function()
+  
+    local slots = {}
+    
+    for idx, item in pairs(catalog.items) do 
+    
+      if item["Wear Loc."] and #item["Wear Loc."] and item["Layer"] and #item["Layer"] then
+      
+        for idx, slot in ipairs(item["Wear Loc."]) do 
+        
+          
+          -- display(slot)
+          -- if not slot then display(item) end
+          
+            for idx, layer in ipairs(item["Layer"]) do
+            
+                slots[slot] = slots[slot] or {}
+                slots[slot][layer] = slots[slot][layer] or {}
+                table.insert(slots[slot][layer], item)
+              
+            end -- layers
+          
+        end -- slots
+        
+      end
+      
+    
+    end
+  
+    return slots
+    
+  end
+  
+  
+  catalog.sanitizeItemName = function(itemName)
+    
+    itemName = rex.gsub(itemName,[[^an enchanted ([aeiou])]], 'an %1')
+    itemName = rex.gsub(itemName,[[^an enchanted]], 'a')
+    itemName = rex.gsub(itemName,[[of enchanted]], 'of')
+    itemName = rex.gsub(itemName,[[^enchanted ]], '')
+    itemName = rex.gsub(itemName, [[(a|an)? ?(.*) labeled .*$]], 'an empty %2')
+  
+-- Missing ID - an enchanted journeyman's astrolabe
+-- Missing ID - an enchanted eldrich bracelet
+
+-- Missing ID - a pair of enchanted herbal anklets
+
+-- Missing ID - a feather-patterned white leather sack labeled meat
+    return itemName
+  end
+  
+  
+  catalog.getSlotLayerItem = function(slot, layer, itemName)
+    
+    local iname = catalog.sanitizeItemName(itemName:lower())
+    
+    slot = catalog.slotConversion[slot]
+  
+    -- display('iname is',iname)
+  
+    for idx, item in pairs(catalog.slots[slot][layer]) do 
+      -- display(item.name)
+      local thisIn = item.name or ''
+      local thisUn = item["Unidentified Name"] or ''
+      thisIn = thisIn:lower()
+      thisUn = thisUn:lower()
+      
+      if (
+        (thisIn == iname) or 
+        (thisUn == iname) or
+        (thisIn == 'a ' .. iname) or 
+        (thisIn == 'an ' .. iname) or
+        (thisIn == 'a pair of ' .. iname) or
+        (thisIn == 'a set of ' .. iname) or
+        (thisUn == 'a ' .. iname) or 
+        (thisUn == 'an ' .. iname) or
+        (thisUn == 'a pair of ' .. iname) or
+        (thisUn == 'a set of ' .. iname)
+        
+      ) then
+        -- display(item)
+        return item
+      end
+      
+    end
+    
+        
+    if (rex.match(iname, [[^an empty]])) then
+      return catalog.getSlotLayerItem(slot, layer, rex.gsub(iname, [[^an empty ]], 'a closed '))
+    end
+    
+    -- try partial matches if nothing found
+    display('trying partial match for: ' .. iname)
+  
+    for idx, item in pairs(catalog.slots[slot][layer]) do 
+      
+      local thisIn = item.name or ''
+      local thisUn = item["Unidentified Name"] or ''
+      thisIn = thisIn:lower()
+      thisUn = thisUn:lower()    
+    
+      if (
+        (rex.match(thisIn, iname .. '$')) or
+        (rex.match(thisUn, iname .. '$'))
+      ) then
+        -- display(item)
+        return item
+      end
+      
+    end    
+    
+    
+    
+
+    
+    
+  
+  end
+
+  catalog.slots = catalog.getItemsBySlotLayer()
+  </script>
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
