@@ -338,10 +338,15 @@ if matches[2] == ' help' then
   cecho('tcat -a "grants the ability to breathe underwater."\n')
   cecho('\n')
   
+  cecho('look for swords a thief can backstab with:\n')
+  cecho('tcat -W sword -a "Useful for backstabbing." -c thief\n')
+  cecho('\n')  
+    
   cecho('Find all axe weapons between levels 1 and 40 with a dps of at least 10:\n')
   cecho('tcat -W axe -l 1-40 -d 10\n')
-  
   cecho('\n') 
+  
+  
   cecho('&lt;green&gt;OPTION DETAILS\n') 
   cecho('\n') 
 
@@ -469,11 +474,6 @@ if matches[2] == ' help' or matches[2] == '' then
   cecho('tcat-audit -a intelligence -w head\n')
   cecho('\n')  
   
-  cecho('look for swords a thief can backstab with:\n')
-  cecho('tcat -W sword -a "Useful for backstabbing." -c thief\n')
-  cecho('\n')  
-  
-  
   
   cecho('&lt;green&gt;OPTION DETAILS\n') 
   cecho('\n') 
@@ -528,7 +528,6 @@ if (itemLocationQuery) then
     else
       slots = { location }
     end
-    display(slots)
   end
   if table.contains(layers, layer) then
     layers = { layer }
