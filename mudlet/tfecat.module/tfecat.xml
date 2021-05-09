@@ -142,23 +142,26 @@ end
 			</regexCodePropertyList>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="yes" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>identity part</name>
-				<script>catalog.player = catalog.player or {}
-catalog.player.identity = catalog.player.identity or {}
+				<script>if #matches == 12 then
+  
+  catalog.player = catalog.player or {}
+  catalog.player.identity = catalog.player.identity or {}
 
-local id = catalog.player.identity
+  
+  local id = catalog.player.identity
+  
+  id[matches[2]] = matches[3]
+  id[matches[6]] = matches[7]
+  id[matches[10]] = matches[11]
+  
+  
+  if (matches[2] == 'Height') then
+    id.longAlignment = id.Alignment
+    id.Alignment = rex.gsub(id.longAlignment,[[^(\w).+ (\w).+$]], '%1%2'):upper()
+    raiseEvent(catalog.events.PARSED_IDENTITY)
+  end
 
-id[matches[2]] = matches[3]
-id[matches[6]] = matches[7]
-id[matches[10]] = matches[11]
-
-
-if (matches[2] == 'Height') then
-  id.longAlignment = id.Alignment
-  id.Alignment = rex.gsub(id.longAlignment,[[^(\w).+ (\w).+$]], '%1%2'):upper()
-  raiseEvent(catalog.events.PARSED_IDENTITY)
-end
-
-</script>
+end</script>
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
 				<mStayOpen>0</mStayOpen>
