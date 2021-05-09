@@ -377,38 +377,48 @@ local searchString = matches[2]
 
 local results = catalog.search(searchString)
 
+if (#results == 0) then
 
-
-cecho('Number Name                                                Level  Type\n')
-cecho('------ ----                                                -----  ----\n')
+  cecho('\n&lt;red&gt;TFECAT:&lt;white&gt; no items found\n\n')
   
+elseif (#results == 1) then
 
-for zidx, idx in ipairs(results) do
+  catalog.displayItem(results[1])
 
-  local item = catalog.itemsIndex[idx]
-  local data = catalog.items[item]
-
-  local vnum = '[' .. demonnic:cfText('&lt;green&gt;' .. tostring(idx) .. '&lt;reset&gt;', {alignment="right", width=4, nogap=true}) .. ']'
+else
   
-  cechoLink(vnum, function() catalog.displayItem(idx) end, "display item", true)
-  if (useUnIDnameSearch) then
-    cecho(' ' .. demonnic:cfText(string.sub(data['Unidentified Name'], 1, 50), {alignment = "left", width = 50, nogap=true}) .. ' ')
-  else    
-    cecho(' ' .. demonnic:cfText(string.sub(data.name, 1, 50), {alignment = "left", width = 50, nogap=true}) .. '')
+  cecho('Number Name                                                Level  Type\n')
+  cecho('------ ----                                                -----  ----\n')
+    
+  
+  for zidx, idx in ipairs(results) do
+  
+    local item = catalog.itemsIndex[idx]
+    local data = catalog.items[item]
+  
+    local vnum = '[' .. demonnic:cfText('&lt;green&gt;' .. tostring(idx) .. '&lt;reset&gt;', {alignment="right", width=4, nogap=true}) .. ']'
+    
+    cechoLink(vnum, function() catalog.displayItem(idx) end, "display item", true)
+    if (useUnIDnameSearch) then
+      cecho(' ' .. demonnic:cfText(string.sub(data['Unidentified Name'], 1, 50), {alignment = "left", width = 50, nogap=true}) .. ' ')
+    else    
+      cecho(' ' .. demonnic:cfText(string.sub(data.name, 1, 50), {alignment = "left", width = 50, nogap=true}) .. '')
+    end
+    
+    cecho(demonnic:cfText(tostring(data.Level) .. '  ', {alignment = "right", width = 8, nogap=true}) .. ' ')
+    cecho(demonnic:cfText(tostring(data.itemType), {alignment = "left", width = 8, nogap=true}) .. ' ')    
+    
+    if (data.itemType == 'weapon') then
+      cecho(string.format("%.1f", data.averageDamage or 0) .. ' dps' .. ' (' .. data.Class .. ')')
+    end
+    
+    if (data.itemType == 'armor') then
+      cecho('AC: ' .. tostring(data["Armor Class"]))
+    end
+    
+    cecho('\n')
+    
   end
-  
-  cecho(demonnic:cfText(tostring(data.Level) .. '  ', {alignment = "right", width = 8, nogap=true}) .. ' ')
-  cecho(demonnic:cfText(tostring(data.itemType), {alignment = "left", width = 8, nogap=true}) .. ' ')    
-  
-  if (data.itemType == 'weapon') then
-    cecho(string.format("%.1f", data.averageDamage or 0) .. ' dps' .. ' (' .. data.Class .. ')')
-  end
-  
-  if (data.itemType == 'armor') then
-    cecho('AC: ' .. tostring(data["Armor Class"]))
-  end
-  
-  cecho('\n')
   
 end
 </script>
@@ -2210,8 +2220,7 @@ end
   
   
   if (rex.match(searchString, [[^\d+$]])) then
-    catalog.displayItem(tonumber(searchString))
-    return
+    return {tonumber(searchString)}
   end
   
   -- display(params)
