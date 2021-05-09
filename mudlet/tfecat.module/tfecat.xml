@@ -445,7 +445,7 @@ if matches[2] == ' help' or matches[2] == '' then
   cecho('&lt;white&gt;-w &lt;location&gt;&lt;reset&gt;          Only check items in the specified location\n')
   cecho('&lt;white&gt;-w &lt;location&gt;.&lt;layer&gt;&lt;reset&gt;  Only check items in the specified location and layer\n')
   cecho('&lt;white&gt;-p &lt;layer&gt;&lt;reset&gt;             Only check items in the specified layer.\n')
-  cecho('&lt;white&gt;--verbose&lt;layer&gt;&lt;reset&gt;       Show slots even where upgrades are not found.\n')
+  cecho('&lt;white&gt;--verbose&lt;reset&gt;              Show slots even where upgrades are not found.\n')
  
   cecho('\n') 
   cecho('&lt;green&gt;EXAMPLES\n')
@@ -616,7 +616,10 @@ common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         
         if (verboseQuery or #results &gt; 0) then
           
-          cecho('\n&lt;white&gt;[' .. slot .. '.' .. layer .. '] ' .. slotMessage .. '\n') 
+          cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
+          cechoLink('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']&lt;reset&gt; ', function() expandAlias(cmd) end, "show all usable items for " .. slot .. '.' .. layer, true)
+          
+          cecho(slotMessage .. '\n') 
           
           if (tcatItem) then
             displayItem(tcatItem.catalogIndex, true)
