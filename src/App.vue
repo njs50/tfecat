@@ -1,3 +1,5 @@
+
+
 <template>
 
   <v-app id="tfecat">
@@ -5,10 +7,62 @@
     <v-app-bar :clipped-left="true" app>
       <v-icon>mdi-cat</v-icon>
       <v-toolbar-title>TFE Items</v-toolbar-title>
+      <v-spacer></v-spacer>
+
+      <v-dialog
+        max-width="900"
+        v-model="isInstallModalVisible"
+      >
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn 
+            color="primary" 
+            dark
+            v-bind="attrs"
+            v-on="on"
+          >
+            Install
+          </v-btn>
+        </template>
+
+        <v-card>
+          <v-card-title>
+            Installing mudlet package:
+          </v-card-title>
+
+          <v-card-text>
+            To install the tfecat mudlet package for the first time copy and paste the following into your mudlet input bar:
+            <v-text-field
+              ref="installInput"
+              append-icon="mdi-content-copy"
+              readonly
+              @click:append="copyInstall"
+              v-model='installCode'
+            ></v-text-field>
+          </v-card-text>
+
+          <v-divider></v-divider>
+
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn
+              color="primary"
+              @click="isInstallModalVisible = false"
+            >
+              Done
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+
+      </v-dialog>
+
+      
+      
     </v-app-bar>
 
     <v-content>
+
       <v-container fluid>
+
         <v-expansion-panels>
           <v-expansion-panel>
             <v-expansion-panel-header>Filter Items</v-expansion-panel-header>
@@ -119,10 +173,11 @@
         <v-dialog
           v-model="showSelectedItem"
           max-width="900"
+          v-if="selectedItem"
         >
-          <v-card v-if="selectedItem" class="pa-5" width="auto">
+          <v-card class="pa-5" width="auto">
 
-            <v-btn icon @click.stop="showSelectedItem = false" class="float-right">
+             <v-btn icon @click.stop="showSelectedItem = false" class="float-right">
               <v-icon>mdi-close</v-icon>
             </v-btn>
 
@@ -158,8 +213,16 @@
           </v-card>
         </v-dialog>
 
+    
+    
+
+
+
       </v-container>
     </v-content>
+
+
+
 
     <!-- <v-footer :inset="footer.inset" app>
       <span class="px-4">&copy; {{ new Date().getFullYear() }}</span>
@@ -169,13 +232,13 @@
 
 <script lang="ts">
 import Vue from "vue";
-// import HelloWorld from './components/HelloWorld.vue';
+
 
 export default Vue.extend({
   name: "App",
 
   components: {
-    // HelloWorld,
+    
   },
 
   mounted() {
@@ -309,6 +372,9 @@ export default Vue.extend({
 
   data: () => ({
 
+    isInstallModalVisible: false,
+    installCode: `lua local a="https://github.com/njs50/tfecat/raw/master/mudlet/tfecat.module/tfecat.xml"local b,c local d=function(e)cecho('\n<green>TFECAT: <white>package '..e..'!\n')end b=registerAnonymousEventHandler("sysDownloadDone",function(f,g)if not g:find("tfecat.xml",1,true)then return end killAnonymousEventHandler(b)d('downloaded')installPackage(g)os.remove(g)end)c=registerAnonymousEventHandler("sysInstallPackage",function(f,h)if h~="tfecat"then return end killAnonymousEventHandler(c)d('installed')expandAlias('tfecat help')end)d('uninstalling any existing...')uninstallPackage('tfecat')tempTimer(5,function()d('downloading...')downloadFile(getMudletHomeDir().."/tfecat.xml",a..'?_='..tostring(getEpoch))end)`,
+
     searchText: "",
 
     levelRange: [0, 90],
@@ -431,7 +497,19 @@ export default Vue.extend({
       this.$data.selectedItem = item;
       this.$data.showSelectedItem = true;
       console.info('item selected', item)
-    }
+    },
+    showInstallModal() {
+      this.isInstallModalVisible = true;
+    },
+    closeInstallModal() {
+      this.isInstallModalVisible = false;
+    },
+    copyInstall() {
+      const input = this.$refs.installInput as HTMLElement;
+      input.focus();
+      document.execCommand('selectAll');
+      document.execCommand('copy');
+    },
   }
 });
 </script>

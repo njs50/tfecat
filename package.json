@@ -23,7 +23,7 @@
     "@vue/cli-plugin-eslint": "~4.4.0",
     "@vue/cli-plugin-typescript": "~4.4.0",
     "@vue/cli-plugin-vuex": "~4.4.0",
-    "@vue/cli-service": "~4.4.0",
+    "@vue/cli-service": "^3.0.5",
     "@vue/eslint-config-typescript": "^5.0.2",
     "axios": "^0.21.1",
     "core-js": "^3.6.5",
@@ -50,7 +50,6 @@
     },
     "extends": [
       "plugin:vue/essential",
-      "eslint:recommended",
       "@vue/typescript/recommended"
     ],
     "parserOptions": {
