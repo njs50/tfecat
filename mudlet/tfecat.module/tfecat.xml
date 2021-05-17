@@ -79,7 +79,7 @@ else
 		player.gear.currentSlot = rex.gsub(matches[2], [[^(floating|worn on|worn around|worn about) ]], "", 1)
 	end
 
-	local item = common.itemSanitize(matches[4])
+	local item = catalog.common.itemSanitize(matches[4])
 
 	player.gear[player.gear.currentSlot] = player.gear[player.gear.currentSlot] or {}
 	player.gear[player.gear.currentSlot][matches[3]] = {item = item, raw = matches[4], condition = matches[5] }
@@ -508,8 +508,8 @@ end
 
 local searchString = matches[2]
 
-local slots = common.slots
-local layers = common.layers
+local slots = catalog.common.slots
+local layers = catalog.common.layers
 
 local itemLocationQuery, location, layer = rex.match(searchString, [[( -w (\w+)\.?(\w*))]])
 if (itemLocationQuery) then
@@ -579,7 +579,7 @@ end
 -- display('weapon 2h/oh', usingTwoHandedWeapon, usingOffHandWeapon)
 
 
-common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
+catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
 
   local baseQuery = ' -c ' .. gmcp.Char.Score.class .. ' -l 1-' .. tostring(gmcp.Char.Score.level) ..
                     ' -g ' .. catalog.player.identity.Sex .. ' -r ' .. tostring(catalog.player.identity.Race) .. 
@@ -765,7 +765,8 @@ send('queue identity &amp; queue equipment')
 --                                             --
 -- Note that you can also use external scripts --
 -------------------------------------------------
-common = common or {}
+catalog = catalog or {}
+catalog.common = catalog.common or {}
 
 --
 -- json.lua
@@ -1166,7 +1167,7 @@ function json.decode(str)
 end
 
 
-common.json = json</script>
+catalog.common.json = json</script>
 				<eventHandlerList />
 			</Script>
 			<Script isActive="yes" isFolder="no">
@@ -1299,7 +1300,7 @@ catalog.export = function(cb)
       if (newItems &gt; 0) then
         local filepath = getMudletHomeDir().."/catalog_dif.json"
         local file = io.open(filepath,"w")
-        file:write(common.json.encode(items))
+        file:write(catalog.catalog.common.json.encode(items))
         file:close()
         cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
       else
@@ -1334,7 +1335,7 @@ catalog.mergeDiff = function(cb)
       io.close(file) 
     end  
     
-    local diffItems = common.json.decode(catJson)
+    local diffItems = catalog.catalog.common.json.decode(catJson)
     
     local diffCount = 0
     
@@ -1350,7 +1351,7 @@ catalog.mergeDiff = function(cb)
     if (diffCount &gt; 0) then
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(diffCount) .. ' new items added to catalog\n\n')
       local outfile = io.open(outputFile,"w")
-      outfile:write(common.json.encode(publicCatalog))
+      outfile:write(catalog.catalog.common.json.encode(publicCatalog))
       outfile:close()
     else
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to merge to catalog!\n\n')
@@ -1387,7 +1388,7 @@ catalog.load = function(cb)
     os.remove(filename)
   
   
-    catalog.items = common.json.decode(catJson)
+    catalog.items = catalog.common.json.decode(catJson)
     catalog.itemsIndex = table.keys(catalog.items)
     
     
@@ -1561,7 +1562,7 @@ catalog.loadFile = function(src, cb)
     os.remove(filename)
 
     if (cb) then
-      cb(common.json.decode(catJson))
+      cb(catalog.common.json.decode(catJson))
     end
 
   end)
@@ -2011,10 +2012,11 @@ end</script>
 				<packageName></packageName>
 				<script>
 catalog = catalog or {}
-
 catalog.player = catalog.player or {}
-
 catalog.player.gear = catalog.player.gear or {}
+
+
+
 
 
 catalog.slotConversion = { 
@@ -2220,7 +2222,8 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>search</name>
 				<packageName></packageName>
-				<script>catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
+				<script>
+catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
 
   
   affect = affect:lower()
@@ -3530,9 +3533,10 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>scripts from njs50-common</name>
 				<packageName></packageName>
-				<script>common = common or {}
+				<script>catalog = catalog or {}
+catalog.common = catalog.common or {}
 
-common.onNextEvent = function (evt, callback)
+catalog.common.onNextEvent = function (evt, callback)
 
 	if not evt then
 
@@ -3564,7 +3568,7 @@ common.onNextEvent = function (evt, callback)
 end
 
 
-common.slots = {
+catalog.common.slots = {
   "right hand",
   "left hand",
   "left hand finger",
@@ -3582,16 +3586,16 @@ common.slots = {
   "neck"
 }
 
-common.layers = { 'bottom', 'under', 'base', 'over', 'top' }
+catalog.common.layers = { 'bottom', 'under', 'base', 'over', 'top' }
 
 
 -- can add items to override from shortening if they mess up gear swapping
-common.itemShortenOverride = common.itemShortenOverride or {}
-common.itemShortenOverride['darkgem'] = 'darkgem'
-common.itemShortenOverride['darklight'] = 'darklight'
-common.itemShortenOverride['shadowbox'] = 'shadowbox'
+catalog.common.itemShortenOverride = catalog.common.itemShortenOverride or {}
+catalog.common.itemShortenOverride['darkgem'] = 'darkgem'
+catalog.common.itemShortenOverride['darklight'] = 'darklight'
+catalog.common.itemShortenOverride['shadowbox'] = 'shadowbox'
 
-common.dotCase = function(string)
+catalog.common.dotCase = function(string)
 
 	if (not string or string == '') then
 		return ''
@@ -3600,7 +3604,7 @@ common.dotCase = function(string)
 end
 
 
-common.itemSanitize = function(string)
+catalog.common.itemSanitize = function(string)
 
 	if (not string or string == '') then
 		return ''
@@ -3619,12 +3623,12 @@ common.itemSanitize = function(string)
 end
 
 
-common.itemShorten = function(item)
+catalog.common.itemShorten = function(item)
 
-  item = common.dotCase(common.itemSanitize(item))
+  item = catalog.common.dotCase(catalog.common.itemSanitize(item))
   
-  if (common.itemShortenOverride[item]) then
-    return common.itemShortenOverride[item]
+  if (catalog.common.itemShortenOverride[item]) then
+    return catalog.common.itemShortenOverride[item]
   else
   
     return rex.gsub(	rex.gsub(item,"'(.*)'",'%1'),
