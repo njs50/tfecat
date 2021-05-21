@@ -1296,11 +1296,13 @@ catalog.export = function(cb)
       
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt;loaded ' .. tostring(#table.keys(publicCatalog)) .. ' items from github!\n\n')
       
+      
+      
       local newItems = #table.keys(items)
       if (newItems &gt; 0) then
         local filepath = getMudletHomeDir().."/catalog_dif.json"
         local file = io.open(filepath,"w")
-        file:write(catalog.catalog.common.json.encode(items))
+        file:write(catalog.common.json.encode(items))
         file:close()
         cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
       else
@@ -1335,7 +1337,7 @@ catalog.mergeDiff = function(cb)
       io.close(file) 
     end  
     
-    local diffItems = catalog.catalog.common.json.decode(catJson)
+    local diffItems = catalog.common.json.decode(catJson)
     
     local diffCount = 0
     
@@ -1351,7 +1353,7 @@ catalog.mergeDiff = function(cb)
     if (diffCount &gt; 0) then
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(diffCount) .. ' new items added to catalog\n\n')
       local outfile = io.open(outputFile,"w")
-      outfile:write(catalog.catalog.common.json.encode(publicCatalog))
+      outfile:write(catalog.common.json.encode(publicCatalog))
       outfile:close()
     else
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to merge to catalog!\n\n')
