@@ -1198,10 +1198,53 @@ local titleCase = function(first, rest )
 end
 
 
+catalog.getItemAllowedFlags = function(flags)
+  
+  local filterFn = function(key, val)
+    if (val) then
+      return true
+    end
+    return false
+  end
+  
+  local getRestrictions = function(flags, field)
+    
+    local maxAllowed = #table.keys(flags[field])
+    
+    local allowed = table.keys(table.collect(flags[field], filterFn))
+    
+    -- display(field, maxAllowed, allowed)
+    
+    if #allowed == maxAllowed then
+      return nil
+    else
+      return allowed
+    end
+  
+  end
+
+  local allowedFlags = {
+    alignment = getRestrictions(flags, 'charAlignments'),
+    class = getRestrictions(flags, 'charClasses'),
+    gender = getRestrictions(flags, 'charGenders'),
+    race = getRestrictions(flags, 'charRaces'),
+    hasRestrictions = false
+  }
+  
+  if (allowedFlags.alignment  or allowedFlags.class or allowedFlags.gender or allowedFlags.race) then
+    allowedFlags.hasRestrictions = true
+  end
+  
+  
+  return allowedFlags
+end
+
 
 catalog.displayItem = function(idx)
   
   local item = catalog.items[catalog.itemsIndex[idx]]
+  local flags = catalog.getItemAllowedFlags(catalog.itemCalculated[idx])
+
 
   -- display(item)
   
@@ -1216,10 +1259,33 @@ catalog.displayItem = function(idx)
   end
   cecho(item.buffer)
   cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
-  -- cecho('Identified: ' .. item.name .. '\n')
-  -- cecho('Source: ' .. item.source .. '\n')
-  -- cecho('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
-  -- 
+  
+  local hasAdditionalInfo = true
+  
+  if (flags.hasRestrictions or item.averageDamage) then
+    hasAdditionalInfo = true
+  end
+  
+  if (item.averageDamage) then
+    cecho('\n  Average Damage: ' .. tostring(item.averageDamage) .. '\n' )
+  end
+  
+  if (flags.hasRestrictions) then
+    
+    cecho('\n       Usable by:\n')
+    for idx, key in ipairs({'alignment', 'class', 'gender', 'race'}) do
+      if (flags[key]) then
+        cecho(demonnic:cfText('&lt;reset&gt;' .. key .. ': ', {alignment = "right", width = 18, nogap=true}) .. table.concat(flags[key], ', ') .. '\n')
+      end
+    end
+
+  end
+  
+  if (hasAdditionalInfo) then
+    cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
+  end
+  
+  
 end
 
 
