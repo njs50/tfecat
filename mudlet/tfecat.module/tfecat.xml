@@ -586,6 +586,8 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
                     ' -A ' .. catalog.player.identity.Alignment
 
   local failItems = ''
+  
+  local gearTotal = 0
 
   cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; audit results for ' .. affect .. '\n')
 
@@ -633,8 +635,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       local includeAverageDamage = false
     
       -- display(slot, layer)
-    
-    
+
       local amt = 0
       local emptySlot = false
       local slotMessage = ''
@@ -700,6 +701,9 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         end
         
         -- display('cmd: ' .. cmd)
+        if (tcatItem) then
+          gearTotal = gearTotal + catalog.getAffectVal(tcatItem, affect)
+        end  
         
         local results = catalog.search(cmd)
         
@@ -733,7 +737,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
     end -- loop layers
   end -- loop slots
     
-   
+  cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; total ' .. affect .. ' equipped is ' .. tostring(gearTotal) .. '\n') 
 
 end)
 send('queue identity &amp; queue equipment')
