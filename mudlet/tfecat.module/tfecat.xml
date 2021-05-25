@@ -2259,6 +2259,14 @@ catalog.getSlotLayerItem = function(slot, layer, itemName)
     return catalog.getSlotLayerItem(slot, layer, rex.gsub(iname, [[^an empty ]], 'a closed '))
   end
   
+  
+  -- try sanitized name if still no luck (gets rid of flaming etc)
+  local siname = catalog.common.itemSanitize(iname)
+  if (siname ~= iname) then
+    return catalog.getSlotLayerItem(slot, layer, siname)
+  end
+  
+  
   -- try partial matches if nothing found
   -- display('trying partial match for: ' .. iname)
 
@@ -2280,7 +2288,6 @@ catalog.getSlotLayerItem = function(slot, layer, itemName)
   end    
   
   
-
 end
 
 
