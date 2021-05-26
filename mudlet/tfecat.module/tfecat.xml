@@ -191,6 +191,10 @@ end</script>
     catalog.export()
   end,
  
+  ['generate-full'] = function()
+    catalog.export(nil, true)
+  end,
+ 
  
   transmit = function()
     -- if  (player and player ~= '') then
@@ -266,7 +270,7 @@ else
 end</script>
 			<command></command>
 			<packageName></packageName>
-			<regex>^tfecat ?(\w*) ?(.*)$</regex>
+			<regex>^tfecat ?(\S*) ?(.*)$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
 			<name>tfecat search (tcat)</name>
@@ -1358,17 +1362,25 @@ end
 
 
 
-catalog.export = function(cb)
+catalog.export = function(cb, fullExport)
+
+  local options = {}
+  
+  if fullExport then
+    options.checkEverything = true
+  end
+  
+  display('opts', options)
+
 
   catalog.load( function(publicCatalog)
     
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt;loaded ' .. tostring(#table.keys(publicCatalog)) .. ' items from github!\n\n')
+    
     catalog.getAllItems(function(items)
-      
-      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt;loaded ' .. tostring(#table.keys(publicCatalog)) .. ' items from github!\n\n')
-      
-      
-      
+
       local newItems = #table.keys(items)
+      
       if (newItems &gt; 0) then
         local filepath = getMudletHomeDir().."/catalog_dif.json"
         local file = io.open(filepath,"w")
@@ -1383,7 +1395,7 @@ catalog.export = function(cb)
         cb(items)
       end
             
-    end)
+    end, options)
     
   end)
 
@@ -1769,8 +1781,8 @@ catalog.resetColors = function(cb)
 end
 
 
-catalog.getAllItems = function(cb)
-  
+catalog.getAllItems = function(cb, options)
+ 
   catalog.setColors(function()
     
     catalog.getItemList(function(itemList)
@@ -1783,7 +1795,7 @@ catalog.getAllItems = function(cb)
         
       end)
 
-    end)
+    end, options)
     
   end)
 
