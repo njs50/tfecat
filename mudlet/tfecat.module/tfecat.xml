@@ -2100,7 +2100,33 @@ catalog.player = catalog.player or {}
 catalog.player.gear = catalog.player.gear or {}
 
 
+catalog.isWearing = function(item)
+  
+  if (type(item) == 'table') then
+  
+    local wearing = falset
+    
+    for idx, item in ipairs(item) do
+      wearing = wearing or catalog.isWearing(item)
+    end
+    
+    return wearing
+    
+  else
+      
+    for slot, layers in pairs(catalog.player.gear) do
+      for layer, itemRecord in pairs(layers) do
+        if (itemRecord.item == item) then
+          return true
+        end
+      end
+    end
+    
+    return false
+    
+  end
 
+end
 
 
 catalog.slotConversion = { 
@@ -2234,17 +2260,13 @@ catalog.sanitizeItemName = function(itemName)
   return itemName
 end
 
+catalog.findItem = function(itemName, items) 
 
-catalog.getSlotLayerItem = function(slot, layer, itemName)
-
+  items = items or catalog.items
+ 
   local iname = catalog.sanitizeItemName(itemName:lower())
-  
-  slot = catalog.slotConversion[slot]
-  
-  catalog.slots[slot] = catalog.slots[slot] or {}
-  catalog.slots[slot][layer] = catalog.slots[slot][layer] or {}
 
-  for idx, item in pairs(catalog.slots[slot][layer]) do 
+  for idx, item in pairs(items) do 
     -- display(item.name)
     local thisIn = item.name or ''
     local thisUn = item["Unidentified Name"] or ''
@@ -2272,21 +2294,21 @@ catalog.getSlotLayerItem = function(slot, layer, itemName)
   
       
   if (rex.match(iname, [[^an empty]])) then
-    return catalog.getSlotLayerItem(slot, layer, rex.gsub(iname, [[^an empty ]], 'a closed '))
+    return catalog.findItem(rex.gsub(iname, [[^an empty ]], 'a closed '), items)
   end
   
   
   -- try sanitized name if still no luck (gets rid of flaming etc)
   local siname = catalog.common.itemSanitize(iname)
   if (siname ~= iname) then
-    return catalog.getSlotLayerItem(slot, layer, siname)
+    return catalog.findItem(siname, items)
   end
   
   
   -- try partial matches if nothing found
   -- display('trying partial match for: ' .. iname)
 
-  for idx, item in pairs(catalog.slots[slot][layer]) do 
+  for idx, item in pairs(items) do 
     
     local thisIn = item.name or ''
     local thisUn = item["Unidentified Name"] or ''
@@ -2302,7 +2324,17 @@ catalog.getSlotLayerItem = function(slot, layer, itemName)
     end
     
   end    
+end
+
+
+catalog.getSlotLayerItem = function(slot, layer, itemName)
+ 
+  slot = catalog.slotConversion[slot]
   
+  catalog.slots[slot] = catalog.slots[slot] or {}
+  catalog.slots[slot][layer] = catalog.slots[slot][layer] or {}
+
+  return catalog.findItem(itemName, catalog.slots[slot][layer])
   
 end
 
