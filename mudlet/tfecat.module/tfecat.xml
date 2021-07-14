@@ -1199,6 +1199,15 @@ catalog.parsing = false
 
 catalog.serverUrl = 'http://vault-thirteen.net:49160' 
 
+local itemVersion = 1.0
+
+local affectMissingDot = {
+  ["Grants Haste"] = true,
+  ["Can provide occasional hardiness"] = true,
+  ["Grants displacement"] = true,
+  ["Grants divine protection"] = true,
+}
+
 
 
 local titleCase = function(first, rest )
@@ -1960,17 +1969,18 @@ catalog.getItem = function(itemId, cb)
         else
         
           local aff = rex.gsub(matches[1], [[^\s+]], '')
-          
-           local affectMissingDot = {
-              ["Grants Haste"] = true,
-            }
-    
+
           -- handle affects that are split over two lines (no . on the end of em :p)
           if (#item.affects &gt; 0) then
 
             local lastItem = item.affects[#item.affects]
             
-            if not affectMissingDot[lastIte] and rex.match(lastItem, [[[^.]$]]) then
+            if (affectMissingDot[lastIte]) then
+              cecho('&lt;-- broken affect ' .. lastItem .. '\n')
+              lastItem = lastItem .. '.'
+            end
+
+            if not rex.match(lastItem, [[[^.]$]]) then
               lastItem = lastItem .. ' ' .. aff
               item.affects[#item.affects] = lastItem
             else 
@@ -1982,7 +1992,6 @@ catalog.getItem = function(itemId, cb)
         end
         
       end
-      
       
       if (item.parsingEnding) then
       
@@ -2052,6 +2061,8 @@ catalog.getItem = function(itemId, cb)
         item.buffer = joinString(item.buffer, '\n')
         
         item.source = gmcp.Char.Score.account
+        item.sourceDT = getEpoch()
+        item.itemVersion = itemVersion
         
         cb(item)      
       
@@ -3735,7 +3746,7 @@ catalog.common.itemSanitize = function(string)
 
 
 
-	string = rex.gsub(string, [[(enchanted |empty, |flaming, frost-covered |flaming |labeled |empty |\s\+\d)]], '')
+	string = rex.gsub(string, [[(\+evil\+ |\+good\+ |enchanted |empty, |flaming, frost-covered |flaming |labeled |empty |\s\+\d)]], '')
 
   if (string ~= 'frost-covered ring') then
     string = rex.gsub(string, [[frost-covered ]], '')
