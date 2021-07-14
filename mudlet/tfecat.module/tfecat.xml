@@ -1874,7 +1874,12 @@ catalog.getItemList = function(cb, options)
     
     temptrigs.catEntryCatcher = tempRegexTrigger([[^\[\s*(\d+)\]\s*(.+?)\s+(\d+)\s+(\S+)]], function ()
       
-      if (options.checkEverything or not catalog.items[matches[3]]) then
+      -- check to see if this is a new item
+      if (options.checkEverything or 
+          not catalog.items[matches[3]] or 
+          not catalog.items[matches[3]].itemVersion or
+          catalog.items[matches[3]].itemVersion &lt; itemVersion
+      ) then
         cecho(' &lt;-- &lt;green&gt;CATALOG: &lt;white&gt;new item\n')
         items[matches[2]] = {
           name = matches[3],
