@@ -192,7 +192,7 @@ end</script>
   end,
  
   ['generate-full'] = function()
-    catalog.export(nil, true)
+    catalog.export(nil, {checkEverything = true})
   end,
  
  
@@ -233,6 +233,10 @@ end</script>
     catalog.showDiff()
   end,
   
+  refreshItem = function(item)
+    item = catalog.items[catalog.itemsIndex[tonumber(item)]]
+    catalog.export(nil, {checkEverything = true, searchText = item.name})
+  end,
   
   update = function()
     catalog.install()
@@ -389,6 +393,11 @@ end
 
 local searchString = matches[2]
 
+local rawQuery = rex.match(searchString, [[( --raw)]])
+if (rawQuery) then
+  searchString = rex.gsub(searchString, rawQuery, '')
+end  
+
 local results = catalog.search(searchString)
 
 if (#results == 0) then
@@ -397,7 +406,11 @@ if (#results == 0) then
   
 elseif (#results == 1) then
 
-  catalog.displayItem(results[1])
+  if (rawQuery) then
+    display(catalog.items[catalog.itemsIndex[results[1]]])
+  else
+    catalog.displayItem(results[1])
+  end
 
 else
   
@@ -1371,15 +1384,12 @@ end
 
 
 
-catalog.export = function(cb, fullExport)
+catalog.export = function(cb, options)
 
-  local options = {}
+  local options = options or {}
   
-  if fullExport then
-    options.checkEverything = true
-  end
   
-  display('opts', options)
+  -- display('opts', options)
 
 
   catalog.load( function(publicCatalog)
@@ -1902,7 +1912,11 @@ catalog.getItemList = function(cb, options)
   
   end, 1)
   
-  send('catalog')
+  if (options.searchText) then
+    send('catalog ' .. options.searchText)
+  else
+    send('catalog')
+  end
 
 end
 
@@ -1966,30 +1980,32 @@ catalog.getItem = function(itemId, cb)
         
       
       -- catch affects
+      
       if (item.matchAffects) then
         
         item.affects = item.affects or {}
+        
         if matches[1] == '' then
           item.matchAffects = nil
         else
         
           local aff = rex.gsub(matches[1], [[^\s+]], '')
-
+            
+          if (affectMissingDot[aff]) then
+            cecho(' &lt;red&gt;&lt;-- broken affect: &lt;white&gt;' .. aff .. '\n')
+            aff = aff .. '.'
+          end
+            
           -- handle affects that are split over two lines (no . on the end of em :p)
           if (#item.affects &gt; 0) then
 
             local lastItem = item.affects[#item.affects]
-            
-            if (affectMissingDot[lastIte]) then
-              cecho('&lt;-- broken affect ' .. lastItem .. '\n')
-              lastItem = lastItem .. '.'
-            end
-
-            if not rex.match(lastItem, [[[^.]$]]) then
+     
+            if rex.match(lastItem, [[\.$]]) then
+              table.insert(item.affects, aff)
+            else
               lastItem = lastItem .. ' ' .. aff
               item.affects[#item.affects] = lastItem
-            else 
-             table.insert(item.affects, aff)
             end
           else
             table.insert(item.affects, aff)
