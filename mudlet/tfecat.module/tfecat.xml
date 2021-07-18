@@ -1212,7 +1212,7 @@ catalog.parsing = false
 
 catalog.serverUrl = 'http://vault-thirteen.net:49160' 
 
-local itemVersion = 1.0
+local itemVersion = 1.1
 
 local affectMissingDot = {
   ["Grants Haste"] = true,
