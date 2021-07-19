@@ -1732,9 +1732,10 @@ catalog.showDiff = function()
           st:addRow({itemData.source, item, '&lt;green&gt;added'})
         end
        
-        if (published[item] and published[item].source ~= itemData.source) then
+        if (published[item] and published[item].datetime ~= itemData.datetime) then
           st:addRow({itemData.source, item, '&lt;red&gt;updated ' .. published[item].source})
         end
+       
        
         
       end
