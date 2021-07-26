@@ -3751,6 +3751,9 @@ catalog.common.itemShortenOverride['darkgem'] = 'darkgem'
 catalog.common.itemShortenOverride['darklight'] = 'darklight'
 catalog.common.itemShortenOverride['shadowbox'] = 'shadowbox'
 
+-- bung keywords on item
+common.itemShortenOverride['orange headband'] = 'orange.strip'
+
 catalog.common.dotCase = function(string)
 
 	if (not string or string == '') then
