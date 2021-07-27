@@ -58,21 +58,21 @@ player.itemSlot = player.itemSlot or {}
 if (matches[2] == 'Equipment') then
 	-- start of parsing
 
-	player.gear.parsing = true
 	player.gear = {}
+  player.gear.parsing = true
 	-- cecho(' &lt;--- parsing start')
 
-elseif (matches[2] == 'Weight') then
+  -- end on next prompt
+  tempRegexTrigger([[^&lt;]], function()
+    	-- end of parsing
+    	player.gear.parsing = nil
+    	player.gear.currentSlot = nil
+    
+    	raiseEvent(catalog.events.PARSED_EQUIPMENT)
+    	-- cecho(' &lt; --- parsing end')  
+  end, 1)
 
-	-- end of parsing
-	player.gear.parsing = nil
-	player.gear.currentSlot = nil
-
-	raiseEvent(catalog.events.PARSED_EQUIPMENT)
-	-- cecho(' &lt; --- parsing end')
-	-- display(player.gear)
-
-else
+elseif player.gear.parsing then
 
  	-- if this line has a slot, get rid of the redundant part and set it to be the current slot
 	if (matches[2] ~= '') then
@@ -104,11 +104,9 @@ end
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
 				<string>^\s+ \+\+\+ (Equipment) \+\+\+</string>
-				<string>^(Weight):</string>
 				<string>^(.*?)\s+(bottom|under|base|over|top)\s+(.*?)\s+(worthless|damaged|very worn|worn|very scratch|scratched|reasonable|good|very good|excellent|perfect)</string>
 			</regexCodeList>
 			<regexCodePropertyList>
-				<integer>1</integer>
 				<integer>1</integer>
 				<integer>1</integer>
 			</regexCodePropertyList>
