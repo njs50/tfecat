@@ -3750,7 +3750,7 @@ catalog.common.itemShortenOverride['darklight'] = 'darklight'
 catalog.common.itemShortenOverride['shadowbox'] = 'shadowbox'
 
 -- bung keywords on item
-common.itemShortenOverride['orange headband'] = 'orange.strip'
+catalog.common.itemShortenOverride['orange headband'] = 'orange.strip'
 
 catalog.common.dotCase = function(string)
 
@@ -3766,7 +3766,6 @@ catalog.common.itemSanitize = function(string)
 	if (not string or string == '') then
 		return ''
 	end
-
 
 
 	string = rex.gsub(string, [[(\+evil\+ |\+good\+ |enchanted |empty, |flaming, frost-covered |flaming |labeled |empty |\s\+\d)]], '')
