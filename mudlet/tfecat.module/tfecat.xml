@@ -59,33 +59,34 @@ if (matches[2] == 'Equipment') then
 	-- start of parsing
 
 	player.gear = {}
-  player.gear.parsing = true
+  player.itemSlot = {}
+  
+  player.gearParsing = true
 	-- cecho(' &lt;--- parsing start')
 
   -- end on next prompt
   tempRegexTrigger([[^&lt;]], function()
     	-- end of parsing
-    	player.gear.parsing = nil
-    	player.gear.currentSlot = nil
+    	player.gearParsing = nil
+    	player.gearCurrentSlot = nil
     
     	raiseEvent(catalog.events.PARSED_EQUIPMENT)
     	-- cecho(' &lt; --- parsing end')  
   end, 1)
 
-elseif player.gear.parsing then
+elseif player.gearParsing then
 
  	-- if this line has a slot, get rid of the redundant part and set it to be the current slot
 	if (matches[2] ~= '') then
-		player.gear.currentSlot = rex.gsub(matches[2], [[^(floating|worn on|worn around|worn about) ]], "", 1)
+		player.gearCurrentSlot = rex.gsub(matches[2], [[^(floating|worn on|worn around|worn about) ]], "", 1)
 	end
 
 	local item = catalog.common.itemSanitize(matches[4])
 
-	player.gear[player.gear.currentSlot] = player.gear[player.gear.currentSlot] or {}
-	player.gear[player.gear.currentSlot][matches[3]] = {item = item, raw = matches[4], condition = matches[5] }
+	player.gear[player.gearCurrentSlot] = player.gear[player.gearCurrentSlot] or {}
+	player.gear[player.gearCurrentSlot][matches[3]] = {item = item, raw = matches[4], condition = matches[5] }
 
-	player.itemSlot[item] = {slot=player.gear.currentSlot, layer=matches[3]}
-	-- cecho(' &lt;--- its some gear ')
+	player.itemSlot[item] = {slot=player.gearCurrentSlot, layer=matches[3]}
 
 end
 
