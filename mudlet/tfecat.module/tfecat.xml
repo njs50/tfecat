@@ -471,6 +471,7 @@ if matches[2] == ' help' or matches[2] == '' then
   cecho('&lt;white&gt;-w &lt;location&gt;.&lt;layer&gt;&lt;reset&gt;  Only check items in the specified location and layer\n')
   cecho('&lt;white&gt;-p &lt;layer&gt;&lt;reset&gt;             Only check items in the specified layer.\n')
   cecho('&lt;white&gt;--verbose&lt;reset&gt;              Show slots even where upgrades are not found.\n')
+  cecho('&lt;white&gt;--sidegrades&lt;reset&gt;           Show possible sidegrades.\n')
  
   cecho('\n') 
   cecho('&lt;green&gt;EXAMPLES\n')
@@ -481,8 +482,8 @@ if matches[2] == ' help' or matches[2] == '' then
   cecho('\n')
   
     
-  cecho('Look for damroll items:\n')
-  cecho('tcat-audit -a damroll\n')
+  cecho('Look for damroll items (including items with the same damroll as what is currently equipped):\n')
+  cecho('tcat-audit -a damroll --sidegrades\n')
   cecho('\n')
   
   
@@ -570,6 +571,11 @@ if (verboseQuery) then
   searchString = rex.gsub(searchString, verboseQuery, '')
 end
 
+local sidegradeQuery = rex.match(searchString, [[( --sidegrade)]])
+if (sidegradeQuery) then
+  searchString = rex.gsub(searchString, sidegradeQuery, '')
+end
+
 if (not affect or affect == '') then
   cecho('\n&lt;red&gt;TFECAT: &lt;white&gt;an affect must be specified with tcat-audit -a to perform an audit\n\n')
   return
@@ -655,7 +661,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       local amt = 0
       local emptySlot = false
       local slotMessage = ''
-      local tcatItem
+      local tcatItem, tcatItemAltSide, isAltItemAdditive
       
       local cmd = baseQuery .. ' -w ' .. catalog.slotConversion[slot] .. '.' .. layer
       
@@ -708,12 +714,14 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
           slotMessage = '&lt;yellow&gt;nothing equipped'
           emptySlot = true
         end -- end if this slot has an item...
+
         
-        
-        
-        
-        if (affect) then            
-          cmd = cmd .. ' -a ' .. affect .. '.gt.' .. tostring(amt)
+        if (affect) then 
+          if (sidegradeQuery) then
+            cmd = cmd .. ' -a ' .. affect .. '.gte.' .. tostring(amt)
+          else           
+            cmd = cmd .. ' -a ' .. affect .. '.gt.' .. tostring(amt)
+          end
         end
         
         -- display('cmd: ' .. cmd)
@@ -723,7 +731,50 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         
         local results = catalog.search(cmd)
         
+        -- remove any duplicate items from results where affects are not additive.
+        -- ie bracers etc that you can only wear one of
+          
+        local altSlotIdx  
+          
+        if (#results &gt; 0 and rex.find(slot, [[^(left|right) ]]) == 1) then
+ 
+          if slot:find('left') then
+            altSlot = slot:gsub('left', 'right')
+          else
+            altSlot = slot:gsub('right', 'left')
+          end
+          
+          if catalog.player.gear[altSlot] and catalog.player.gear[altSlot][layer] then      
+            local altItem = catalog.player.gear[altSlot][layer].raw
+            tcatItemAltSide = catalog.getSlotLayerItem(altSlot, layer,  altItem)
+            isAltItemAdditive = catalog.hasAffect(tcatItemAltSide, 'Effects are additive.')
+          end
+          
+        
+          
+          -- non additive item on alt side, remove it if it's in the results
+          if (tcatItemAltSide and isAltItemAdditive == false) then
+            for idx = #results, 1, -1 do
+              if (results[idx] == tcatItemAltSide.catalogIndex) then
+                table.remove(results, idx)
+              end      
+            end
+          end
+       
+        end
+        
+        -- remove any identical items from results (in case we are looking for sidegrades)
+        if (sidegradeQuery) then
+          for idx = #results, 1, -1 do
+            if (results[idx] == tcatItem.catalogIndex) then
+              table.remove(results, idx)
+            end      
+          end        
+        end
+        
         if (verboseQuery or #results &gt; 0) then
+          
+          
           
           cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
           cechoLink('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']&lt;reset&gt; ', function() expandAlias(cmd) end, "show all usable items for " .. slot .. '.' .. layer, true)
