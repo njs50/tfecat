@@ -571,7 +571,7 @@ if (verboseQuery) then
   searchString = rex.gsub(searchString, verboseQuery, '')
 end
 
-local sidegradeQuery = rex.match(searchString, [[( --sidegrade)]])
+local sidegradeQuery = rex.match(searchString, [[( --sidegrades)]])
 if (sidegradeQuery) then
   searchString = rex.gsub(searchString, sidegradeQuery, '')
 end
@@ -764,7 +764,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         end
         
         -- remove any identical items from results (in case we are looking for sidegrades)
-        if (sidegradeQuery) then
+        if (tcatItem and sidegradeQuery) then
           for idx = #results, 1, -1 do
             if (results[idx] == tcatItem.catalogIndex) then
               table.remove(results, idx)
