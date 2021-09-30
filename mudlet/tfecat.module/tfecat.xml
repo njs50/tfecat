@@ -718,9 +718,9 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         
         if (affect) then 
           if (sidegradeQuery) then
-            cmd = cmd .. ' -a ' .. affect .. '.gte.' .. tostring(amt)
+            cmd = cmd .. ' -a "' .. affect .. '".gte.' .. tostring(amt)
           else           
-            cmd = cmd .. ' -a ' .. affect .. '.gt.' .. tostring(amt)
+            cmd = cmd .. ' -a "' .. affect .. '".gt.' .. tostring(amt)
           end
         end
         
@@ -728,7 +728,6 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         if (tcatItem) then
           gearTotal = gearTotal + catalog.getAffectVal(tcatItem, affect)
         end  
-        
         local results = catalog.search(cmd)
         
         -- remove any duplicate items from results where affects are not additive.
@@ -2242,6 +2241,21 @@ catalog.slotConversion = {
 
 catalog.getAffectVal = function(item, affect, includeWeaponDamage)
 
+  
+  if catalog.itemNativeAffects[affect] and item[affect] and item[affect] ~= '' then
+
+    local amount = item[affect]
+    
+    -- rabies: looks like negative numbers are stored as strings
+    if type(amount) == 'string' then
+      amount = tonumber(amount)
+    end
+   
+    return amount
+   
+  end    
+
+
   affect = affect:lower()
 
   local amt = 0
@@ -2254,6 +2268,14 @@ catalog.getAffectVal = function(item, affect, includeWeaponDamage)
       -- display(item.name, plusVal)
       amt = amt + (plusVal * 0.2)
     end
+  
+    -- count global ac as deflection
+    if (affect == 'deflection') then
+      local plusVal = catalog.getAffectVal(item, 'Global Armor')
+      -- display(item.name, plusVal)
+      amt = amt + plusVal
+    end 
+  
     
     -- for weapons add average damage to damroll
     if (includeWeaponDamage and affect == 'damroll') then
@@ -2428,15 +2450,56 @@ end
 			<Script isActive="yes" isFolder="no">
 				<name>search</name>
 				<packageName></packageName>
-				<script>
-catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
+				<script>catalog.itemNativeAffects = {
+  ["Armor Class"] = true,
+  ["Base Cost"] = true,
+  ["Global Armor"] = true,
+}
 
+
+catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
   
-  affect = affect:lower()
+  
   
   if (filterAmount ~= '') then
     filterAmount = tonumber(filterAmount)
   end
+    
+
+  -- if (item.catalogIndex == 333) then
+    -- display(item, affect, filterType, filterAmount, includeWeaponDamage)
+    -- display(itemNativeAffects[affect] , item[affect] , item[affect])
+  -- end
+  
+  
+  if catalog.itemNativeAffects[affect] and item[affect] and item[affect] ~= '' then
+
+    local amount = item[affect]
+    
+    -- rabies: looks like negative numbers are stored as strings
+    if type(amount) == 'string' then
+      amount = tonumber(amount)
+    end
+          
+    if (amount ~= 0) then
+      if (
+        filterType == '' or  
+        filterAmount == '' or
+        (filterType == 'gt' and amount &gt; filterAmount) or 
+        (filterType == 'gte' and amount &gt;= filterAmount) or 
+        (filterType == 'lt' and amount &lt; filterAmount) or
+        (filterType == 'lte' and amount &lt;= filterAmount) or
+        1 == 0
+      ) then
+        return true
+      end
+    end
+  end    
+  
+  affect = affect:lower()
+
+    
+
   
   if (item.affects) then
     
@@ -2587,7 +2650,6 @@ catalog.search = function(searchString)
     searchString = rex.gsub(searchString, affectQuery, '')
   end
  
-
   local twoHandQuery = rex.match(searchString, [[( --two-handed)]])
   if (twoHandQuery) then
     searchString = rex.gsub(searchString, twoHandQuery, '')
@@ -2624,10 +2686,7 @@ catalog.search = function(searchString)
   if (rex.match(searchString, [[^\d+$]])) then
     return {tonumber(searchString)}
   end
-  
 
-  
-     
   for idx, item in ipairs(catalog.itemsIndex) do
   
     local data = catalog.items[item]
