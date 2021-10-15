@@ -3,50 +3,6 @@
 <MudletPackage version="1.001">
 	<TriggerPackage>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
-			<name>get prompt</name>
-			<script></script>
-			<triggerType>0</triggerType>
-			<conditonLineDelta>0</conditonLineDelta>
-			<mStayOpen>1</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
-			<mFgColor>#ff0000</mFgColor>
-			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
-			<colorTriggerFgColor>#000000</colorTriggerFgColor>
-			<colorTriggerBgColor>#000000</colorTriggerBgColor>
-			<regexCodeList>
-				<string>Prompt:$</string>
-			</regexCodeList>
-			<regexCodePropertyList>
-				<integer>1</integer>
-			</regexCodePropertyList>
-			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
-				<name>line after prompt</name>
-				<script>if (not rex.find(matches[2], [[Prompt:$]])) then
-  
-  raiseEvent(catalog.events.CHECK_PROMPT, matches[2])
-  
-end</script>
-				<triggerType>0</triggerType>
-				<conditonLineDelta>0</conditonLineDelta>
-				<mStayOpen>0</mStayOpen>
-				<mCommand></mCommand>
-				<packageName></packageName>
-				<mFgColor>#ff0000</mFgColor>
-				<mBgColor>#ffff00</mBgColor>
-				<mSoundFile></mSoundFile>
-				<colorTriggerFgColor>#000000</colorTriggerFgColor>
-				<colorTriggerBgColor>#000000</colorTriggerBgColor>
-				<regexCodeList>
-					<string>^(.*)$</string>
-				</regexCodeList>
-				<regexCodePropertyList>
-					<integer>1</integer>
-				</regexCodePropertyList>
-			</Trigger>
-		</Trigger>
-		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>parse equipment</name>
 			<script>catalog.player = catalog.player or {}
 
@@ -1803,49 +1759,32 @@ catalog.prevCols = 300
 
 catalog.setColors = function(cb)
 
-  tempRegexTrigger([[^\s+Lines \((\d+)\)\s+Columns \((\d+)\)\s*$]], function()
-    
-    catalog.prevLines = matches[2]
-    catalog.prevCols = matches[3]
+  tempRegexTrigger([[^\s+Paging \(Lines\): (?:at )?(disabled|automatic|\d+)(?: lines)?$]], function()
+    catalog.prevLines = matches[2]  
+  end, 1)
+
+  tempRegexTrigger([[^\s+Wrapping \(Columns\): (?:at )?(disabled|automatic|\d+)(?: characters)?$]], function()
+    catalog.prevCols = matches[2]
 
     if (cb) then
-      tempTrigger([[Number of screen columns set to]], cb, 1);
+      tempRegexTrigger([[^Wrapping is now disabled\.$]], cb, 1);
     end
     
-    send('color lines 500 &amp; color columns 300')
+    send('color lines disable &amp; color columns disable')
     
   end, 1)
-  
-  
-  -- make sure prompt has a newline on the end of it
-  registerAnonymousEventHandler(catalog.events.CHECK_PROMPT, function(_, prompt)
-    catalog.originalPrompt = prompt
-    if (not rex.find(catalog.originalPrompt, [[%\\$]])) then
-      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; setting prompt to one with more and ending in newline!\n\n')
-      send([[prompt ?p' -- MORE -- '&lt;%f?f|@R%hhp@n @G%ee@n @B?m'[%mmv]'!m'%vmv'@n %gwm %xxp?l' %llhp' %d?b' %c'&gt;%\]])
-    end  
-  end, true)
 
   
-  send('color &amp; prompt') 
+  send('color') 
 
 end
 
 catalog.resetColors = function(cb)
   
-  -- reset prompt if needed
-  registerAnonymousEventHandler(catalog.events.CHECK_PROMPT, function(_, prompt)
-    if (catalog.originalPrompt ~= prompt) then
-      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; reseting prompt to orignal value!\n\n') 
-      send('prompt ' .. catalog.originalPrompt)
-    end  
-  end, true)
-  
-  
-   if (cb) then
-    tempTrigger([[Number of screen columns set to]], cb, 1);
+  if (cb) then
+    tempRegexTrigger([[^Wrapping (is disabled|set to|will now be)]], cb, 1);
   end
-  send('prompt &amp; color lines ' .. tostring(catalog.prevLines) .. ' &amp; color columns ' .. tostring(catalog.prevCols))  
+  send('color lines ' .. tostring(catalog.prevLines) .. ' &amp; color columns ' .. tostring(catalog.prevCols))  
 
 end
 
