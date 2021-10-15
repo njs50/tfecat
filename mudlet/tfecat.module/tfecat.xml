@@ -683,7 +683,8 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         -- display('cmd: ' .. cmd)
         if (tcatItem) then
           gearTotal = gearTotal + catalog.getAffectVal(tcatItem, affect)
-        end  
+        end
+          
         local results = catalog.search(cmd)
         
         -- remove any duplicate items from results where affects are not additive.
@@ -1761,6 +1762,7 @@ catalog.setColors = function(cb)
 
   tempRegexTrigger([[^\s+Paging \(Lines\): (?:at )?(disabled|automatic|\d+)(?: lines)?$]], function()
     catalog.prevLines = matches[2]  
+    if (catalog.prevLines == 'disabled') then catalog.prevLines = 'disable' end
   end, 1)
 
   tempRegexTrigger([[^\s+Wrapping \(Columns\): (?:at )?(disabled|automatic|\d+)(?: characters)?$]], function()
@@ -1770,7 +1772,7 @@ catalog.setColors = function(cb)
       tempRegexTrigger([[^Wrapping is now disabled\.$]], cb, 1);
     end
     
-    send('color lines disable &amp; color columns disable')
+    send('color lines 500 &amp; color columns disable')
     
   end, 1)
 
