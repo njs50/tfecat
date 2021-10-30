@@ -684,7 +684,8 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         if (tcatItem) then
           gearTotal = gearTotal + catalog.getAffectVal(tcatItem, affect)
         end
-          
+        
+        -- display(cmd)  
         local results = catalog.search(cmd)
         
         -- remove any duplicate items from results where affects are not additive.
@@ -703,7 +704,11 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
           if catalog.player.gear[altSlot] and catalog.player.gear[altSlot][layer] then      
             local altItem = catalog.player.gear[altSlot][layer].raw
             tcatItemAltSide = catalog.getSlotLayerItem(altSlot, layer,  altItem)
-            isAltItemAdditive = catalog.hasAffect(tcatItemAltSide, 'Effects are additive.')
+            if (tcatItemAltSide) then 
+              isAltItemAdditive = catalog.hasAffect(tcatItemAltSide, 'Effects are additive.')
+            else
+              cecho('&lt;yellow&gt; &lt;---&lt;white&gt; unable to check: ' .. altItem)
+            end
           end
           
         
@@ -2314,10 +2319,16 @@ catalog.findItem = function(itemName, items)
 
   for idx, item in pairs(items) do 
     -- display(item.name)
+    
+    -- remove +x from the end of any item names
+    item.name = rex.gsub(item.name,[[\s+\+\d$]], '')
+    
     local thisIn = item.name or ''
     local thisUn = item["Unidentified Name"] or ''
     thisIn = thisIn:lower()
     thisUn = thisUn:lower()
+    
+    
     
     if (
       (thisIn == iname) or 
@@ -2440,7 +2451,7 @@ catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeap
   affect = affect:lower()
 
     
-
+  
   
   if (item.affects) then
     
