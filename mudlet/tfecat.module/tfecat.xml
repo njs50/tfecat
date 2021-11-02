@@ -3811,9 +3811,15 @@ catalog.common.itemShortenOverride = catalog.common.itemShortenOverride or {}
 catalog.common.itemShortenOverride['darkgem'] = 'darkgem'
 catalog.common.itemShortenOverride['darklight'] = 'darklight'
 catalog.common.itemShortenOverride['shadowbox'] = 'shadowbox'
+       -- a bracer of the emerald moon                          55   armor    AC: 4
+-- [4396] an emerald bracelet 
 
 -- bung keywords on item
 catalog.common.itemShortenOverride['orange headband'] = 'orange.strip'
+catalog.common.itemShortenOverride['emerald bracelet'] = 'emerald.bracelet'
+catalog.common.itemShortenOverride['orange.headband'] = 'orange.strip'
+catalog.common.itemShortenOverride['emerald.bracelet'] = 'emerald.bracelet'
+
 
 catalog.common.dotCase = function(string)
 
