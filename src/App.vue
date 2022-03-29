@@ -441,10 +441,12 @@ export default Vue.extend({
       "Bard",
       "Cleric",
       "Druid",
+      "Harbinger",
       "Mage",
       "Monk",
       "Paladin",
       "Ranger",
+      "Reaver",
       "Thief",
       "Warrior"
     ].sort(),

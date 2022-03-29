@@ -1553,6 +1553,8 @@ catalog.load = function(cb)
         ranger = true,
         thief = true,
         warrior = true,
+        harbinger = true,
+        reaver = true,
       }
 
       newFlags.charGenders = {

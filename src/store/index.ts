@@ -111,10 +111,12 @@ export default new Vuex.Store({
           "bard": true,
           "cleric": true,
           "druid": true,
+          "harbinger": true,
           "mage": true,
           "monk": true,
           "paladin": true,
           "ranger": true,
+          "reaver": true,
           "thief": true,
           "warrior": true,
         }
