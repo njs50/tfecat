@@ -1619,7 +1619,9 @@ catalog.load = function(cb)
             newFlags.charAlignments.NE = false;
             
           else
-            error('Unknown anti flag! - ' .. flag)
+            -- display(item)
+            -- error('Unknown anti flag! - ' .. flag)
+            cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; Unknown anti flag! - ' .. flag .. '\n')
           end -- flag cases
         
         end -- anti flag loop
