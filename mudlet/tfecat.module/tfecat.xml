@@ -82,7 +82,7 @@ end
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
-				<string>^\s+Account:</string>
+				<string>^\s+Atman:</string>
 				<string>^\s+Race:</string>
 				<string>^\s+Religion:</string>
 				<string>^\s+Kills:</string>
@@ -97,7 +97,7 @@ end
 			</regexCodePropertyList>
 			<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="yes" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 				<name>identity part</name>
-				<script>if #matches == 12 then
+				<script>if #matches then
   
   catalog.player = catalog.player or {}
   catalog.player.identity = catalog.player.identity or {}
@@ -106,17 +106,25 @@ end
   local id = catalog.player.identity
   
   id[matches[2]] = matches[3]
-  id[matches[6]] = matches[7]
-  id[matches[10]] = matches[11]
+  
+  if #matches &gt;= 8 then
+    id[matches[6]] = matches[7]
+  end
+  if #matches == 12 then
+    id[matches[10]] = matches[11]
+  end
   
   
   if (matches[2] == 'Height') then
+    id.Account = id.Atman
     id.longAlignment = id.Alignment
     id.Alignment = rex.gsub(id.longAlignment,[[^(\w).+ (\w).+$]], '%1%2'):upper()
     raiseEvent(catalog.events.PARSED_IDENTITY)
+    -- display(id)
   end
 
-end</script>
+end
+</script>
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
 				<mStayOpen>0</mStayOpen>
@@ -686,6 +694,8 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         end
         
         -- display(cmd)  
+        
+        
         local results = catalog.search(cmd)
         
         -- remove any duplicate items from results where affects are not additive.
@@ -753,7 +763,6 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
             cecho('\n')
           end
   
-  
           for zidx, idx in ipairs(results) do
             displayItem(idx, nil, includeAverageDamage)
           end
@@ -764,6 +773,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
     
     end -- loop layers
   end -- loop slots
+  
     
   cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; total ' .. affect .. ' equipped is ' .. tostring(gearTotal) .. '\n') 
 
@@ -1555,6 +1565,7 @@ catalog.load = function(cb)
         warrior = true,
         harbinger = true,
         reaver = true,
+        legate = true,
       }
 
       newFlags.charGenders = {

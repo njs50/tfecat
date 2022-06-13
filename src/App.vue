@@ -442,6 +442,7 @@ export default Vue.extend({
       "Cleric",
       "Druid",
       "Harbinger",
+      "Legate",
       "Mage",
       "Monk",
       "Paladin",

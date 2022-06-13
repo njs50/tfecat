@@ -114,6 +114,7 @@ export default new Vuex.Store({
           "harbinger": true,
           "mage": true,
           "monk": true,
+          "legate": true,
           "paladin": true,
           "ranger": true,
           "reaver": true,
