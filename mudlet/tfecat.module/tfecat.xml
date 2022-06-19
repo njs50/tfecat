@@ -1233,7 +1233,7 @@ catalog.parsing = false
 
 catalog.serverUrl = 'http://vault-thirteen.net:49160' 
 
-local itemVersion = 1.1
+local itemVersion = 1.2 -- bumped for new classes
 
 local affectMissingDot = {
   ["Grants Haste"] = true,
