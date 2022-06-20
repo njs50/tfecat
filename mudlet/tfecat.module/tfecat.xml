@@ -1240,7 +1240,42 @@ local affectMissingDot = {
   ["Can provide occasional hardiness"] = true,
   ["Grants displacement"] = true,
   ["Grants divine protection"] = true,
+  ["Permits levitation in the vertical plane"] = true,
+  ["Causes lethargy"] = true,
 }
+
+
+catalog.fixMissingDot = function(affect)
+
+  local newItems = {}
+
+  for name, item in pairs(catalog.items) do
+  
+    if item.buffer:find(affect) then
+      -- display(item)
+      
+      local buffer = item.buffer:split('\n')
+      
+      item.buffer = {}
+      item.affects = {}
+
+      item.parsingStarted = true
+      for idx, str in ipairs(buffer) do
+        catalog.parseItemLine(str, item)
+      end
+      
+      item.parsingEnding = true
+  
+      catalog.processItem(item)
+      
+      newItems[name] = item
+      
+    end
+    
+  end
+
+
+end
 
 
 
@@ -1404,6 +1439,26 @@ catalog.transmit = function(player)
 end
 
 
+catalog.createDif = function(items)
+
+  local newItems = #table.keys(items)
+  
+  if (newItems &gt; 0) then
+    local filepath = getMudletHomeDir().."/catalog_dif.json"
+    local file = io.open(filepath,"w")
+    file:write(catalog.common.json.encode(items))
+    file:close()
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
+  else
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to export!\n\n') 
+  end
+  
+  if (cb) then
+    cb(items)
+  end
+
+end
+
 
 catalog.export = function(cb, options)
 
@@ -1419,21 +1474,7 @@ catalog.export = function(cb, options)
     
     catalog.getAllItems(function(items)
 
-      local newItems = #table.keys(items)
-      
-      if (newItems &gt; 0) then
-        local filepath = getMudletHomeDir().."/catalog_dif.json"
-        local file = io.open(filepath,"w")
-        file:write(catalog.common.json.encode(items))
-        file:close()
-        cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
-      else
-        cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to export!\n\n') 
-      end
-      
-      if (cb) then
-        cb(items)
-      end
+      catalog.createDif(items)
             
     end, options)
     
@@ -1846,12 +1887,15 @@ catalog.itemGetLoop = function(items, cb)
       -- display(itemId)
       
       catalog.getItem(itemId, function(item) 
-
         
         item.name = itemStub.name
         item.itemType = itemStub.itemType
         item.datetime = dt
         
+        item.source = gmcp.Char.Score.account
+        item.sourceDT = getEpoch()
+        item.itemVersion = itemVersion        
+
         newItems[item.name] = item
         
         coroutine.resume(co)
@@ -1932,25 +1976,153 @@ catalog.getItemList = function(cb, options)
 end
 
 
+local splitString = function(str) 
+  local ret = {}
+  for i in str:gmatch("[^ ,]+") do
+     table.insert(ret, i)
+  end
+  return ret
+end
+
+local joinString = function(tbl, joiner)
+  local str = ''
+  for k, v in pairs(tbl) do
+    str = str .. v .. joiner
+  end
+  return str
+end
+
+
+catalog.parseItemLine = function (line, item)
+    
+  if (item.parsingStarted and not item.parsingEnding) then 
+  
+    table.insert(item.buffer, line)
+    
+    -- find anything like "foo: bar"
+    for i, j in rex.gmatch(line, [[(?:\s\s+|^\s*)(\S+[ -]?\S+):\s+(\S.*?)(?:\s\s|\s*$)]]) do
+      -- display(i,j)
+      item[i] = j
+    end
+    
+    
+  end       
+ 
+  
+  -- catch affects
+  
+  if (item.matchAffects) then
+    
+    
+    item.affects = item.affects or {}
+    
+    if line == '' then
+      item.matchAffects = nil
+    else
+    
+      local aff = rex.gsub(line, [[^\s+]], '')
+        
+      if (affectMissingDot[aff]) then
+        cecho(' &lt;red&gt;&lt;-- broken affect: &lt;white&gt;' .. aff .. '\n')
+        aff = aff .. '.'
+      end
+        
+      -- handle affects that are split over two lines (no . on the end of em :p)
+      if (#item.affects &gt; 0) then
+        
+        local lastItem = item.affects[#item.affects]
+ 
+        if rex.match(lastItem, [[\.$]]) then
+          table.insert(item.affects, aff)
+        else
+          lastItem = lastItem .. ' ' .. aff
+          item.affects[#item.affects] = lastItem
+        end
+      else
+        table.insert(item.affects, aff)
+      end  
+    end
+    
+  end
+  
+  
+  
+  -- turn on match affects for subsequent lines if needed:
+  if (rex.match(line, [[^\s*Affects:]])) then
+    	item.matchAffects = true
+  end     
+  
+  
+end
+    
+    
+catalog.processItem = function(item)
+
+  -- clear things we don't want to record
+  item.parsingEnding = nil
+  item.parsingStarted = nil
+
+  -- reformat affects
+  if (item.affects) then
+    local newAffects = {}
+    for k, v in pairs(item.affects) do
+      local aff = { name = v, type = 'affect' }
+      if (rex.match(v, [[ by [+-]\d+\.?\d*\.$]])) then
+        aff.name = rex.gsub(v, [[^(.*)( by .*)$]], '%1')
+        aff.type = 'property'
+        aff.amount = rex.gsub(v, [[^(.* by \+?)(.*)\.$]], '%2')
+        aff.amount = tonumber(aff.amount)
+      end
+      table.insert(newAffects, aff)
+    end
+    item.affects = newAffects
+  end
+  
+  -- reformat things which are arrays
+  local arrayProps = { 'Restrictions', 'Wear Loc.', 'Layer', 'Anti-Flags', 'Materials' } 
+  
+  for i, k in ipairs(arrayProps) do
+    if (item[k]) then
+      item[k] = string.split(item[k], ', ')
+    end
+  end
+  
+  -- turn numbers back into numbers
+  for key, val in pairs(item) do
+  
+    if (not table.contains(arrayProps, key) and not table.contains({'buffer', 'affects'}, key)) then
+      
+      local match = rex.match(val, [[^(\d+(\.\d+)?)(?:\s+lbs|%)?$]])
+      
+      if (match) then
+        item[key] = tonumber(match)
+      end
+        
+    end
+  
+  end
+  
+  -- if item has Damage calc the average damage:
+    if(item.Damage) then
+      rex.gsub(item.Damage, [[^(\d+)d(\d+)\+?(\d+)?$]], function(n, d, b)
+        item.averageDamage = ((d + 1) / 2) * n
+        if (b) then 
+         item.averageDamage = item.averageDamage + b 
+        end
+    end)
+  end
+  
+  
+  item["Unidentified Name"] = rex.gsub(item.buffer[1], [[^\s*(.+?)\s*$]], '%1')
+  
+  item.buffer = joinString(item.buffer, '\n')
+
+end    
+    
+    
 catalog.getItem = function(itemId, cb)
   
   tempRegexTrigger([[You read catalog entry #]] .. tostring(itemId) .. [[\.$]], function ()
-    
-    local splitString = function(str) 
-      local ret = {}
-      for i in str:gmatch("[^ ,]+") do
-         table.insert(ret, i)
-      end
-      return ret
-    end
-    
-    local joinString = function(tbl, joiner)
-      local str = ''
-      for k, v in pairs(tbl) do
-        str = str .. v .. joiner
-      end
-      return str
-    end
     
     local catalogId = matches[3]
     
@@ -1963,169 +2135,40 @@ catalog.getItem = function(itemId, cb)
     
     local temptrigs = {}
     
-    temptrigs.catEntryCatcher = tempRegexTrigger([[^.*$]], function ()
-    	  
-      if (rex.match(matches[1], [[^\s*(-=)+-\s*$]])) then
+      
+    temptrigs.catEntryCatcher = tempRegexTrigger([[^.*$]], function()
+      
+      local line = matches[1]
+      
+      if (rex.match(line, [[^\s*(-=)+-\s*$]])) then
       
         if (item.parsingStarted) then
+          
           item.parsingEnding = true
+  
+          catalog.processItem(item)
+    
+          display(item)
+          
+          cb(item)        
+      
+          -- kill those triggers
+          for k, v in pairs(temptrigs) do
+            killTrigger(v)
+          end
+                    
         else
           item.parsingStarted = true
         end
         
-        
-      elseif (item.parsingStarted and not item.parsingEnding) then 
+      else
       
-        table.insert(item.buffer, matches[1])
+        catalog.parseItemLine(line, item, cb)
         
-        -- find anything like "foo: bar"
-        for i, j in rex.gmatch(matches[1], [[(?:\s\s+|^\s*)(\S+[ -]?\S+):\s+(\S.*?)(?:\s\s|\s*$)]]) do
-          -- display(i,j)
-          item[i] = j
-        end
-        
-        
-      end       
-        
+      end    
 
-        
-      
-      -- catch affects
-      
-      if (item.matchAffects) then
-        
-        item.affects = item.affects or {}
-        
-        if matches[1] == '' then
-          item.matchAffects = nil
-        else
-        
-          local aff = rex.gsub(matches[1], [[^\s+]], '')
-            
-          if (affectMissingDot[aff]) then
-            cecho(' &lt;red&gt;&lt;-- broken affect: &lt;white&gt;' .. aff .. '\n')
-            aff = aff .. '.'
-          end
-            
-          -- handle affects that are split over two lines (no . on the end of em :p)
-          if (#item.affects &gt; 0) then
+    end)
 
-            local lastItem = item.affects[#item.affects]
-     
-            if rex.match(lastItem, [[\.$]]) then
-              table.insert(item.affects, aff)
-            else
-              lastItem = lastItem .. ' ' .. aff
-              item.affects[#item.affects] = lastItem
-            end
-          else
-            table.insert(item.affects, aff)
-          end  
-        end
-        
-      end
-      
-      if (item.parsingEnding) then
-      
-   	
-        -- clear things we don't want to record
-        item.parsingEnding = nil
-        item.parsingStarted = nil
-        
-        -- kill those triggers
-        for k, v in pairs(temptrigs) do
-          killTrigger(v)
-        end
-        
-        -- reformat affects
-        if (item.affects) then
-          local newAffects = {}
-          for k, v in pairs(item.affects) do
-            local aff = { name = v, type = 'affect' }
-            if (rex.match(v, [[ by [+-]\d+\.?\d*\.$]])) then
-              aff.name = rex.gsub(v, [[^(.*)( by .*)$]], '%1')
-              aff.type = 'property'
-              aff.amount = rex.gsub(v, [[^(.* by \+?)(.*)\.$]], '%2')
-              aff.amount = tonumber(aff.amount)
-            end
-            table.insert(newAffects, aff)
-          end
-          item.affects = newAffects
-        end
-        
-        -- reformat things which are arrays
-        local arrayProps = { 'Restrictions', 'Wear Loc.', 'Layer', 'Anti-Flags', 'Materials' } 
-        
-        for i, k in ipairs(arrayProps) do
-          if (item[k]) then
-            item[k] = string.split(item[k], ', ')
-          end
-        end
-        
-        -- turn numbers back into numbers
-        for key, val in pairs(item) do
-        
-          if (not table.contains(arrayProps, key) and not table.contains({'buffer', 'affects'}, key)) then
-            
-            local match = rex.match(val, [[^(\d+(\.\d+)?)(?:\s+lbs|%)?$]])
-            
-            if (match) then
-              item[key] = tonumber(match)
-            end
-              
-          end
-        
-        end
-        
-        -- if item has Damage calc the average damage:
-          if(item.Damage) then
-            rex.gsub(item.Damage, [[^(\d+)d(\d+)\+?(\d+)?$]], function(n, d, b)
-              item.averageDamage = ((d + 1) / 2) * n
-              if (b) then 
-               item.averageDamage = item.averageDamage + b 
-              end
-          end)
-        end
-        
-        
-        item["Unidentified Name"] = rex.gsub(item.buffer[1], [[^\s*(.+?)\s*$]], '%1')
-        
-        item.buffer = joinString(item.buffer, '\n')
-        
-        item.source = gmcp.Char.Score.account
-        item.sourceDT = getEpoch()
-        item.itemVersion = itemVersion
-        
-        cb(item)      
-      
-      end  
-      
-    end)
-    
-    
-    temptrigs.affects = tempRegexTrigger([[^\s*Affects:]], function ()
-      	item.matchAffects = true
-    end)
-    -- 
-    -- 
-    -- temptrigs.weapon = tempRegexTrigger([[Damage:\s+(\S+)\s+Class:\s+(.+?)\s+Attack:]], function ()
-    	-- item.damage = matches[2]
-      -- item.weaponClass = matches[3]
-      -- item.itemType = 'weapon'
-      -- 
-      -- rex.gsub(item.damage, [[^(\d+)d(\d+)\+?(\d+)?$]], function(n, d, b)
-        -- item.averageDamage = ((d + 1) / 2) * n
-        -- if (b) then 
-          -- item.averageDamage = item.averageDamage + b 
-        -- end
-      -- end)
-      -- 
-      -- cecho('\nAverage Damage: ' .. tostring(item.averageDamage) .. '\n')
-      -- 
-    -- end)
-    -- 
-    
-  
   end, 1) -- end of read catalog entry temp regex.
 
 
