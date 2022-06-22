@@ -2188,29 +2188,21 @@ catalog.player.gear = catalog.player.gear or {}
 
 catalog.isWearing = function(item)
   
-  if (type(item) == 'table') then
+  if (type(item) ~= 'table') then
   
-    local wearing = falset
-    
-    for idx, item in ipairs(item) do
-      wearing = wearing or catalog.isWearing(item)
-    end
-    
-    return wearing
-    
-  else
-      
-    for slot, layers in pairs(catalog.player.gear) do
-      for layer, itemRecord in pairs(layers) do
-        if (itemRecord.item == item) then
-          return true
-        end
-      end
-    end
-    
-    return false
+    item = {item}
     
   end
+      
+  for slot, layers in pairs(catalog.player.gear) do
+    for layer, itemRecord in pairs(layers) do
+      if table.contains(item, itemRecord.item) then
+        return true
+      end
+    end
+  end
+  
+  return false
 
 end
 
