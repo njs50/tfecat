@@ -1244,6 +1244,27 @@ local affectMissingDot = {
   ["Causes lethargy"] = true,
 }
 
+catalog.versionCount = function()
+  local catver = {}
+  for name, item in pairs(catalog.items) do
+    local ver = tostring(item.itemVersion)
+    catver[ver] = catver[ver] or 0
+    catver[ver] = catver[ver] + 1
+  end
+  display(catver)
+end
+
+catalog.versionCountDetail = function(version)
+  local catver = {}
+  for name, item in pairs(catalog.items) do
+    if item.itemVersion == version then
+      catver[item.source] = catver[item.source] or 0
+      catver[item.source] = catver[item.source] + 1
+    end
+  end
+  display(catver)
+end
+
 
 catalog.fixMissingDot = function(affect)
 
@@ -1709,35 +1730,47 @@ catalog.load = function(cb)
 end
 
 catalog.loadFile = function(src, cb)
-
-  local downloadHandler
-  local srcFilename = rex.match(src, [[^.*/(.*)$]])
   
-  -- register our function to run on the event that something was downloaded
-  downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
-    -- is the file that downloaded ours?
-    if not filename:find(srcFilename, 1, true) then return end
-    
-    killAnonymousEventHandler(downloadHandler)
-    
-    -- read the contents of the webpage in
-    local file, s, catJson = io.open(filename)
-    
-    if file then 
-      catJson = file:read("*all"); 
-      io.close(file) 
+  local url = src .. '?_=' .. tostring(getEpoch())
+  
+  local header = {["Content-Type"] = "application/json"}
+
+  
+  local responseHandler, errorHandler
+  
+  local selfDestruct = function()
+    killAnonymousEventHandler(responseHandler)
+    killAnonymousEventHandler(errorHandler)
+  end
+  
+  -- first we create something to handle the success, and tell us what we got
+  responseHandler = registerAnonymousEventHandler('sysGetHttpDone', function(event, rurl, response)
+    if rurl == url then 
+      selfDestruct()
+      
+      response = yajl.to_value(response)
+      
+      cb(response)
+        
     end
     
-    -- delete the file on disk, don't clutter
-    os.remove(filename)
-
-    if (cb) then
-      cb(catalog.common.json.decode(catJson))
-    end
-
   end)
   
-  downloadFile(getMudletHomeDir().."/" .. srcFilename, src .. '?_=' .. tostring(getEpoch))
+  -- then we create something to handle the error message, and tell us what went wrong
+  errorHandler = registerAnonymousEventHandler('sysGetHttpError', function(event, response, rurl)
+    if rurl == url then 
+      selfDestruct()
+      
+      cecho('\n&lt;red&gt;njs50pm:&lt;white&gt; failed to download - ' .. url .. '\n\n')
+      display(response) 
+      
+    end
+  end)
+  
+  -- Lastly, we make the request:
+  -- cecho('\nrequesting: ' .. url .. '\n')
+  getHTTP(url, header)
+
 
 end
 
@@ -1799,12 +1832,10 @@ catalog.showDiff = function()
           st:addRow({itemData.source, item, '&lt;green&gt;added'})
         end
        
-        if (published[item] and published[item].datetime ~= itemData.datetime) then
+        if (published[item] and published[item].datetime ~= itemData.datetime) then          
           st:addRow({itemData.source, item, '&lt;red&gt;updated ' .. published[item].source})
         end
-       
-       
-        
+
       end
       
       cecho(st:assemble())
@@ -2118,6 +2149,8 @@ catalog.processItem = function(item)
   item.buffer = joinString(item.buffer, '\n')
 
 end    
+    
+    
     
     
 catalog.getItem = function(itemId, cb)
