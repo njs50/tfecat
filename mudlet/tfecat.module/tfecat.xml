@@ -143,6 +143,60 @@ end
 				</regexCodePropertyList>
 			</Trigger>
 		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>look at item</name>
+			<script>
+if (catalog.localItems) then
+  
+  local lItem = catalog.localItems[matches[2]]
+
+  if (lItem) then
+  
+    local item = catalog.items[lItem]
+    
+    if (item) then
+    
+      -- selectCurrentLine()
+      -- creplace('')  
+      -- deselect()
+  
+      -- cecho(item.buffer)
+      cechoLink('&lt;white&gt; &lt;- &lt;green&gt;' .. item.name .. '&lt;reset&gt;', function() catalog.displayItem(item.catalogIndex) end, "display item", true)
+      
+      cecho('\n&lt;green&gt;CATALOG&lt;white&gt;: if the above link is incorrect run "tfecat generate" to rescan your personal catalog\n')
+  
+    else
+      
+      cecho('&lt;white&gt; &lt;- &lt;green&gt; this item is not yet merged into the public catalog\n')
+  
+    end
+    
+  else  
+    
+    cecho('&lt;white&gt; &lt;- &lt;green&gt; you need to run "tfecat generate" to see the id of this item\n')
+    
+  end
+
+end
+
+</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>^\[ This is item (\d+) in your catalog.\ \]$</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>1</integer>
+			</regexCodePropertyList>
+		</Trigger>
 	</TriggerPackage>
 	<TimerPackage />
 	<AliasPackage>
@@ -151,7 +205,9 @@ end
 			<script>local commands = {
 
   generate = function()
-    catalog.export()
+    catalog.export(function()
+      catalog.transmit()
+    end)
   end,
  
   ['generate-full'] = function()
@@ -1460,7 +1516,7 @@ catalog.transmit = function(player)
 end
 
 
-catalog.createDif = function(items)
+catalog.createDif = function(items, cb)
 
   local newItems = #table.keys(items)
   
@@ -1470,13 +1526,16 @@ catalog.createDif = function(items)
     file:write(catalog.common.json.encode(items))
     file:close()
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
+    
+    if (cb) then
+      cb(items)
+    end
+    
   else
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to export!\n\n') 
   end
   
-  if (cb) then
-    cb(items)
-  end
+
 
 end
 
@@ -1495,7 +1554,7 @@ catalog.export = function(cb, options)
     
     catalog.getAllItems(function(items)
 
-      catalog.createDif(items)
+      catalog.createDif(items, cb)
             
     end, options)
     
@@ -1951,6 +2010,8 @@ end
 
 catalog.getItemList = function(cb, options)
   
+  catalog.localItems = catalog.localItems or {}
+  
   options = options or {}
 
   tempRegexTrigger([[^Number\s+Name\s+Level\s+Type\s*$]], function()
@@ -1969,6 +2030,9 @@ catalog.getItemList = function(cb, options)
     
     
     temptrigs.catEntryCatcher = tempRegexTrigger([[^\[\s*(\d+)\]\s*(.+?)\s+(\d+)\s+(\S+)]], function ()
+      
+      catalog.localItems[matches[2]] = matches[3]
+      
       
       -- check to see if this is a new item
       if (options.checkEverything or 
@@ -2181,7 +2245,7 @@ catalog.getItem = function(itemId, cb)
   
           catalog.processItem(item)
     
-          display(item)
+          -- display(item)
           
           cb(item)        
       
