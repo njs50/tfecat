@@ -197,6 +197,42 @@ end
 				<integer>1</integer>
 			</regexCodePropertyList>
 		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>You look at ...</name>
+			<script>local item = matches[2]
+
+-- cecho('&lt;white&gt; &lt;- &lt;green&gt; ' .. item .. '\n')
+
+local items = catalog.findItem(item, nil, true)
+
+if items then
+  cecho('\n(')
+  for idx, obj in pairs(items) do
+    
+    cechoLink('&lt;green&gt;' .. obj.name .. '&lt;reset&gt;', function() catalog.displayItem(obj.catalogIndex) end, "display item", true)
+    if idx ~= #items then cecho(', ') end
+    
+  end
+  cecho(')\n')
+  
+end</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>^You look at (.+) you are (wearing|wielding|holding|carrying)\.$</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>1</integer>
+			</regexCodePropertyList>
+		</Trigger>
 	</TriggerPackage>
 	<TimerPackage />
 	<AliasPackage>
@@ -2458,11 +2494,13 @@ catalog.sanitizeItemName = function(itemName)
   return itemName
 end
 
-catalog.findItem = function(itemName, items) 
+catalog.findItem = function(itemName, items, allowMultipleExact) 
 
   items = items or catalog.items
  
   local iname = catalog.sanitizeItemName(itemName:lower())
+
+  local mResults = {}
 
   for idx, item in pairs(items) do 
     -- display(item.name)
@@ -2474,8 +2512,7 @@ catalog.findItem = function(itemName, items)
     local thisUn = item["Unidentified Name"] or ''
     thisIn = thisIn:lower()
     thisUn = thisUn:lower()
-    
-    
+
     
     if (
       (thisIn == iname) or 
@@ -2490,22 +2527,30 @@ catalog.findItem = function(itemName, items)
       (thisUn == 'a set of ' .. iname)
       
     ) then
-      -- display(item)
-      return item
+      
+      if allowMultipleExact then
+        table.insert(mResults, item)
+      else
+        return item
+      end
     end
     
   end
   
+    
+  if allowMultipleExact and #mResults &gt; 0 then
+    return mResults
+  end  
       
   if (rex.match(iname, [[^an empty]])) then
-    return catalog.findItem(rex.gsub(iname, [[^an empty ]], 'a closed '), items)
+    return catalog.findItem(rex.gsub(iname, [[^an empty ]], 'a closed '), items, allowMultipleExact)
   end
   
   
   -- try sanitized name if still no luck (gets rid of flaming etc)
   local siname = catalog.common.itemSanitize(iname)
   if (siname ~= iname) then
-    return catalog.findItem(siname, items)
+    return catalog.findItem(siname, items, allowMultipleExact)
   end
   
   
@@ -2524,10 +2569,19 @@ catalog.findItem = function(itemName, items)
       (rex.match(thisUn, iname .. '$'))
     ) then
       -- display(item)
-      return item
+      if allowMultipleExact then
+        table.insert(mResults, item)
+      else
+        return item
+      end
     end
     
+  end   
+  
+  if allowMultipleExact and #mResults &gt; 0 then
+    return mResults
   end    
+   
 end
 
 
