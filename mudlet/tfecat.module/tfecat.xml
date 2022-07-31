@@ -4038,10 +4038,10 @@ catalog.common.itemSanitize = function(string)
   end
   
   
-  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |enchanted,? |empty,? |frost-covered,? |flaming,? |labeled |\s\+\d)]], '')
+  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |enchanted,? |empty,? |flaming,? |labeled |\s\+\d)]], '')
 
   if (string ~= 'frost-covered ring') then
-    string = rex.gsub(string, [[frost-covered ]], '')
+    string = rex.gsub(string, [[frost-covered,? ]], '')
   end
 
   return string
