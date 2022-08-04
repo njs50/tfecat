@@ -4020,7 +4020,10 @@ catalog.common.itemShortenOverride['orange headband'] = 'orange.strip'
 catalog.common.itemShortenOverride['emerald bracelet'] = 'emerald.bracelet'
 catalog.common.itemShortenOverride['orange.headband'] = 'orange.strip'
 catalog.common.itemShortenOverride['emerald.bracelet'] = 'emerald.bracelet'
-
+catalog.common.itemShortenOverride["flowing silver greatsword 'Unbending Will'"] = 'flow.silv.grea'
+catalog.common.itemShortenOverride["flowing silver shortspear 'Hand of the Just'"] = 'flowing.silver.shortspear'
+catalog.common.itemShortenOverride["flowing.silver.greatsword.Unbending"] = 'flow.silv.grea'
+catalog.common.itemShortenOverride["flowing.silver.shortspear.Hand.the"] = 'flow.silv.shor'
 
 catalog.common.dotCase = function(string)
 
