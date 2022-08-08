@@ -2571,13 +2571,13 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
     
     local  hasDamage = false
     local damAmt = 0
+    
+    local hasProp = false
+    local propVal = 0
   
     for idx, aff in ipairs(item.affects) do 
     
-      if (aff.type == 'affect' and aff.name:lower() == affect) then
-        return true
-      end
-          
+ 
       if (affect == 'mana_regen') then
       
         if aff.name:lower() == 'intelligence' then
@@ -2606,13 +2606,28 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
 
         -- count global ac as deflection
         if (affect == 'deflection') then
-          local gac = tonumber(item['Global Armor'] or 0)
-          return aff.amount + gac
-        end       
-      
-        return aff.amount
+          hasProp = true
+          propVal = aff.amount
+        else       
+
+          return aff.amount
+        end
         
+      elseif (aff.type == 'affect' and aff.name:lower() == affect) then
+        
+        return true
+              
       end
+    end
+    
+    if (affect == 'deflection') then
+      local gac = tonumber(item['Global Armor'] or 0)
+      local defSkills = 
+        catalog.getAffect(item, 'dodge') * 2 + 
+        catalog.getAffect(item, 'tumble') * 1 + 
+        catalog.getAffect(item, 'guard') * 5 + 
+        catalog.getAffect(item, 'parry') * 4        
+      return propVal + gac + defSkills    
     end
    
     if (affect == 'mana_regen' and hasRegen) then
