@@ -648,6 +648,7 @@ local usingTwoHandedWeapon = false
 if catalog.player.gear["right hand"] and catalog.player.gear["right hand"].base then
   local mWeap = catalog.getSlotLayerItem('right_hand', 'base', catalog.player.gear["right hand"].base.raw)
   mainWeapType = mWeap.Class
+  
   if mWeap and catalog.hasAffect(mWeap, 'Requires two hands.') then
     usingTwoHandedWeapon = true
   end
@@ -792,7 +793,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         
         -- display('cmd: ' .. cmd)
         if (tcatItem) then
-          gearTotal = gearTotal + catalog.getAffectVal(tcatItem, affect, true)
+          gearTotal = gearTotal + catalog.getAffect(tcatItem, affect, true)
         end
         
         -- display(cmd)  
