@@ -732,7 +732,9 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       
       if (slot == 'right hand') then
         if (layer == 'base') then
-          cmd = cmd .. ' -W ' .. mainWeapType
+          if (mainWeapType) then
+            cmd = cmd .. ' -W ' .. mainWeapType
+          end
           if usingTwoHandedWeapon then
              cmd = cmd .. ' --two-handed'
           end
@@ -748,6 +750,10 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
           skipLayer = true
         end
       end     
+      
+      if usingTwoHandedWeapon and slot == 'left hand' then
+         skipLayer = true
+      end
 
       
       if (not usingOffHandWeapon and slot == 'left hand') then
@@ -2577,6 +2583,11 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
   
     for idx, aff in ipairs(item.affects) do 
     
+      if (aff.type == 'affect' and aff.name:lower() == affect) then
+        
+        return true
+        
+      end
  
       if (affect == 'mana_regen') then
       
@@ -2612,11 +2623,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
 
           return aff.amount
         end
-        
-      elseif (aff.type == 'affect' and aff.name:lower() == affect) then
-        
-        return true
-              
+ 
       end
     end
     
@@ -2652,9 +2659,7 @@ end
 
 
 catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
-  
-  
-  
+    
   if (filterAmount ~= '') then
     filterAmount = tonumber(filterAmount)
   end
@@ -2663,7 +2668,8 @@ catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeap
   
   if (amount ~= 0) then
     if (
-      filterType == '' or  
+      filterType == '' or 
+      filterType == nil or 
       filterAmount == '' or
       (filterType == 'gt' and amount &gt; filterAmount) or 
       (filterType == 'gte' and amount &gt;= filterAmount) or 
