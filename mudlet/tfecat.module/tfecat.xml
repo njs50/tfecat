@@ -490,7 +490,14 @@ else
     cecho(demonnic:cfText(tostring(data.itemType), {alignment = "left", width = 8, nogap=true}) .. ' ')    
     
     local renderWeap = function(data)
-      cecho( string.format("%.1f", catalog.getAffect(data, 'damroll') or 0) .. ' dps'  .. ' (' .. string.format("%.2f", data.Weight) .. 'lbs ' .. data.Class .. ')') 
+      cecho( string.format("%.1f", catalog.getAffect(data, 'damroll') or 0) .. ' dps'  .. 
+      ' (' .. string.format("%.2f", data.Weight) .. 'lb, ')
+      
+      if (catalog.hasAffect(data, 'Requires two hands.')) then
+        cecho('2h ')
+      end
+      
+      cecho(data.Class .. ')') 
     end
     
     if (affect) then
