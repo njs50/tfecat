@@ -453,7 +453,7 @@ if (rawQuery) then
   searchString = rex.gsub(searchString, rawQuery, '')
 end  
 
-local results = catalog.search(searchString)
+local results, affect = catalog.search(searchString)
 
 if (#results == 0) then
 
@@ -468,7 +468,7 @@ elseif (#results == 1) then
   end
 
 else
-  
+    
   cecho('Number Name                                                Level  Type\n')
   cecho('------ ----                                                -----  ----\n')
   
@@ -489,11 +489,15 @@ else
     cecho(demonnic:cfText(tostring(data.Level) .. '  ', {alignment = "right", width = 8, nogap=true}) .. ' ')
     cecho(demonnic:cfText(tostring(data.itemType), {alignment = "left", width = 8, nogap=true}) .. ' ')    
     
-    if (data.itemType == 'weapon') then
-      cecho(string.format("%.1f", data.averageDamage or 0) .. ' dps' .. ' (' .. data.Class .. ')')
-    end
-    
-    if (data.itemType == 'armor') then
+    if (affect) then
+      if (data.itemType == 'weapon' and affect == 'damroll') then
+        cecho('damage: ' .. tostring(catalog.getAffect(data, affect)))
+      else
+        cecho(affect .. ': ' .. tostring(catalog.getAffect(data, affect)))
+      end
+    elseif (data.itemType == 'weapon') then    
+      cecho(string.format("%.1f", data.averageDamage or 0) .. ' dps' .. ' (' .. data.Class .. ')')    
+    elseif (data.itemType == 'armor') then
       cecho('AC: ' .. tostring(data["Armor Class"]))
     end
     
@@ -638,18 +642,23 @@ if (not affect or affect == '') then
 end
 
 
+local mainWeapType
+
 local usingTwoHandedWeapon = false
 if catalog.player.gear["right hand"] and catalog.player.gear["right hand"].base then
   local mWeap = catalog.getSlotLayerItem('right_hand', 'base', catalog.player.gear["right hand"].base.raw)
+  mainWeapType = mWeap.Class
   if mWeap and catalog.hasAffect(mWeap, 'Requires two hands.') then
     usingTwoHandedWeapon = true
   end
 end
 
+local offWeapType
 local usingOffHandWeapon = false
 if catalog.player.gear["left hand"] and catalog.player.gear["left hand"].base then
   local oWeap = catalog.getSlotLayerItem('left_hand', 'base', catalog.player.gear["left hand"].base.raw)
   if oWeap and oWeap.itemType == 'weapon' then
+    offWeapType = oWeap.Class
     usingOffHandWeapon = true
   end
 end
@@ -685,11 +694,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
     cecho(' ' .. demonnic:cfText(string.sub(data.name, 1, 50), {alignment = "left", width = 50, nogap=true}) .. '')
 
     if (affect) then
-      local amt = catalog.getAffectVal(data, affect)
-      
-      if (includeAverageDamage) then
-        amt = amt + data.averageDamage
-      end
+      local amt = catalog.getAffect(data, affect)
       
       cecho(demonnic:fText('level ' .. tostring(data.Level), {alignment = "left", width = 8, nogap=true}) .. ', ')
       cecho(affect .. ' is ' .. tostring(amt))
@@ -721,18 +726,13 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       
       local cmd = baseQuery .. ' -w ' .. catalog.slotConversion[slot] .. '.' .. layer
       
-      
-    
       if ((usingOffHandWeapon or usingTwoHandedWeapon) and slot == 'right hand' and layer ~= 'base') then
         skipLayer = true
       end   
       
       if (slot == 'right hand') then
         if (layer == 'base') then
-          cmd = cmd .. ' -t weapon'
-          if (affect == 'damroll') then
-            includeAverageDamage = true
-          end
+          cmd = cmd .. ' -W ' .. mainWeapType
           if usingTwoHandedWeapon then
              cmd = cmd .. ' --two-handed'
           end
@@ -743,15 +743,19 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       
       if (usingOffHandWeapon and slot == 'left hand') then
         if (layer == 'base') then
-          if (affect == 'damroll') then
-            includeAverageDamage = true
-          end
-          cmd = cmd .. ' -t weapon'
+          cmd = cmd .. ' -W ' .. offWeapType
         else
           skipLayer = true
         end
       end     
-    
+
+      
+      if (not usingOffHandWeapon and slot == 'left hand') then
+        if (layer == 'base') then
+           cmd = cmd .. ' -t other'
+        end
+      end     
+        
 
       if not (skipSlot or skipLayer) then
       
@@ -763,7 +767,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
           if (not tcatItem) then
             slotMessage = '&lt;orange&gt;Unable to locate item in catalog - ' .. thisItem 
           else              
-            amt = catalog.getAffectVal(tcatItem, affect, includeAverageDamage)
+            amt = catalog.getAffect(tcatItem, affect)
           end
           
         else 
@@ -782,7 +786,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
         
         -- display('cmd: ' .. cmd)
         if (tcatItem) then
-          gearTotal = gearTotal + catalog.getAffectVal(tcatItem, affect)
+          gearTotal = gearTotal + catalog.getAffectVal(tcatItem, affect, true)
         end
         
         -- display(cmd)  
@@ -2367,75 +2371,6 @@ catalog.slotConversion = {
 }
 
 
-
-catalog.getAffectVal = function(item, affect, includeWeaponDamage)
-
-  
-  if catalog.itemNativeAffects[affect] and item[affect] and item[affect] ~= '' then
-
-    local amount = item[affect]
-    
-    -- rabies: looks like negative numbers are stored as strings
-    if type(amount) == 'string' then
-      amount = tonumber(amount)
-    end
-   
-    return amount
-   
-  end    
-
-
-  affect = affect:lower()
-
-  local amt = 0
-  
-  if (item.affects) then
-        
-    -- count standing regen from int as well
-    if (affect == 'mana_regen') then
-      local plusVal = catalog.getAffectVal(item, 'Intelligence')
-      -- display(item.name, plusVal)
-      amt = amt + (plusVal * 0.2)
-    end
-  
-    -- count global ac as deflection
-    if (affect == 'deflection') then
-      local plusVal = catalog.getAffectVal(item, 'Global Armor')
-      -- display(item.name, plusVal)
-      amt = amt + plusVal
-    end 
-  
-    
-    -- for weapons add average damage to damroll
-    if (includeWeaponDamage and affect == 'damroll') then
-      if (item.averageDamage) then
-        amt = amt + item.averageDamage
-      end
-    end
-  
-    for idx, aff in ipairs(item.affects) do 
-    
-      if (aff.type == 'affect' and aff.name:lower() == affect) then
-        return 1
-      end
-    
-      if (aff.type == 'property' and aff.name:lower() == affect) then
-      
-        amt = amt + aff.amount
-        
-        return amt
-      end
-      
-    end -- affect loop
-    
-  end -- if affects
-  
-  
-  
-  return amt
-  
-end   
-
 -- sort catalog into slot/layers
 
 catalog.getItemsBySlotLayer = function()
@@ -2609,20 +2544,8 @@ end
   ["Global Armor"] = true,
 }
 
+catalog.getAffect = function(item, affect, excludeWeaponDam)
 
-catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
-  
-  
-  
-  if (filterAmount ~= '') then
-    filterAmount = tonumber(filterAmount)
-  end
-    
-
-  -- if (item.catalogIndex == 333) then
-    -- display(item, affect, filterType, filterAmount, includeWeaponDamage)
-    -- display(itemNativeAffects[affect] , item[affect] , item[affect])
-  -- end
   
   
   if catalog.itemNativeAffects[affect] and item[affect] and item[affect] ~= '' then
@@ -2633,31 +2556,21 @@ catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeap
     if type(amount) == 'string' then
       amount = tonumber(amount)
     end
-          
-    if (amount ~= 0) then
-      if (
-        filterType == '' or  
-        filterAmount == '' or
-        (filterType == 'gt' and amount &gt; filterAmount) or 
-        (filterType == 'gte' and amount &gt;= filterAmount) or 
-        (filterType == 'lt' and amount &lt; filterAmount) or
-        (filterType == 'lte' and amount &lt;= filterAmount) or
-        1 == 0
-      ) then
-        return true
-      end
-    end
+    
+    return amount
+    
   end    
   
   affect = affect:lower()
 
-    
-  
-  
+
   if (item.affects) then
     
     local hasRegen = false
     local regenAmt = 0
+    
+    local  hasDamage = false
+    local damAmt = 0
   
     for idx, aff in ipairs(item.affects) do 
     
@@ -2676,51 +2589,77 @@ catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeap
           hasRegen = true
           regenAmt = regenAmt + aff.amount
         end
+      
+      elseif (affect == 'damroll') then
+      
+        if aff.name:lower() == 'strength' then
+          hasDamage = true
+          damAmt = damAmt + (aff.amount * 0.33)
+        end
+        
+        if aff.name:lower() == 'damroll' then
+          hasDamage = true
+          damAmt = damAmt + aff.amount
+        end       
     
       elseif (aff.type == 'property' and aff.name:lower() == affect) then
-        if (
-          filterType == '' or  
-          filterAmount == '' or
-          (filterType == 'gt' and aff.amount &gt; filterAmount) or 
-          (filterType == 'gte' and aff.amount &gt;= filterAmount) or 
-          (filterType == 'lt' and aff.amount &lt; filterAmount) or
-          (filterType == 'lte' and aff.amount &lt;= filterAmount) or
-          1 == 0
-        ) then
-          return true
-        end
+
+        -- count global ac as deflection
+        if (affect == 'deflection') then
+          local gac = tonumber(item['Global Armor'] or 0)
+          return aff.amount + gac
+        end       
+      
+        return aff.amount
+        
       end
     end
    
     if (affect == 'mana_regen' and hasRegen) then
-        if (
-          filterType == '' or  
-          filterAmount == '' or
-          (filterType == 'gt' and regenAmt &gt; filterAmount) or 
-          (filterType == 'gte' and regenAmt &gt;= filterAmount) or 
-          (filterType == 'lt' and regenAmt &lt; filterAmount) or
-          (filterType == 'lte' and regenAmt &lt;= filterAmount) or
-          1 == 0
-        ) then
-          return true
-        end        
+      return regenAmt      
     end     
     
-    if (affect == 'damroll' and includeWeaponDamage and item.averageDamage) then
-        if (
-          filterType == '' or  
-          filterAmount == '' or
-          (filterType == 'gt' and item.averageDamage &gt; filterAmount) or 
-          (filterType == 'gte' and item.averageDamage &gt;= filterAmount) or 
-          (filterType == 'lt' and item.averageDamage &lt; filterAmount) or
-          (filterType == 'lte' and item.averageDamage &lt;= filterAmount) or
-          1 == 0
-        ) then
-          return true
-        end        
+    if (affect == 'damroll' and (hasDamage or item.averageDamage)) then
+      if (excludeWeaponDam) then
+        return damAmt
+      else
+        return (item.averageDamage or 0) + damAmt
+      end
     end
+    
 
   end
+  
+  return 0
+  
+end   
+
+
+
+catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
+  
+  
+  
+  if (filterAmount ~= '') then
+    filterAmount = tonumber(filterAmount)
+  end
+    
+  local amount = catalog.getAffect(item,affect)
+  
+  if (amount ~= 0) then
+    if (
+      filterType == '' or  
+      filterAmount == '' or
+      (filterType == 'gt' and amount &gt; filterAmount) or 
+      (filterType == 'gte' and amount &gt;= filterAmount) or 
+      (filterType == 'lt' and amount &lt; filterAmount) or
+      (filterType == 'lte' and amount &lt;= filterAmount) or
+      1 == 0
+    ) then
+      return true
+    end
+  end  
+
   return false
 end   
 
@@ -2742,9 +2681,18 @@ catalog.search = function(searchString)
   end
   
   
+  -- this one might be overriden by something else forcing an item type (i.e --two-handed)
+  local itemTypeQuery, itemType = rex.match(searchString, [[( -t (\w+))]])
+  if (itemTypeQuery) then
+    searchString = rex.gsub(searchString, itemTypeQuery, '')
+  end
+    
+  
   local weapQuery, weapType = rex.match(searchString, [[( -W (\w+))]])
   if (weapQuery) then
     searchString = rex.gsub(searchString, weapQuery, '')
+    itemTypeQuery = true
+    itemType = 'weapon'    
   end
   
   local weapDpsQuery, weapDPS = rex.match(searchString, [[( -d (\d+\.?\d*))]])
@@ -2752,11 +2700,7 @@ catalog.search = function(searchString)
     searchString = rex.gsub(searchString, weapDpsQuery, '')
     weapDPS = tonumber(weapDPS)
   end
-  
-  local itemTypeQuery, itemType = rex.match(searchString, [[( -t (\w+))]])
-  if (itemTypeQuery) then
-    searchString = rex.gsub(searchString, itemTypeQuery, '')
-  end
+
   
   
   local alignQuery, align = rex.match(searchString, [[( -A (\w\w))]])
@@ -2806,15 +2750,19 @@ catalog.search = function(searchString)
   local twoHandQuery = rex.match(searchString, [[( --two-handed)]])
   if (twoHandQuery) then
     searchString = rex.gsub(searchString, twoHandQuery, '')
+    itemTypeQuery = true
+    itemType = 'weapon'    
   end  
  
   local offHandQuery = rex.match(searchString, [[( --off-hand)]])
   if (offHandQuery) then
+    searchString = rex.gsub(searchString, offHandQuery, '')
     location = 'left hand'
     itemLocationQuery = true
     layer = 'base'
     itemLayerQuery = true
-    searchString = rex.gsub(searchString, offHandQuery, '')
+    itemType = 'weapon'
+    itemTypeQuery = true
   end   
   
   -- display(levQuery, levMin, levMax)
@@ -2844,12 +2792,6 @@ catalog.search = function(searchString)
   
     local data = catalog.items[item]
     local flags = catalog.itemCalculated[idx]
-        
-    local includeWeaponDamage = false 
-       
-    if (itemTypeQuery and itemType == 'weapon') then
-      includeWeaponDamage = true
-    end
     
     -- display(data, flags)
     
@@ -2873,8 +2815,7 @@ catalog.search = function(searchString)
       (not raceQuery or flags.charRaces[race]) and
       
       (not twoHandQuery or catalog.hasAffect(data, 'Requires two hands.')) and
-      
-      (not offHandQuery or data.itemType == 'weapon') and
+
       
          -- 
 
@@ -2890,7 +2831,54 @@ catalog.search = function(searchString)
  
   end -- end loop over catalog index
   
-  return results
+      -- table.sort(results, function(a,b)   
+       -- 
+      -- local itemA = catalog.items[catalog.itemsIndex[a]]
+      -- local itemB = catalog.items[catalog.itemsIndex[b]]
+      -- 
+      -- return (itemA.averageDamage &gt; itemB.averageDamage) or 
+             -- (itemA.averageDamage == itemB.averageDamage and itemA.Level &gt; itemB.Level)
+             -- 
+    -- end)
+    
+  -- pre sort by item level
+  table.sort(results, function(a,b)   
+     
+    local itemA = catalog.items[catalog.itemsIndex[a]]
+    local itemB = catalog.items[catalog.itemsIndex[b]]
+    
+    return (itemA.Level &gt; itemB.Level)           
+  end)    
+  
+  
+  if (affectQuery) then
+ 
+     table.sort(results, function(a,b)   
+       
+      local itemA = catalog.items[catalog.itemsIndex[a]]
+      local itemB = catalog.items[catalog.itemsIndex[b]]
+      
+      return (catalog.getAffect(itemA, affect) &gt; catalog.getAffect(itemB, affect))
+             
+    end) 
+  
+  elseif (itemTypeQuery and itemType == 'weapon') then
+
+    affect = affect or 'damroll'
+
+    table.sort(results, function(a,b)   
+       
+      local itemA = catalog.items[catalog.itemsIndex[a]]
+      local itemB = catalog.items[catalog.itemsIndex[b]]
+      
+      return (catalog.getAffect(itemA, 'damroll') &gt; catalog.getAffect(itemB, 'damroll'))
+             
+    end)
+    
+  end
+
+  
+  return results, affect
 
 end</script>
 				<eventHandlerList />
