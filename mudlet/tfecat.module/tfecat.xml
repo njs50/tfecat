@@ -489,14 +489,18 @@ else
     cecho(demonnic:cfText(tostring(data.Level) .. '  ', {alignment = "right", width = 8, nogap=true}) .. ' ')
     cecho(demonnic:cfText(tostring(data.itemType), {alignment = "left", width = 8, nogap=true}) .. ' ')    
     
+    local renderWeap = function(data)
+      cecho( string.format("%.1f", catalog.getAffect(data, 'damroll') or 0) .. ' dps'  .. ' (' .. string.format("%.2f", data.Weight) .. 'lbs ' .. data.Class .. ')') 
+    end
+    
     if (affect) then
-      if (data.itemType == 'weapon' and affect == 'damroll') then
-        cecho('damage: ' .. tostring(catalog.getAffect(data, affect)))
+      if (data.itemType == 'weapon' and affect == 'damroll') then        
+        renderWeap(data)
       else
         cecho(affect .. ': ' .. tostring(catalog.getAffect(data, affect)))
       end
-    elseif (data.itemType == 'weapon') then    
-      cecho(string.format("%.1f", data.averageDamage or 0) .. ' dps' .. ' (' .. data.Class .. ')')    
+    elseif (data.itemType == 'weapon') then     
+      renderWeap(data)
     elseif (data.itemType == 'armor') then
       cecho('AC: ' .. tostring(data["Armor Class"]))
     end
@@ -2553,8 +2557,8 @@ end
 
 catalog.getAffect = function(item, affect, excludeWeaponDam)
 
-  
-  
+      
+      
   if catalog.itemNativeAffects[affect] and item[affect] and item[affect] ~= '' then
 
     local amount = item[affect]
@@ -2576,7 +2580,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
     local hasRegen = false
     local regenAmt = 0
     
-    local  hasDamage = false
+    local hasDamage = false
     local damAmt = 0
     
     local hasProp = false
@@ -2642,6 +2646,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
       return regenAmt      
     end     
     
+    
     if (affect == 'damroll' and (hasDamage or item.averageDamage)) then
       if (excludeWeaponDam) then
         return damAmt
@@ -2649,7 +2654,14 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
         return (item.averageDamage or 0) + damAmt
       end
     end
-    
+  
+  else -- item has no affects  
+
+    if (affect == 'damroll' and item.averageDamage) then
+      if (not excludeWeaponDam) then
+        return (item.averageDamage or 0)
+      end
+    end    
 
   end
   
