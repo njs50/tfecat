@@ -2597,7 +2597,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
     
       if (aff.type == 'affect' and aff.name:lower() == affect) then
         
-        return true
+        return 1
         
       end
  
@@ -2912,7 +2912,10 @@ catalog.search = function(searchString)
       local itemA = catalog.items[catalog.itemsIndex[a]]
       local itemB = catalog.items[catalog.itemsIndex[b]]
       
-      return (catalog.getAffect(itemA, 'damroll') &gt; catalog.getAffect(itemB, 'damroll'))
+      local valA = catalog.getAffect(itemA, 'damroll')
+      local valB = catalog.getAffect(itemB, 'damroll')
+      
+      return (valA &gt; valB)
              
     end)
     
