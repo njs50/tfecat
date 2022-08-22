@@ -2027,6 +2027,8 @@ catalog.itemGetLoop = function(items, cb)
   local dt = getEpoch()
 
   local newItems = {}
+  
+  local co
 
   co = coroutine.create(function()
   
