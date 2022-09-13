@@ -658,10 +658,11 @@ local mainWeapType
 local usingTwoHandedWeapon = false
 if catalog.player.gear["right hand"] and catalog.player.gear["right hand"].base then
   local mWeap = catalog.getSlotLayerItem('right_hand', 'base', catalog.player.gear["right hand"].base.raw)
-  mainWeapType = mWeap.Class
-  
-  if mWeap and catalog.hasAffect(mWeap, 'Requires two hands.') then
-    usingTwoHandedWeapon = true
+  if mWeap and mWeap.itemType == 'weapon' then
+    mainWeapType = mWeap.Class
+    if mWeap and catalog.hasAffect(mWeap, 'Requires two hands.') then
+      usingTwoHandedWeapon = true
+    end
   end
 end
 
@@ -4075,7 +4076,7 @@ catalog.common.itemSanitize = function(string)
   end
   
   
-  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |enchanted,? |empty,? |flaming,? |labeled |\s\+\d)]], '')
+  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |enchanted,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled |\s\+\d)]], '')
 
   if (string ~= 'frost-covered ring') then
     string = rex.gsub(string, [[frost-covered,? ]], '')
