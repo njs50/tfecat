@@ -2654,17 +2654,30 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
           hasAff = true
           affAmt = affAmt + aff.amount
         end                    
+
         
+      elseif (affect == 'hit_regen') then
+      
+        if aff.name:lower() == 'constitution' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 0.6)
+        end
+        
+        if aff.name:lower() == 'hit_regen' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end
+       
       elseif (affect == 'mana_regen') then
       
         if aff.name:lower() == 'intelligence' then
-          hasRegen = true
-          regenAmt = regenAmt + (aff.amount * 0.2)
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 0.2)
         end
         
         if aff.name:lower() == 'mana_regen' then
-          hasRegen = true
-          regenAmt = regenAmt + aff.amount
+          hasAff = true
+          affAmt = affAmt + aff.amount
         end
       
       elseif (affect == 'damroll') then
@@ -2706,13 +2719,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
         catalog.getAffect(item, 'parry') * 4        
       return propVal + gac + defSkills    
     end
-   
-    if (affect == 'mana_regen' and hasRegen) then
-      return regenAmt      
-    end    
-    
-
-    
+  
     if (affect == 'damroll' and (hasDamage or item.averageDamage)) then
       if (excludeWeaponDam) then
         return damAmt
