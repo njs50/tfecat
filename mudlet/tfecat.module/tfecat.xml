@@ -2577,7 +2577,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
     if type(amount) == 'string' then
       amount = tonumber(amount)
     end
-    
+
     return amount
     
   end    
@@ -2588,6 +2588,10 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
   if (item.affects) then
     
     local hasRegen = false
+    
+    local hasAff = false
+    local affAmt = 0
+    
     local regenAmt = 0
     
     local hasDamage = false
@@ -2603,8 +2607,55 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
         return 1
         
       end
+      
+      if (affect == 'magic') then
+        
+        if aff.name:lower() == 'intelligence' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 2)
+        end    
+
+        if aff.name:lower() == 'wisdom' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 1)
+        end  
  
-      if (affect == 'mana_regen') then
+        if aff.name:lower() == 'magic' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end      
+       
+      elseif (affect == 'mind') then
+        
+        if aff.name:lower() == 'intelligence' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 1)
+        end    
+
+        if aff.name:lower() == 'wisdom' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 2)
+        end  
+ 
+        if aff.name:lower() == 'mind' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end  
+
+       
+      elseif (affect == 'poison') then
+        
+        if aff.name:lower() == 'constitution' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 2)
+        end    
+ 
+        if aff.name:lower() == 'poison' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end                    
+        
+      elseif (affect == 'mana_regen') then
       
         if aff.name:lower() == 'intelligence' then
           hasRegen = true
@@ -2642,6 +2693,10 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
       end
     end
     
+    if (hasAff) then
+      return affAmt
+    end     
+    
     if (affect == 'deflection') then
       local gac = tonumber(item['Global Armor'] or 0)
       local defSkills = 
@@ -2654,8 +2709,9 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
    
     if (affect == 'mana_regen' and hasRegen) then
       return regenAmt      
-    end     
+    end    
     
+
     
     if (affect == 'damroll' and (hasDamage or item.averageDamage)) then
       if (excludeWeaponDam) then
