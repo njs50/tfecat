@@ -15,7 +15,7 @@ got(catSrc)
    catalog = JSON.parse(response.body);
    updateSummary()
 
-   console.log(summary)
+  //  console.log(summary)
   }).catch(error => {
     console.log(error);
   })
@@ -53,6 +53,16 @@ app.post("/catalog/diff", (req, res, next) => {
     catalog[itemName] = req.body[itemName]
   }
   updateSummary()
+  res.end("");
+});
+
+app.post("/catalog/deleteItems", (req, res, next) => {  
+  for (let itemName in req.body) {
+    delete catalog[itemName]
+  }    
+  updateSummary()
+  res.end("");
+
 });
 
 app.post("/puzzle/tile", (req, res, next) => {
