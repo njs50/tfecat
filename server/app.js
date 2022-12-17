@@ -15,7 +15,7 @@ got(catSrc)
    catalog = JSON.parse(response.body);
    updateSummary()
 
-   console.log(summary)
+  //  console.log(summary)
   }).catch(error => {
     console.log(error);
   })
@@ -53,6 +53,25 @@ app.post("/catalog/diff", (req, res, next) => {
     catalog[itemName] = req.body[itemName]
   }
   updateSummary()
+  res.end("");
+});
+
+app.post("/catalog/deleteItems", (req, res, next) => {  
+  var count = 0;
+  var failItems = '';
+  for (let idx in req.body) {
+    let itemName = req.body[idx]
+    if (catalog[itemName]) {
+      delete catalog[itemName];
+      count++;
+      // failItems += 'deleted: ' + itemName + '\n'
+    } else {
+      failItems += '\nnot found: ' + itemName
+    }
+  }    
+  updateSummary()
+  res.end("deleted " + count.toString() + " items" + failItems);
+
 });
 
 app.post("/puzzle/tile", (req, res, next) => {

@@ -249,29 +249,11 @@ end</script>
   ['generate-full'] = function()
     catalog.export(nil, {checkEverything = true})
   end,
- 
- 
-  transmit = function()
-    -- if  (player and player ~= '') then
-      catalog.transmit()
-    -- else
-      -- cecho('\n\n&lt;red&gt;CATALOG:&lt;white&gt; invalid player to transmit items to ' .. player .. '!\n\n')
-    -- end
-  end, 
-  
-  
+
   merge = function()
-    if (tellData and tellData.result) then
-      catalog.writeTellDataToDiff(function()
-        catalog.mergeDiff(function()
-          cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; merged!\n\n') 
-        end)
-      end)
-    else
-      catalog.mergeDiff(function()
-        cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; merged!\n\n') 
-      end)    
-    end
+    catalog.mergeDiff(function()
+      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; merged!\n\n') 
+    end)    
   end,
   
   load = function()
@@ -279,6 +261,12 @@ end</script>
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; loaded ' .. tostring(#catalog.itemsIndex) .. ' items into catalog.items!\n\n') 
     end)
   end,  
+  
+  loadV13 = function()    
+    catalog.load(function()
+      cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; loaded ' .. tostring(#catalog.itemsIndex) .. ' items into catalog.items!\n\n') 
+    end, catalog.serverUrl .. '/catalog')    
+  end,
   
   summary = function()
     catalog.showSummary()
@@ -1347,6 +1335,7 @@ catalog.summary = catalog.summary or {}
 catalog.parsing = false
 
 catalog.serverUrl = 'http://vault-thirteen.net:49160' 
+-- catalog.serverUrl = 'http://localhost:3000'
 
 local itemVersion = 1.2 -- bumped for new classes
 
@@ -1380,6 +1369,40 @@ catalog.versionCountDetail = function(version)
   display(catver)
 end
 
+catalog.showVersionItems = function(version, player)
+  for name, item in pairs(catalog.items) do
+    if item.itemVersion == version then
+      if (player == nil or item.source == player) then
+        display(name)
+      end
+    end
+  end
+end
+
+catalog.purgeVersionItems = function(version)
+ 
+  local purgeItems = {}
+  
+  for name, item in pairs(catalog.items) do
+    if item.itemVersion == version then
+      table.insert(purgeItems, name)
+    end
+  end
+   
+  local pcount = #purgeItems
+   
+  if (pcount &gt; 0) then
+    
+    purgeItems = catalog.common.json.encode(purgeItems)
+    
+    postHTTP(purgeItems, catalog.serverUrl .. "/catalog/deleteItems", {["Content-type"] = "application/json"})
+    cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;' .. tostring(pcount) .. ' items sent to server to be purged!\n')  
+  
+  else
+    cecho('\n&lt;yellow&gt;TFECAT: &lt;white&gt;no items needed purging!\n')  
+  end
+
+end
 
 catalog.fixMissingDot = function(affect)
 
@@ -1666,9 +1689,9 @@ catalog.mergeDiff = function(cb)
 end
 
 
-catalog.load = function(cb)
+catalog.load = function(cb, altSrc)
   
-  local src='https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json'
+  local src = altSrc or 'https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json'
 
   local downloadHandler
 
