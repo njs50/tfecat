@@ -32,7 +32,7 @@
     "eslint-plugin-vue": "^6.2.2",
     "push-dir": "^0.4.1",
     "roboto-fontface": "*",
-    "sass-loader": "^8.0.2",
+    "sass-loader": "^13.2.0",
     "typescript": "~3.9.3",
     "vue": "^2.6.11",
     "vue-class-component": "^7.2.3",
