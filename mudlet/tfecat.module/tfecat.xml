@@ -1337,7 +1337,7 @@ catalog.parsing = false
 catalog.serverUrl = 'http://vault-thirteen.net:49160' 
 -- catalog.serverUrl = 'http://localhost:3000'
 
-local itemVersion = 1.2 -- bumped for new classes
+local itemVersion = 1.3 -- bumped for reaver/legate/harb updates (maybe bulwark)
 
 local affectMissingDot = {
   ["Grants Haste"] = true,
@@ -1758,6 +1758,7 @@ catalog.load = function(cb, altSrc)
 
       newFlags.charClasses = {
         bard = true,
+        bulwark = true,
         cleric = true,
         druid = true,
         mage = true,
@@ -1940,11 +1941,11 @@ catalog.showSummary = function()
         
         st:addRow({sucker, tostring(count), tostring(pending)})
       end
-      
+            
       for sucker, count in pairs(summary) do
         
         if (not pending[sucker]) then        
-          st:addRow({sucker, count, tostring(0 - count)})
+          st:addRow({sucker, tostring(count), tostring(0 - count)})
         end
         
       end      

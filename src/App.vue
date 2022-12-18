@@ -439,6 +439,7 @@ export default Vue.extend({
 
     charClasses: [
       "Bard",
+      "Bulwark",
       "Cleric",
       "Druid",
       "Harbinger",

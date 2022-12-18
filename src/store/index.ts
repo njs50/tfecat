@@ -109,6 +109,7 @@ export default new Vuex.Store({
 
         item.charClasses = {
           "bard": true,
+          "bulwark": true,
           "cleric": true,
           "druid": true,
           "harbinger": true,
