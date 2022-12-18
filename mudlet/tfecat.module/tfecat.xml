@@ -1941,6 +1941,14 @@ catalog.showSummary = function()
         st:addRow({sucker, tostring(count), tostring(pending)})
       end
       
+      for sucker, count in pairs(summary) do
+        
+        if (not pending[sucker]) then        
+          st:addRow({sucker, count, tostring(0 - count)})
+        end
+        
+      end      
+      
       cecho(st:assemble())
     
     end)
@@ -1978,6 +1986,14 @@ catalog.showDiff = function()
         end
 
       end
+      
+      for item, itemData in pairs(published) do
+        
+        if (not pending[item]) then
+          st:addRow({itemData.source, item, '&lt;red&gt;removed'})
+        end
+
+      end      
       
       cecho(st:assemble())
     
