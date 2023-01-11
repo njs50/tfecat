@@ -287,11 +287,11 @@ end</script>
   
   
   help = function()
-    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate - generate list of new items\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit - upload generated list\n\n') 
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate - generate+upload list of new items\n') 
+    -- cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit - upload generated list\n\n') 
     
     cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat diff  - shows the items that are still pending\n\n')
+    -- cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat diff  - shows the items that are still pending\n\n')
      
     cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat load  - refreshes the current catalog data for use by tcat\n') 
     cecho('&lt;green&gt;CATALOG:&lt;white&gt; tcat &lt;item&gt;  - searches the catalog for &lt;item&gt;\n\n') 
