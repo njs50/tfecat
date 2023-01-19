@@ -277,8 +277,10 @@ end</script>
   end,
   
   refreshItem = function(item)
-    item = catalog.items[catalog.itemsIndex[tonumber(item)]]
-    catalog.export(nil, {checkEverything = true, searchText = item.name})
+    -- item = catalog.items[catalog.itemsIndex[tonumber(item)]]
+    catalog.export(function()
+      catalog.transmit()
+    end, {checkEverything = true, searchText = item})
   end,
   
   update = function()
