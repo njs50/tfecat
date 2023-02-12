@@ -366,6 +366,7 @@ if matches[2] == ' help' then
   cecho('&lt;white&gt;-t &lt;type&gt;&lt;reset&gt;              Show items that are of the specified type\n')
   cecho('&lt;white&gt;-W &lt;class&gt;&lt;reset&gt;             Show weapons of the specified weapon class\n')
   cecho('&lt;white&gt;-d #&lt;reset&gt;                   Show weapons with an average dps of at least #\n')  
+  cecho('&lt;white&gt;--main-hand&lt;reset&gt;            Show one-handed weapons usable in right hand\n')  
   cecho('&lt;white&gt;--off-hand&lt;reset&gt;             Show off-hand weapons only\n')  
   cecho('&lt;white&gt;--two-handed&lt;reset&gt;           Show two-handed weapons only\n')  
   
@@ -405,7 +406,7 @@ if matches[2] == ' help' then
 
   cecho('&lt;white&gt;Affects (-a):&lt;reset&gt; hit_points, hit_regen, mana_points, mana_regen, move_points,\n') 
   cecho('move_regen, strength, intelligence, wisdom, dexterity, constitution, magic,\n') 
-  cecho('fire, cold, electricity, mind, acid, age, hitroll, damroll\n') 
+  cecho('fire, cold, electricity, mind, acid, age, hitroll, damroll, smart\n') 
   cecho('\n') 
   
   cecho('&lt;white&gt;Wear Locations (-w):&lt;reset&gt; finger, neck, body, head, legs, feet, hands, arms, waist,\n') 
@@ -2650,7 +2651,19 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
         
       end
       
-      if (affect == 'magic') then
+      if (affect == 'smart') then
+        
+        if aff.name:lower() == 'intelligence' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end    
+
+        if aff.name:lower() == 'wisdom' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end      
+      
+      elseif (affect == 'magic') then
         
         if aff.name:lower() == 'intelligence' then
           hasAff = true
@@ -2914,6 +2927,18 @@ catalog.search = function(searchString)
     itemTypeQuery = true
   end   
   
+ 
+  local mainHandQuery = rex.match(searchString, [[( --main-hand)]])
+  if (mainHandQuery) then
+    searchString = rex.gsub(searchString, mainHandQuery, '')
+    location = 'right hand'
+    itemLocationQuery = true
+    layer = 'base'
+    itemLayerQuery = true
+    itemType = 'weapon'
+    itemTypeQuery = true
+  end     
+  
   -- display(levQuery, levMin, levMax)
   
   
@@ -2964,6 +2989,7 @@ catalog.search = function(searchString)
       (not raceQuery or flags.charRaces[race]) and
       
       (not twoHandQuery or catalog.hasAffect(data, 'Requires two hands.')) and
+      (not mainHandQuery or not catalog.hasAffect(data, 'Requires two hands.')) and
 
       
          -- 
@@ -4152,7 +4178,8 @@ catalog.common.itemShortenOverride = catalog.common.itemShortenOverride or {}
 catalog.common.itemShortenOverride['darkgem'] = 'darkgem'
 catalog.common.itemShortenOverride['darklight'] = 'darklight'
 catalog.common.itemShortenOverride['shadowbox'] = 'shadowbox'
-       -- a bracer of the emerald moon                          55   armor    AC: 4
+
+-- a bracer of the emerald moon                          55   armor    AC: 4
 -- [4396] an emerald bracelet 
 
 -- bung keywords on item
@@ -4164,6 +4191,8 @@ catalog.common.itemShortenOverride["flowing silver greatsword 'Unbending Will'"]
 catalog.common.itemShortenOverride["flowing silver shortspear 'Hand of the Just'"] = 'flowing.silver.shortspear'
 catalog.common.itemShortenOverride["flowing.silver.greatsword.Unbending"] = 'flow.silv.grea'
 catalog.common.itemShortenOverride["flowing.silver.shortspear.Hand.the"] = 'flow.silv.shor'
+
+
 
 catalog.common.dotCase = function(string)
 
