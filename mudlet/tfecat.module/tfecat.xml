@@ -895,7 +895,14 @@ send('queue identity &amp; queue equipment')
 			<script>expandAlias('tcat help')</script>
 			<command></command>
 			<packageName></packageName>
-			<regex>^tcat\s*$</regex>
+			<regex>^(tcat|help tcat)\s*$</regex>
+		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>tcat-audit help shortcut</name>
+			<script>expandAlias('tcat-audit')</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^(help tcat-audit)\s*$</regex>
 		</Alias>
 	</AliasPackage>
 	<ActionPackage />
