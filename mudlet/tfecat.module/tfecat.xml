@@ -21,7 +21,7 @@ if (matches[2] == 'Equipment') then
 	-- cecho(' &lt;--- parsing start')
 
   -- end on next prompt
-  tempRegexTrigger([[^&lt;]], function()
+  tempPromptTrigger(function()
     	-- end of parsing
     	player.gearParsing = nil
     	player.gearCurrentSlot = nil
@@ -48,7 +48,7 @@ end
 
 
 
-           </script>
+</script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
@@ -2155,7 +2155,7 @@ catalog.getItemList = function(cb, options)
     
 
     -- next regular prompt means we're done
-    tempRegexTrigger([[^&lt;]], function ()
+    tempPromptTrigger(function ()
       killTrigger(temptrigs.moreCatcher)
       killTrigger(temptrigs.catEntryCatcher)
       temptrigs.moreCatcher = nil
