@@ -1555,23 +1555,7 @@ catalog.install = function ()
       
     local URL = "https://raw.githubusercontent.com/njs50/njs50-package-manager/main/njs50-package-manager.xml"
     
-    local downloadHandler, installHandler
-    
-    local log = function(msg) 
-      cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;package ' .. msg .. '!\n') 
-    end
-    
-    downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
-      if not filename:find("njs50-package-manager.xml", 1, true) then 
-        return 
-      end
-      killAnonymousEventHandler(downloadHandler)
-      log('downloaded')
-      
-      installPackage(filename)
-      os.remove(filename)
-  
-    end)
+    local installHandler
     
     installHandler = registerAnonymousEventHandler("sysInstallPackage", function(_, name)
       -- stop if what got installed isn't my thing
@@ -1580,14 +1564,11 @@ catalog.install = function ()
       end
       
       killAnonymousEventHandler(installHandler)
-      log('installed')
-    
       expandAlias('njs50pm install tfecat')
     
     end)
     
-    log('downloading...')
-    downloadFile(getMudletHomeDir().."/njs50-package-manager.xml", URL .. '?_=' .. tostring(getEpoch))
+    installPackage(url)   
     
   end
 
