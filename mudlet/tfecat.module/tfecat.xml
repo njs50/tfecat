@@ -1547,45 +1547,49 @@ end
 -- this is the code that will be in the one liner to export
 catalog.install = function ()
   
-  local URL = "https://github.com/njs50/tfecat/raw/master/mudlet/tfecat.module/tfecat.xml"
-  
-  local downloadHandler, installHandler
-  
-  local log = function(msg) 
-    cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;package ' .. msg .. '!\n') 
-  end
-  
-  downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
-    if not filename:find("tfecat.xml", 1, true) then 
-      return 
-    end
-    killAnonymousEventHandler(downloadHandler)
-    log('downloaded')
+  if (njs50pm) then
     
-    installPackage(filename)
-    os.remove(filename)
-
-  end)
+    expandAlias('njs50pm update tfecat')
   
-  installHandler = registerAnonymousEventHandler("sysInstallPackage", function(_, name)
-    -- stop if what got installed isn't my thing
-    if name ~= "tfecat" then 
-      return 
+  else
+      
+    local URL = "https://raw.githubusercontent.com/njs50/njs50-package-manager/main/njs50-package-manager.xml"
+    
+    local downloadHandler, installHandler
+    
+    local log = function(msg) 
+      cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;package ' .. msg .. '!\n') 
     end
     
-    killAnonymousEventHandler(installHandler)
-    log('installed')
+    downloadHandler = registerAnonymousEventHandler("sysDownloadDone", function(_, filename)
+      if not filename:find("njs50-package-manager.xml", 1, true) then 
+        return 
+      end
+      killAnonymousEventHandler(downloadHandler)
+      log('downloaded')
+      
+      installPackage(filename)
+      os.remove(filename)
   
-    expandAlias('tfecat help')
-  
-  end)
-  
-  log('uninstalling any existing...')
-  uninstallPackage('tfecat')
-  tempTimer(5, function()
+    end)
+    
+    installHandler = registerAnonymousEventHandler("sysInstallPackage", function(_, name)
+      -- stop if what got installed isn't my thing
+      if name ~= "njs50-package-manager" then 
+        return 
+      end
+      
+      killAnonymousEventHandler(installHandler)
+      log('installed')
+    
+      expandAlias('njs50pm install tfecat')
+    
+    end)
+    
     log('downloading...')
-    downloadFile(getMudletHomeDir().."/tfecat.xml", URL .. '?_=' .. tostring(getEpoch))
-  end)
+    downloadFile(getMudletHomeDir().."/njs50-package-manager.xml", URL .. '?_=' .. tostring(getEpoch))
+    
+  end
 
 end
 
