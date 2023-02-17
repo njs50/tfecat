@@ -1860,6 +1860,7 @@ catalog.load = function(cb, altSrc)
   end)
   
   -- download a list of fake users for a demo
+  cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; downloading catalog from ' .. src .. '\n\n')
   downloadFile(getMudletHomeDir().."/catalog.json", src .. '?_=' .. tostring(getEpoch))
 
 
@@ -2038,13 +2039,13 @@ end
 
 catalog.getAllItems = function(cb, options)
  
-  catalog.setColors(function()
+  -- catalog.setColors(function()
     
     catalog.getItemList(function(itemList)
     
       catalog.itemGetLoop(itemList, function(items)
         -- restore previous settings
-        catalog.resetColors()
+        -- catalog.resetColors()
         cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; parsed all items in catalog!\n\n') 
         cb(items)  
         
@@ -2052,7 +2053,7 @@ catalog.getAllItems = function(cb, options)
 
     end, options)
     
-  end)
+  -- end)
 
 
 end
@@ -2118,11 +2119,11 @@ catalog.getItemList = function(cb, options)
     local items = {}
     
     -- trigger to hit enter on any "more" prompts
-    temptrigs.moreCatcher = tempRegexTrigger([[^\s*--\s+MORE\s+--\s*&lt;]], function ()
-      send('\n')
-      -- send('sigh')
-      cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;continuing catalog listing\n\n')
-    end)
+    -- temptrigs.moreCatcher = tempRegexTrigger([[^\s*--\s+MORE\s+--\s*&lt;]], function ()
+      -- send('\n')
+      -- -- send('sigh')
+      -- cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;continuing catalog listing\n\n')
+    -- end)
     
     
     temptrigs.catEntryCatcher = tempRegexTrigger([[^\[\s*(\d+)\]\s*(.+?)\s+(\d+)\s+(\S+)]], function ()
@@ -2147,10 +2148,12 @@ catalog.getItemList = function(cb, options)
     
 
     -- next regular prompt means we're done
-    tempPromptTrigger(function ()
-      killTrigger(temptrigs.moreCatcher)
+    tempPromptTrigger(function()
+    
+    
+      -- killTrigger(temptrigs.moreCatcher)
       killTrigger(temptrigs.catEntryCatcher)
-      temptrigs.moreCatcher = nil
+      -- temptrigs.moreCatcher = nil
       temptrigs.catEntryCatcher = nil
       cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;catalog listing ended\n\n')
       cb(items)
@@ -2159,9 +2162,9 @@ catalog.getItemList = function(cb, options)
   end, 1)
   
   if (options.searchText) then
-    send('catalog ' .. options.searchText)
+    send('$catalog ' .. options.searchText)
   else
-    send('catalog')
+    send('$catalog')
   end
 
 end
@@ -2702,6 +2705,24 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
           affAmt = affAmt + aff.amount
         end                    
 
+        
+      elseif (affect == 'regen') then
+
+        
+        if aff.name:lower() == 'mana_regen' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end
+                
+        if aff.name:lower() == 'hit_regen' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end        
+        
+        if aff.name:lower() == 'move_regen' then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end        
         
       elseif (affect == 'hit_regen') then
       
