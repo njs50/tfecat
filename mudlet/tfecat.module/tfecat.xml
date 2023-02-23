@@ -69,6 +69,34 @@ end
 			</regexCodePropertyList>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>You have nothing equipped.</name>
+			<script>player.gear = {}
+player.itemSlot = {}
+
+player.gearParsing = nil
+player.gearCurrentSlot = nil
+
+raiseEvent(catalog.events.PARSED_EQUIPMENT)
+
+</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>You have nothing equipped.</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>2</integer>
+			</regexCodePropertyList>
+		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>parse identity</name>
 			<script></script>
 			<triggerType>0</triggerType>
@@ -406,7 +434,7 @@ if matches[2] == ' help' then
 
   cecho('&lt;white&gt;Affects (-a):&lt;reset&gt; hit_points, hit_regen, mana_points, mana_regen, move_points,\n') 
   cecho('move_regen, strength, intelligence, wisdom, dexterity, constitution, magic,\n') 
-  cecho('fire, cold, electricity, mind, acid, age, hitroll, damroll, smart\n') 
+  cecho('fire, cold, electricity, mind, acid, age, hitroll, damroll, smart, regen, resist\n') 
   cecho('\n') 
   
   cecho('&lt;white&gt;Wear Locations (-w):&lt;reset&gt; finger, neck, body, head, legs, feet, hands, arms, waist,\n') 
@@ -2703,7 +2731,32 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
         if aff.name:lower() == 'poison' then
           hasAff = true
           affAmt = affAmt + aff.amount
-        end                    
+        end   
+        
+      elseif (affect == 'resist') then
+
+ 
+        if table.contains({'fire', 'cold', 'electricity', 'acid', 'magic', 'mind', 'poison'}, aff.name:lower()) then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end   
+         
+        -- magic + mind
+        if aff.name:lower() == 'intelligence' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 3)
+        end    
+
+        if aff.name:lower() == 'wisdom' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 3)
+        end  
+   
+        -- poison
+        if aff.name:lower() == 'constitution' then
+          hasAff = true
+          affAmt = affAmt + (aff.amount * 2)
+        end         
 
         
       elseif (affect == 'regen') then
