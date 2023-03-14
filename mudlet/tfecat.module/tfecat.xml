@@ -269,13 +269,15 @@ end</script>
 			<script>local commands = {
 
   generate = function()
-    catalog.export(function()
-      catalog.transmit()
+    catalog.export(function(items)
+      catalog.transmit(items)
     end)
   end,
  
   ['generate-full'] = function()
-    catalog.export(nil, {checkEverything = true})
+    catalog.export(function(items)
+      catalog.transmit(items)
+    end, {checkEverything = true})
   end,
 
   merge = function()
@@ -306,8 +308,8 @@ end</script>
   
   refreshItem = function(item)
     -- item = catalog.items[catalog.itemsIndex[tonumber(item)]]
-    catalog.export(function()
-      catalog.transmit()
+    catalog.export(function(items)    
+      catalog.transmit(items)
     end, {checkEverything = true, searchText = item})
   end,
   
@@ -465,6 +467,7 @@ if matches[2] == ' help' then
   return
 end
 
+local results, affect
 local searchString = matches[2]
 
 local rawQuery = rex.match(searchString, [[( --raw)]])
@@ -472,7 +475,33 @@ if (rawQuery) then
   searchString = rex.gsub(searchString, rawQuery, '')
 end  
 
-local results, affect = catalog.search(searchString)
+
+
+-- this needs to be last as missing will skip the regular search
+
+
+local missingQuery = rex.match(searchString, [[( --missing)]])
+if (missingQuery) then
+
+  if not catalog.localItems then
+    catalog.export(function(items)
+      catalog.transmit(items, function()
+        expandAlias('tcat --missing')
+      end)
+    end)  
+    return
+  end
+
+  searchString = rex.gsub(searchString, missingQuery, '')
+  results = catalog.showMissingLocalItems()
+  affect = 'source'
+else
+  results, affect = catalog.search(searchString)
+end  
+
+
+
+
 
 if (#results == 0) then
 
@@ -520,7 +549,10 @@ else
     end
     
     if (affect) then
-      if (data.itemType == 'weapon' and affect == 'damroll') then        
+      
+      if (affect == 'source') then
+        cecho('sourtce: ' .. data.source)
+      elseif (data.itemType == 'weapon' and affect == 'damroll') then        
         renderWeap(data)
       else
         cecho(affect .. ': ' .. tostring(catalog.getAffect(data, affect)))
@@ -534,6 +566,8 @@ else
     cecho('\n')
     
   end
+  
+  cecho ('\nFound ' .. tostring(#results) .. ' items\n')
   
 end
 </script>
@@ -1386,6 +1420,28 @@ local affectMissingDot = {
   ["Causes lethargy"] = true,
 }
 
+
+catalog.showMissingLocalItems = function()
+
+  local localList = {}
+  
+  local results = {}
+  
+  for inum, item in pairs (catalog.localItems) do
+    localList[item] = true
+  end
+
+  for item, itemData in pairs(catalog.items) do
+    if not localList[item] then
+      table.insert(results, itemData.catalogIndex)
+    end    
+  end
+    
+  return results
+
+end
+
+
 catalog.versionCount = function()
   local catver = {}
   for name, item in pairs(catalog.items) do
@@ -1603,46 +1659,58 @@ catalog.install = function ()
 end
 
 
-catalog.transmit = function(player)
+catalog.transmit = function(items, cb)
 
-  local filepath = getMudletHomeDir().."/catalog_dif.json"
-  
-  local file, s, catJson = io.open(filepath)
-  if file then 
-    catJson = file:read("*all"); 
-    io.close(file) 
-  end
+  if (#table.keys(items) &gt; 0) then
+    
+    local catJson = catalog.common.json.encode(items)
+    
+    local postDoneHandler
+    
+    postDoneHandler = registerAnonymousEventHandler("sysPostHttpDone", function(_, url, body)
+    
+      killAnonymousEventHandler(postDoneHandler)
+      cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;new items sent to server!\n')
+      if (cb) then
+        cb()
+      end
       
-  postHTTP(catJson, catalog.serverUrl .. "/catalog/diff", {["Content-type"] = "application/json"})
+    end)
   
-  cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;new items sent to server!\n')
+        
+    postHTTP(catJson, catalog.serverUrl .. "/catalog/diff", {["Content-type"] = "application/json"})
 
-
-end
-
-
-catalog.createDif = function(items, cb)
-
-  local newItems = #table.keys(items)
-  
-  if (newItems &gt; 0) then
-    local filepath = getMudletHomeDir().."/catalog_dif.json"
-    local file = io.open(filepath,"w")
-    file:write(catalog.common.json.encode(items))
-    file:close()
-    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
-    
-    if (cb) then
-      cb(items)
-    end
-    
   else
-    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to export!\n\n') 
-  end
   
-
+    if (cb) then
+      cb()
+    end
+        
+  end
 
 end
+
+-- 
+-- catalog.createDif = function(items, cb)
+-- 
+  -- local newItems = #table.keys(items)
+  -- 
+  -- if (newItems &gt; 0) then
+    -- local filepath = getMudletHomeDir().."/catalog_dif.json"
+    -- local file = io.open(filepath,"w")
+    -- file:write(catalog.common.json.encode(items))
+    -- file:close()
+    -- cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; ' .. tostring(newItems) .. ' new items written to ' .. filepath .. '\n\n') 
+    -- 
+  -- else
+    -- cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; no new items to export!\n\n') 
+  -- end
+    -- 
+  -- if (cb) then
+    -- cb(items)
+  -- end
+-- 
+-- end
 
 
 catalog.export = function(cb, options)
