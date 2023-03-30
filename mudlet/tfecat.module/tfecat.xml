@@ -1727,7 +1727,11 @@ catalog.export = function(cb, options)
     
     catalog.getAllItems(function(items)
 
-      catalog.createDif(items, cb)
+      catalog.createDif(items, function()
+      
+        cb(items)
+      
+      end)
             
     end, options)
     
