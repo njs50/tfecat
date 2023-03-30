@@ -1726,13 +1726,7 @@ catalog.export = function(cb, options)
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt;loaded ' .. tostring(#table.keys(publicCatalog)) .. ' items from github!\n\n')
     
     catalog.getAllItems(function(items)
-
-      catalog.createDif(items, function()
-      
-        cb(items)
-      
-      end)
-            
+       cb(items)
     end, options)
     
   end)
