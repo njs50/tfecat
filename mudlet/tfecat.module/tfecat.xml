@@ -744,6 +744,21 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
 
   cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; audit results for ' .. affect .. '\n')
 
+
+  local itemHasNegativeAffect = function(idx) 
+    local item = catalog.itemsIndex[idx]
+    local data = catalog.items[item]  
+    if (affect) then
+      local amt = catalog.getAffect(data, affect)
+      -- display(item, amt)
+      if (amt &lt; 0) then 
+        return true
+      end
+    end
+    
+    return false  
+  end
+
   local displayItem = function(idx, isEquipped, includeAverageDamage)
   
     local item = catalog.itemsIndex[idx]
@@ -763,7 +778,14 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       local amt = catalog.getAffect(data, affect)
       
       cecho(demonnic:fText('level ' .. tostring(data.Level), {alignment = "left", width = 8, nogap=true}) .. ', ')
-      cecho(affect .. ' is ' .. tostring(amt))
+      
+      local amt_msg = affect .. ' is ' .. tostring(amt) .. '&lt;reset&gt;'
+      
+      if (amt &lt; 0) then 
+        amt_msg = '&lt;red&gt;' .. amt_msg 
+      end
+      cecho(amt_msg)
+      
     end
     
     cecho('\n')          
@@ -802,7 +824,9 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
             cmd = cmd .. ' -W ' .. mainWeapType
           end
           if usingTwoHandedWeapon then
-             cmd = cmd .. ' --two-handed'
+             cmd = cmd .. ' --two-handed'            
+          else
+            cmd = cmd .. ' --main-hand'
           end
         else
           skipLayer = true
@@ -911,9 +935,7 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
           end        
         end
         
-        if (verboseQuery or #results &gt; 0) then
-          
-          
+        if (verboseQuery or #results &gt; 0 or (tcatItem and itemHasNegativeAffect(tcatItem.catalogIndex))) then          
           
           cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
           cechoLink('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']&lt;reset&gt; ', function() expandAlias(cmd) end, "show all usable items for " .. slot .. '.' .. layer, true)
@@ -2695,6 +2717,7 @@ end
   ["Armor Class"] = true,
   ["Base Cost"] = true,
   ["Global Armor"] = true,
+  ["Remort Level"] = true,
 }
 
 catalog.getAffect = function(item, affect, excludeWeaponDam)
@@ -4335,27 +4358,31 @@ catalog.common.dotCase = function(string)
 end
 
 
-catalog.common.itemSanitize = function(string)
+catalog.common.itemSanitize = function(string, keepEnchant)
 
   if (not string or string == '') then
     return ''
   end
-  
-  
-  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |enchanted,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled |\s\+\d)]], '')
 
-  if (string ~= 'frost-covered ring') then
-    string = rex.gsub(string, [[frost-covered,? ]], '')
+  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |divinely flamed,? |enchanted,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled )]], '')
+
+  if (keepEnchant ~= true) then
+    string = rex.gsub(string, [[(\s\+\d)]], '')  
   end
 
+  if (not rex.find(string, [[frost-covered ring]])) then
+    string = rex.gsub(string, [[frost-covered,? ]], '')
+  end
+  
   return string
 
 end
 
 
-catalog.common.itemShorten = function(item)
 
-  item = catalog.common.dotCase(catalog.common.itemSanitize(item))
+catalog.common.itemShorten = function(item, keepEnchant)
+
+  item = catalog.common.dotCase(catalog.common.itemSanitize(item, keepEnchant))
   
   if (catalog.common.itemShortenOverride[item]) then
     return catalog.common.itemShortenOverride[item]
