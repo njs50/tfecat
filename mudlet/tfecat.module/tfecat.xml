@@ -396,9 +396,14 @@ if matches[2] == ' help' then
   cecho('&lt;white&gt;-t &lt;type&gt;&lt;reset&gt;              Show items that are of the specified type\n')
   cecho('&lt;white&gt;-W &lt;class&gt;&lt;reset&gt;             Show weapons of the specified weapon class\n')
   cecho('&lt;white&gt;-d #&lt;reset&gt;                   Show weapons with an average dps of at least #\n')  
+  
+  
   cecho('&lt;white&gt;--main-hand&lt;reset&gt;            Show one-handed weapons usable in right hand\n')  
   cecho('&lt;white&gt;--off-hand&lt;reset&gt;             Show off-hand weapons only\n')  
-  cecho('&lt;white&gt;--two-handed&lt;reset&gt;           Show two-handed weapons only\n')  
+  cecho('&lt;white&gt;--two-handed&lt;reset&gt;           Show two-handed weapons only\n') 
+  cecho('&lt;white&gt;--after &lt;yyyy-mm-dd&gt;&lt;reset&gt;   Show items found after date\n')
+  cecho('&lt;white&gt;--days #&lt;reset&gt;               Show items added within # days\n')
+   
   
   cecho('\n') 
   cecho('&lt;green&gt;SEARCH EXAMPLES\n')
@@ -3018,7 +3023,22 @@ catalog.search = function(searchString)
     weapDPS = tonumber(weapDPS)
   end
 
+  local afterQuery, year, month, day = rex.match(searchString, [[( --after (\d+)[/-](\d+)[/-](\d+))]])
+  local afterTime
+  if (afterQuery) then
+    searchString = rex.gsub(searchString, afterQuery, '')
+    afterTime = os.time({day=day,month=month,year=year}) 
+    display(year,month,day, afterTime)
+  end  
   
+  if (not afterQuery) then
+    afterQuery, days = rex.match(searchString, [[( --days (\d+))]])
+    if (afterQuery) then
+      searchString = rex.gsub(searchString, afterQuery, '')      
+      afterTime = getEpoch() - (tonumber(days) * 24 * 60 * 60) 
+      display(days, getEpoch(), afterTime)
+    end
+  end    
   
   local alignQuery, align = rex.match(searchString, [[( -A (\w\w))]])
   if (alignQuery) then
@@ -3145,7 +3165,8 @@ catalog.search = function(searchString)
       
       (not twoHandQuery or catalog.hasAffect(data, 'Requires two hands.')) and
       (not mainHandQuery or not catalog.hasAffect(data, 'Requires two hands.')) and
-
+      
+      (not afterQuery or data.sourceDT &gt; afterTime) and
       
          -- 
 
