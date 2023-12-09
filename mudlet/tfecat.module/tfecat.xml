@@ -312,6 +312,12 @@ end</script>
       catalog.transmit(items)
     end, {checkEverything = true, searchText = item})
   end,
+   
+  loadTempItems = function(item)
+    catalog.export(function(items)    
+      catalog.tempItems = items
+    end, {checkEverything = true, searchText = item})  
+  end,
   
   update = function()
     catalog.install()
@@ -1446,6 +1452,174 @@ local affectMissingDot = {
   ["Permits levitation in the vertical plane"] = true,
   ["Causes lethargy"] = true,
 }
+
+
+catalog.addWeirdItems = function()
+-- 
+  -- catalog.export(function(items)    
+-- 
+    -- local oTemp = items["a thick cloak of protection"]
+    -- 
+    -- oTemp.affects = {
+      -- {
+        -- amount = 2,
+        -- name = "Hitroll",
+        -- type = "property"
+      -- }, {
+        -- amount = 1,
+        -- name = "Damroll",
+        -- type = "property"
+      -- }, {
+        -- amount = 3,
+        -- name = "Deflection",
+        -- type = "property"
+      -- }, {
+        -- name = "Is magical.",
+        -- type = "affect"
+      -- }    
+    -- }
+    -- 
+    -- items["a thick cloak of protection"] = table.deepcopy(oTemp)
+    -- 
+    -- oTemp.affects = {
+      -- {
+        -- amount = 3,
+        -- name = "Hitroll",
+        -- type = "property"
+      -- }, {
+        -- amount = 1,
+        -- name = "Damroll",
+        -- type = "property"
+      -- }, {
+        -- amount = 5,
+        -- name = "Deflection",
+        -- type = "property"
+      -- }, {
+        -- name = "Is magical.",
+        -- type = "affect"
+      -- }    
+    -- }
+    -- oTemp.name = "a thick cloak of greater protection"
+    -- 
+    -- items["cloak of greater protection"] = table.deepcopy(oTemp)
+    -- 
+    -- oTemp.affects = {
+      -- {
+        -- amount = 3,
+        -- name = "Hitroll",
+        -- type = "property"
+      -- }, {
+        -- amount = 2,
+        -- name = "Damroll",
+        -- type = "property"
+      -- }, {
+        -- amount = 7,
+        -- name = "Deflection",
+        -- type = "property"
+      -- }, {
+        -- name = "Is magical.",
+        -- type = "affect"
+      -- }    
+    -- }
+    -- oTemp.name = "a thick cloak of invulnerability"
+        -- 
+    -- items["cloak of invulnerability"] = table.deepcopy(oTemp)    
+    -- 
+    -- catalog.transmit(items)    
+    -- 
+  -- end, {checkEverything = true, searchText = 'thick cloak of protection'})
+
+-- 
+  -- catalog.export(function(items)    
+-- 
+    -- display(items)
+    -- 
+    -- local oTemp = items["a velvet mask of the maiden"]
+    -- 
+    -- oTemp.affects = { 
+      -- {
+        -- amount = 10,
+        -- name = "Hit_points",
+        -- type = "property"
+      -- }, 
+      -- {
+        -- name = "Is magical.",
+        -- type = "affect"
+      -- }, 
+      -- {
+        -- amount = 2,
+        -- name = "Damroll",
+        -- type = "property"
+      -- }, 
+      -- {
+        -- amount = 1,
+        -- name = "Strength",
+        -- type = "property"
+      -- }, 
+    -- }
+    -- 
+    -- items["a velvet mask of the maiden"] = table.deepcopy(oTemp) 
+    -- 
+    -- oTemp.affects = { 
+      -- {
+        -- amount = 10,
+        -- name = "Hit_points",
+        -- type = "property"
+      -- }, 
+      -- {
+        -- name = "Is magical.",
+        -- type = "affect"
+      -- }, 
+-- 
+      -- {
+        -- amount = 1,
+        -- name = "Constitution",
+        -- type = "property"
+      -- }, 
+      -- {
+        -- amount = 5,
+        -- name = "Deflection",
+        -- type = "property"
+      -- },
+    -- }
+    -- oTemp.name = "a velvet mask of the crone"
+    -- items["a velvet mask of the crone"] = table.deepcopy(oTemp)
+    -- 
+    -- oTemp.affects = { 
+      -- {
+        -- amount = 10,
+        -- name = "Hit_points",
+        -- type = "property"
+      -- }, 
+      -- {
+        -- name = "Is magical.",
+        -- type = "affect"
+      -- }, 
+      -- {
+        -- amount = 1,
+        -- name = "Wisdom",
+        -- type = "property"
+      -- }, 
+      -- {
+        -- amount = 20,
+        -- name = "Mana_points",
+        -- type = "property"
+      -- }, 
+      -- {
+        -- amount = 0.5,
+        -- name = "Mana_regen",
+        -- type = "property"
+      -- } 
+    -- }
+    -- oTemp.name = "a velvet mask of the mother"
+    -- items["a velvet mask of the mother"] = table.deepcopy(oTemp)
+    -- 
+    -- catalog.transmit(items)
+    -- 
+  -- end, {checkEverything = true, searchText = 'velvet mask of the maiden'})
+
+
+end
 
 
 catalog.showMissingLocalItems = function()
