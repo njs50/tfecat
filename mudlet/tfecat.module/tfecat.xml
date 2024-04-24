@@ -325,16 +325,19 @@ end</script>
   
   
   help = function()
-    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate - generate+upload list of new items\n') 
-    -- cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat transmit - upload generated list\n\n') 
     
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n') 
-    -- cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat diff  - shows the items that are still pending\n\n')
+    cecho('\n&lt;green&gt;CATALOG:&lt;white&gt; tcat - the help page for searching the catalog\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tcat-audit - the help page for looking for upgrades for your character\n\n') 
      
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat load  - refreshes the current catalog data for use by tcat\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tcat &lt;item&gt;  - searches the catalog for &lt;item&gt;\n\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate - uploads any items missing in the main catalog\n') 
+
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat load  - refreshes the current catalog data for use by tcat\n\n')
     
-    cecho('&lt;orange&gt;CATALOG:&lt;white&gt; tfecat update   - update this package!\n\n') 
+    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n\n') 
+
+ 
+     
+    cecho('&lt;orange&gt;CATALOG:&lt;white&gt; njs50pm update tfecat - update this package!\n\n') 
   end,
 
 
