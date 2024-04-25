@@ -1,21 +1,30 @@
 # TFE Item catalog
+The web version (for non mudlet users) is available [here](https://njs50.github.io/tfecat)
 
-## Exporting your catalog!
-to export items from your catalog install the tfecat package by copying the following command into mudlet:
+## Installing the TFECat mudlet client
+
 ```
-lua local a="https://github.com/njs50/tfecat/raw/master/mudlet/tfecat.module/tfecat.xml"local b,c local d=function(e)cecho('\n<green>TFECAT: <white>package '..e..'!\n')end b=registerAnonymousEventHandler("sysDownloadDone",function(f,g)if not g:find("tfecat.xml",1,true)then return end killAnonymousEventHandler(b)d('downloaded')installPackage(g)os.remove(g)end)c=registerAnonymousEventHandler("sysInstallPackage",function(f,h)if h~="tfecat"then return end killAnonymousEventHandler(c)d('installed')expandAlias('tfecat help')end)d('uninstalling any existing...')uninstallPackage('tfecat')tempTimer(5,function()d('downloading...')downloadFile(getMudletHomeDir().."/tfecat.xml",a..'?_='..tostring(getEpoch))end)
+install my mudlet package manager:
+```lua
+lua installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')
 ```
-search your catalog and upload new/updated items:
+install tfecat:
+```lua
+njs50pm install tfecat
+```
+to search your catalog and upload new/updated items:
 ```
 tfecat generate
 ```
+to see the various help pages:
+```
+tfecat
+tcat
+tcat-audit
+```
 
-send me a tell or mudmail to let me know about the new items so I can merge them into the db!
-
-
-
-
-
+I manually validate the updates that are sent through before updating the main catalog, send me (mojune) a mudmail if it's been a while
+and your items aren't in the catalog!
 
 
 ## developer info
