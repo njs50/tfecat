@@ -4,13 +4,9 @@ The web version (for non mudlet users) is available [here](https://njs50.github.
 ## Installing the TFECat mudlet client
 
 ```
-install my mudlet package manager:
+install via my mudlet package manager:
 ```lua
-lua installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')
-```
-install tfecat:
-```lua
-njs50pm install tfecat
+lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')
 ```
 to search your catalog and upload new/updated items:
 ```

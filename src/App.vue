@@ -373,7 +373,7 @@ export default Vue.extend({
   data: () => ({
 
     isInstallModalVisible: false,
-    installCode: `lua local a="https://github.com/njs50/tfecat/raw/master/mudlet/tfecat.module/tfecat.xml"local b,c local d=function(e)cecho('\n<green>TFECAT: <white>package '..e..'!\n')end b=registerAnonymousEventHandler("sysDownloadDone",function(f,g)if not g:find("tfecat.xml",1,true)then return end killAnonymousEventHandler(b)d('downloaded')installPackage(g)os.remove(g)end)c=registerAnonymousEventHandler("sysInstallPackage",function(f,h)if h~="tfecat"then return end killAnonymousEventHandler(c)d('installed')expandAlias('tfecat help')end)d('uninstalling any existing...')uninstallPackage('tfecat')tempTimer(5,function()d('downloading...')downloadFile(getMudletHomeDir().."/tfecat.xml",a..'?_='..tostring(getEpoch))end)`,
+    installCode: `lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')`,
 
     searchText: "",
 

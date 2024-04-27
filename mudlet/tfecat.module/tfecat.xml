@@ -326,18 +326,18 @@ end</script>
   
   help = function()
     
-    cecho('\n&lt;green&gt;CATALOG:&lt;white&gt; tcat - the help page for searching the catalog\n') 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tcat-audit - the help page for looking for upgrades for your character\n\n') 
+    cecho('\n&lt;green&gt;CATALOG:&lt;white&gt; tfe catalog commands:\n\n')
+    cecho('&lt;white&gt;tfecat          &lt;reset&gt;- the help page for searching the catalog\n') 
+    cecho('&lt;white&gt;tcat            &lt;reset&gt;- the help page for searching the catalog\n') 
+    cecho('&lt;white&gt;tcat-audit      &lt;reset&gt;- the help page for looking for upgrades for your character\n\n') 
      
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat generate - uploads any items missing in the main catalog\n') 
+    cecho('&lt;white&gt;tfecat generate &lt;reset&gt;- uploads any items missing in the main catalog\n') 
 
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat load  - refreshes the current catalog data for use by tcat\n\n')
+    cecho('&lt;white&gt;tfecat load     &lt;reset&gt;- refreshes the current catalog data for use by tcat\n\n')
     
-    cecho('&lt;green&gt;CATALOG:&lt;white&gt; tfecat summary  - list the number of contributions from each account\n\n') 
-
- 
-     
-    cecho('&lt;orange&gt;CATALOG:&lt;white&gt; njs50pm update tfecat - update this package!\n\n') 
+    cecho('&lt;white&gt;tfecat summary  &lt;reset&gt;- list the number of contributions from each account\n\n') 
+    
+    cecho('&lt;green&gt;njs50pm:&lt;white&gt; njs50pm update tfecat - update this package!\n\n') 
   end,
 
 
@@ -4598,6 +4598,21 @@ end
 				<eventHandlerList />
 			</Script>
 		</ScriptGroup>
+		<Script isActive="yes" isFolder="no">
+			<name>catalog.posInstallHandler</name>
+			<packageName></packageName>
+			<script>catalog.posInstallHandler = function(evt, name, file)
+
+  -- after installing the package manager see if there is a package we should install
+  if (name == "tfecat") then        
+    expandAlias('tfecat help')
+  end
+
+end</script>
+			<eventHandlerList>
+				<string>sysInstallPackage</string>
+			</eventHandlerList>
+		</Script>
 	</ScriptPackage>
 	<KeyPackage />
 	<HelpPackage>
