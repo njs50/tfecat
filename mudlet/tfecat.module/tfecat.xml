@@ -4486,11 +4486,11 @@ catalog.common.onNextEvent = function (evt, callback)
 	local handlerId = nil
 	local cb2 = callback
 
-	local cb = function (evt, args)
+	local cb = function (evt, ...)
 		-- kill the event handler now in case the event errors preventing it's destruction
 		killAnonymousEventHandler(handlerId)
 		-- cecho('\n&lt;blue&gt;self destructing handler: ' .. evt .. ' : ' .. tostring(handlerId) .. '\n')
-		cb2(evt, args)
+		cb2(evt, unpack(arg))
 	end
 
 	handlerId = registerAnonymousEventHandler(evt, cb, true)
