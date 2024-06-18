@@ -1984,6 +1984,8 @@ end
 
 catalog.load = function(cb, altSrc)
   
+  
+  
   local src = altSrc or 'https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json'
 
   local downloadHandler
@@ -2157,9 +2159,24 @@ catalog.load = function(cb, altSrc)
 
   end)
   
-  -- download a list of fake users for a demo
-  cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; downloading catalog from ' .. src .. '\n\n')
-  downloadFile(getMudletHomeDir().."/catalog.json", src .. '?_=' .. tostring(getEpoch))
+  
+  if altSrc and altSrc ~= '' then 
+    cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; downloading catalog from ' .. src .. '\n\n')
+    downloadFile(getMudletHomeDir().."/catalog.json", src .. '?_=' .. tostring(getEpoch))
+  else
+    njs50pm.getRemoteHash({
+      module = 'tfecat',
+      githubUser = 'njs50',
+      branch = 'gh-pages',
+      callback = function(hash)
+        -- cecho('\n&lt;green&gt;TFECAT:&lt;white&gt; current data is from - ' .. hash .. '\n\n')
+        local URL = 'https://raw.githubusercontent.com/njs50/tfecat/' .. hash .. '/catalog.json'    
+        cecho('\n&lt;green&gt;TFECAT:&lt;white&gt; loading - ' .. URL)
+        downloadFile(getMudletHomeDir().."/catalog.json", URL)
+
+      end
+    })    
+  end
 
 
 
