@@ -562,10 +562,26 @@ else
       cecho(data.Class .. ')') 
     end
     
+    local renderSkills = function(data)
+      local skills = {}  
+      
+      if (player and player.skills) then
+        for idx, aff in ipairs(data.affects) do
+          laff = aff.name:lower()
+          if player.skills[laff] and player.skills[laff] &gt; 0 then
+            table.insert(skills, laff)
+          end          
+        end
+      end
+      cecho(table.concat(skills, ', '))
+    end
+    
     if (affect) then
       
-      if (affect == 'source') then
-        cecho('sourtce: ' .. data.source)
+      if (affect == 'skills') then
+        renderSkills(data)
+      elseif (affect == 'source') then
+        cecho('source: ' .. data.source)
       elseif (data.itemType == 'weapon' and affect == 'damroll') then        
         renderWeap(data)
       else
@@ -662,7 +678,7 @@ end
 
 
 local searchString = matches[2]
-
+local affect
 local slots = catalog.common.slots
 local layers = catalog.common.layers
 
@@ -713,6 +729,9 @@ local sidegradeQuery = rex.match(searchString, [[( --sidegrades)]])
 if (sidegradeQuery) then
   searchString = rex.gsub(searchString, sidegradeQuery, '')
 end
+if (affect == 'skills') then
+  sidegradeQuery = true
+end
 
 if (not affect or affect == '') then
   cecho('\n&lt;red&gt;TFECAT: &lt;white&gt;an affect must be specified with tcat-audit -a to perform an audit\n\n')
@@ -744,7 +763,6 @@ if catalog.player.gear["left hand"] and catalog.player.gear["left hand"].base th
 end
 
 -- display('weapon 2h/oh', usingTwoHandedWeapon, usingOffHandWeapon)
-
 
 catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
 
@@ -792,12 +810,34 @@ catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
       local amt = catalog.getAffect(data, affect)
       
       cecho(demonnic:fText('level ' .. tostring(data.Level), {alignment = "left", width = 8, nogap=true}) .. ', ')
-      
+            
       local amt_msg = affect .. ' is ' .. tostring(amt) .. '&lt;reset&gt;'
       
       if (amt &lt; 0) then 
         amt_msg = '&lt;red&gt;' .. amt_msg 
       end
+      
+      if affect == 'skills' then
+        local skills = {}
+        
+        
+        for idx, aff in ipairs(data.affects) do
+          laff = aff.name:lower()
+          if player.skills[laff] and player.skills[laff] &gt; 0 then
+            table.insert(skills, laff)
+          end          
+        end
+        
+        if (#skills &gt; 0) then
+          amt_msg = 'skills: ' .. table.concat(skills, ', ')
+        else
+          amt_msg = ''
+        end
+        
+      
+      end
+      
+      
       cecho(amt_msg)
       
     end
@@ -2962,6 +3002,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
         
       end
       
+      
       if (affect == 'smart') then
         
         if aff.name:lower() == 'intelligence' then
@@ -2973,6 +3014,15 @@ catalog.getAffect = function(item, affect, excludeWeaponDam)
           hasAff = true
           affAmt = affAmt + aff.amount
         end      
+        
+      elseif (affect == 'skills') then
+        
+        local thisAff = aff.name:lower()
+
+        if (player and player.skills and player.skills[thisAff] and player.skills[thisAff] &gt; 0) then
+          hasAff = true
+          affAmt = affAmt + aff.amount
+        end        
       
       elseif (affect == 'magic') then
         
