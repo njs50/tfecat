@@ -412,7 +412,7 @@ if matches[2] == ' help' then
   cecho('&lt;white&gt;--two-handed&lt;reset&gt;           Show two-handed weapons only\n') 
   cecho('&lt;white&gt;--after &lt;yyyy-mm-dd&gt;&lt;reset&gt;   Show items found after date\n')
   cecho('&lt;white&gt;--days #&lt;reset&gt;               Show items added within # days\n')
-   
+  cecho('&lt;white&gt;--limit #&lt;reset&gt;              Limit how many results are shown (default: 10)\n') 
   
   cecho('\n') 
   cecho('&lt;green&gt;SEARCH EXAMPLES\n')
@@ -597,7 +597,11 @@ else
     
   end
   
-  cecho ('\nFound ' .. tostring(#results) .. ' items\n')
+  if (results.limit and results.totalCount and results.totalCount &gt; results.limit) then
+    cecho ('\nDisplaying ' .. tostring(#results) .. ' of ' .. tostring(results.totalCount) .. ' items\n')
+  else
+    cecho ('\nFound ' .. tostring(#results) .. ' items\n')
+  end
   
 end
 </script>
@@ -626,6 +630,7 @@ if matches[2] == ' help' or matches[2] == '' then
   cecho('&lt;white&gt;-p &lt;layer&gt;&lt;reset&gt;             Only check items in the specified layer.\n')
   cecho('&lt;white&gt;--verbose&lt;reset&gt;              Show slots even where upgrades are not found.\n')
   cecho('&lt;white&gt;--sidegrades&lt;reset&gt;           Show possible sidegrades.\n')
+  cecho('&lt;white&gt;--limit #&lt;reset&gt;              Show a maximum of # results for each slot. (default 10)\n')
  
   cecho('\n') 
   cecho('&lt;green&gt;EXAMPLES\n')
@@ -720,6 +725,13 @@ if (affectQuery) then
   searchString = rex.gsub(searchString, affectQuery, '')
 end
 
+local limitResults = 10
+local limitQuery, limitString = rex.match(searchString, [[( --limit (\d+))]])
+if (limitQuery) then
+  limitResults = tonumber(limitString)
+  searchString = rex.gsub(searchString, limitQuery, '')
+end  
+
 local verboseQuery = rex.match(searchString, [[( --verbose)]])
 if (verboseQuery) then
   searchString = rex.gsub(searchString, verboseQuery, '')
@@ -772,7 +784,7 @@ catalog.getStats(function(stats)
   
     local baseQuery = ' -c ' .. gmcp.Char.Score.class .. ' -l 1-' .. tostring(gmcp.Char.Score.level) ..
                       ' -g ' .. catalog.player.identity.Sex .. ' -r ' .. tostring(catalog.player.identity.Race) .. 
-                      ' -A ' .. catalog.player.identity.Alignment
+                      ' -A ' .. catalog.player.identity.Alignment .. ' --limit ' .. tostring(limitResults)
   
     local failItems = ''
     
@@ -997,6 +1009,10 @@ catalog.getStats(function(stats)
             
             cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
             cechoLink('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']&lt;reset&gt; ', function() expandAlias(cmd) end, "show all usable items for " .. slot .. '.' .. layer, true)
+            
+            if (results.limit and results.totalCount and results.totalCount &gt; results.limit) then
+              cecho('displaying ' ..tostring(results.limit) .. ' of ' .. tostring(results.totalCount) .. ' results')
+            end
             
             cecho(slotMessage .. '\n') 
             
@@ -3000,8 +3016,14 @@ end
 
 catalog.weights = {
   damroll = 1,
-  hitroll = 0.5
-  
+  hitroll = 0.5,
+  dexterity = 2,
+  constitution = 1.5,
+  resist = 0.05,
+  mana_regen = 0.25,
+  move_regen = 0.33,
+  hit_regen = 0.05,
+  smart = 0.33,  
 }
 
 
@@ -3055,6 +3077,16 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats)
       end
       
       if (affect == 'weighted') then
+        
+        for affect, weight in pairs(catalog.weights) do
+          local amt = catalog.getAffect(item, affect, nil, stats)
+          
+          if amt ~= 0 then      
+            affAmt = affAmt + (amt * weight)
+          end
+        end         
+        
+        return affAmt         
       
       elseif (affect == 'strength') then
         
@@ -3387,6 +3419,13 @@ catalog.search = function(searchString, stats)
     searchString = rex.gsub(searchString, alignQuery, '')
   end
   
+  local limitResults = 10
+  local limitQuery, limitString = rex.match(searchString, [[( --limit (\d+))]])
+  if (limitQuery) then
+    limitResults = tonumber(limitString)
+    searchString = rex.gsub(searchString, limitQuery, '')
+  end  
+  
   local classQuery, charClass = rex.match(searchString, [[( -c (\w+))]])
   if (classQuery) then
     searchString = rex.gsub(searchString, classQuery, '')
@@ -3555,13 +3594,24 @@ catalog.search = function(searchString, stats)
       local itemA = catalog.items[catalog.itemsIndex[a]]
       local itemB = catalog.items[catalog.itemsIndex[b]]
       
-      local valA = catalog.getAffect(itemA, 'damroll', nil, stats)
-      local valB = catalog.getAffect(itemB, 'damroll', nil, stats)
+      local valA = catalog.getAffect(itemA, affect, nil, stats)
+      local valB = catalog.getAffect(itemB, affect, nil, stats)
       
       return (valA &gt; valB)
              
     end)
     
+  end
+  
+  if #results &gt; limitResults then
+    local rcount = #results
+    local rTemp = {}
+    for i = 1, limitResults do
+      table.insert(rTemp, results[i])
+    end
+    results = rTemp
+    results.limit = limitResults
+    results.totalCount = rcount
   end
 
   
