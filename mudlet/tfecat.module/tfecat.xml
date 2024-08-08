@@ -2998,6 +2998,13 @@ end
   ["Remort Level"] = true,
 }
 
+catalog.weights = {
+  damroll = 1,
+  hitroll = 0.5
+  
+}
+
+
 catalog.getAffect = function(item, affect, excludeWeaponDam, stats)
     
   stats = stats or {
@@ -3047,12 +3054,58 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats)
         
       end
       
+      if (affect == 'weighted') then
       
-      if (affect == 'smart') then
+      elseif (affect == 'strength') then
+        
+        if aff.name:lower() == 'strength' then
+          hasAff = true
+          if (stats.Str &lt; 30 or aff.amount &lt; 0) then
+            affAmt = aff.amount
+          end
+        end         
+
+      elseif (affect == 'intelligence') then
+        
+        if aff.name:lower() == 'intelligence' then
+          hasAff = true
+          if (stats.Int &lt; 30 or aff.amount &lt; 0) then
+            affAmt = aff.amount
+          end
+        end  
+
+      elseif (affect == 'wisdom') then
+        
+        if aff.name:lower() == 'wisdom' then
+          hasAff = true
+          if (stats.Wis &lt; 30 or aff.amount &lt; 0) then
+            affAmt = aff.amount
+          end
+        end  
+
+      elseif (affect == 'dexterity') then
+        
+        if aff.name:lower() == 'dexterity' then
+          hasAff = true
+          if (stats.Dex &lt; 30 or aff.amount &lt; 0) then
+            affAmt = aff.amount
+          end
+        end  
+
+      elseif (affect == 'constitution') then
+        
+        if aff.name:lower() == 'constitution' then
+          hasAff = true
+          if (stats.Con &lt; 30 or aff.amount &lt; 0) then
+            affAmt = aff.amount
+          end
+        end  
+              
+      elseif (affect == 'smart') then
         
         if stats.Int &lt; 30 and aff.name:lower() == 'intelligence' then
           hasAff = true
-          affAmt = affAmt + aff.amount
+          affAmt = affAmt + aff.amount          
         end    
 
         if stats.Wis &lt; 30 and aff.name:lower() == 'wisdom' then
