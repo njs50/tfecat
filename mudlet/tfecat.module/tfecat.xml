@@ -327,9 +327,10 @@ end</script>
   help = function()
     
     cecho('\n&lt;green&gt;CATALOG:&lt;white&gt; tfe catalog commands:\n\n')
-    cecho('&lt;white&gt;tfecat          &lt;reset&gt;- the help page for searching the catalog\n') 
-    cecho('&lt;white&gt;tcat            &lt;reset&gt;- the help page for searching the catalog\n') 
-    cecho('&lt;white&gt;tcat-audit      &lt;reset&gt;- the help page for looking for upgrades for your character\n\n') 
+    cecho('&lt;white&gt;tfecat            &lt;reset&gt;- the help page for searching the catalog\n') 
+    cecho('&lt;white&gt;tcat              &lt;reset&gt;- the help page for searching the catalog\n') 
+    cecho('&lt;white&gt;tcat-audit        &lt;reset&gt;- the help page for looking for upgrades for your character\n\n') 
+    cecho('&lt;white&gt;tcat help weighted&lt;reset&gt;- View the help about weighted search/audit\n')
      
     cecho('&lt;white&gt;tfecat generate &lt;reset&gt;- uploads any items missing in the main catalog\n') 
 
@@ -377,10 +378,11 @@ end
 if matches[2] == ' help' then
   cecho('&lt;green&gt;SYNTAX\n')
   cecho('\n')
-  cecho('&lt;white&gt;tcat&lt;reset&gt;          - View the contents of your catalog\n')
-  cecho('&lt;white&gt;tcat #&lt;reset&gt;        - View the catalog entry specified\n')
-  cecho('&lt;white&gt;tcat &lt;text&gt;&lt;reset&gt;   - Search your catalog for names containing &lt;text&gt;\n')
-  cecho('&lt;white&gt;tcat -b [#]&lt;reset&gt;   - View your catalog or an entry with the unidentified name\n')
+  cecho('&lt;white&gt;tcat&lt;reset&gt;               - View the contents of your catalog\n')
+  cecho('&lt;white&gt;tcat #&lt;reset&gt;             - View the catalog entry specified\n')
+  cecho('&lt;white&gt;tcat &lt;text&gt;&lt;reset&gt;        - Search your catalog for names containing &lt;text&gt;\n')
+  cecho('&lt;white&gt;tcat -b [#]&lt;reset&gt;        - View your catalog or an entry with the unidentified name\n')
+  cecho('&lt;white&gt;tcat help weighted&lt;reset&gt; - View the help about weighted search/audit\n')
   cecho('\n')
   cecho('&lt;green&gt;SEARCH OPTIONS\n')
   cecho('\n')
@@ -490,6 +492,10 @@ if (rawQuery) then
 end  
 
 
+local debugWeightQuery = rex.match(searchString, [[( --debug-weight)]])
+if (debugWeightQuery) then
+  searchString = rex.gsub(searchString, debugWeightQuery, '')
+end  
 
 -- this needs to be last as missing will skip the regular search
 
@@ -527,6 +533,12 @@ elseif (#results == 1) then
     display(catalog.items[catalog.itemsIndex[results[1]]])
   else
     catalog.displayItem(results[1])
+    
+    if debugWeightQuery then    
+      catalog.getAffect(catalog.items[catalog.itemsIndex[results[1]]], 'weighted', nil, stats, true)    
+    end
+    
+    
   end
 
 else
@@ -615,8 +627,9 @@ end
 if matches[2] == ' help' or matches[2] == '' then
   cecho('&lt;green&gt;SYNTAX\n')
   cecho('\n')
-  cecho('&lt;white&gt;tcat-audit&lt;reset&gt;          - View the contents of this help file\n')
-  cecho('&lt;white&gt;tcat-audit help&lt;reset&gt;     - View the contents of this help file\n')
+  cecho('&lt;white&gt;tcat-audit&lt;reset&gt;         - View the contents of this help file\n')
+  cecho('&lt;white&gt;tcat-audit help&lt;reset&gt;    - View the contents of this help file\n')
+  cecho('&lt;white&gt;tcat help weighted&lt;reset&gt; - View the help about weighted search/audit\n')
   cecho('\n')
   
   cecho('&lt;green&gt;REQUIRED PARAMETERS\n')
@@ -1011,7 +1024,7 @@ catalog.getStats(function(stats)
             cechoLink('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']&lt;reset&gt; ', function() expandAlias(cmd) end, "show all usable items for " .. slot .. '.' .. layer, true)
             
             if (results.limit and results.totalCount and results.totalCount &gt; results.limit) then
-              cecho('displaying ' ..tostring(results.limit) .. ' of ' .. tostring(results.totalCount) .. ' results')
+              cecho('displaying ' ..tostring(results.limit) .. ' of ' .. tostring(results.totalCount) .. ' results ')
             end
             
             cecho(slotMessage .. '\n') 
@@ -1058,6 +1071,31 @@ end)
 			<command></command>
 			<packageName></packageName>
 			<regex>^(tcat|help tcat)\s*$</regex>
+		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>tcat help weighted</name>
+			<script>  cecho('&lt;green&gt;TCAT: &lt;white&gt;Weighted search\n')
+  cecho('\n')
+  cecho('&lt;white&gt;tcat -a weighted&lt;reset&gt;              - Search by your configured item weights\n')
+  cecho('&lt;white&gt;tcat-audit -a weighted&lt;reset&gt;        - Audit by your configured item weights\n')
+  cecho('&lt;white&gt;tcat [item|#] -- debug-weight&lt;reset&gt; - See what made up an items weighted score\n')
+  cecho('\n')
+  cecho('&lt;green&gt;Configuration\n')
+  cecho('Make a new script and add the following:\n\n')
+  cecho('catalog = catalog or {}\n')
+  cecho('catalog.weights = {\n')
+  cecho('  dexterity = 1,\n')
+  cecho('  resist = 0.05,\n')
+  cecho('  mana_regen = 2,\n')
+  cecho('  ["Armor Class"] = 0.01,\n')
+  cecho('  deflection = 0.1,\n')
+  cecho('  heal = 2,\n')
+  cecho('}\n')
+  cecho('\n')
+  cecho('You can add anything that works with tcat -a into the weight table\n')</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^tcat help weighted$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
 			<name>tcat-audit help shortcut</name>
@@ -2783,6 +2821,8 @@ catalog.getStats = function(cb)
     killTimer(timeout)
     killTrigger(checkTrigger)      
   
+    catalog.stats = stats
+  
     cb(stats)
     
   end)
@@ -3014,7 +3054,7 @@ end
   ["Remort Level"] = true,
 }
 
-catalog.weights = {
+catalog.weights = catalog.weights or {
   damroll = 1,
   hitroll = 0.5,
   dexterity = 2,
@@ -3023,13 +3063,15 @@ catalog.weights = {
   mana_regen = 0.25,
   move_regen = 0.33,
   hit_regen = 0.05,
-  smart = 0.33,  
+  smart = 0.33,
+  ["Armor Class"] = 0.01,
+  deflection = 0.1,
 }
 
 
-catalog.getAffect = function(item, affect, excludeWeaponDam, stats)
+catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDebug)
     
-  stats = stats or {
+  stats = stats or catalog.stats or {
     Con = 15,
     Dex = 15,
     Int = 15,
@@ -3077,14 +3119,27 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats)
       end
       
       if (affect == 'weighted') then
+            
         
         for affect, weight in pairs(catalog.weights) do
           local amt = catalog.getAffect(item, affect, nil, stats)
           
           if amt ~= 0 then      
+
+            if (showWeightDebug) then              
+              if (affAmt == 0) then
+                cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;' .. item.name .. '\n')
+              end            
+              cecho(affect .. ' weight: ' .. tostring(amt * weight) .. '\n')
+            end
+            
             affAmt = affAmt + (amt * weight)
           end
         end         
+        
+        if (showWeightDebug) then
+          cecho('total weight: ' .. tostring(affAmt) .. '\n\n')
+        end
         
         return affAmt         
       
