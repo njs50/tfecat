@@ -69,6 +69,68 @@ end
 			</regexCodePropertyList>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>parse skills</name>
+			<script>-- replicate             unk        1920    8    minor enchantment [7] &amp; continual light [7]
+-- riding                 10
+-- ryoushi               unk          16    5
+-- sword                  14(10)                 dagger [5]
+-- cecho('&lt;green&gt; &lt;--- incoming skills')
+
+-- we will ignore skill bonuses from items
+
+player = player or {}
+player.skills = player.skills or {}
+local skillParser = tempRegexTrigger([[^(.+?)\s{1,}(\d+|unk|Y)\(?(\d*)\)?\s]], function()
+  
+  local skill = matches[2]
+  local level
+  if (matches[3] == 'unk') then
+    level = 0
+  elseif (matches[3] == 'Y') then
+    level = 10    
+  else
+    if (matches[4] ~= "") then
+      level = tonumber(matches[4])
+    else
+      level = tonumber(matches[3])
+    end
+  end
+  
+  if rex.match(skill,[[unk$]]) then
+    skill = rex.gsub(skill, [[unk$]], '')
+    level = 0
+  end
+  
+  
+  player.skills[skill] = level
+end)
+
+
+tempPromptTrigger(function()
+  	
+  killTrigger(skillParser)
+  -- display(player.skills)
+  raiseEvent(catalog.events.PARSED_ABILITIES, player.skills)    
+    
+end, 1)</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>^Skill\s+Level\s+Cost\s+Pracs\s+Prerequisites\s*$</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>1</integer>
+			</regexCodePropertyList>
+		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>You have nothing equipped.</name>
 			<script>player.gear = {}
 player.itemSlot = {}
@@ -497,6 +559,16 @@ if (debugWeightQuery) then
   searchString = rex.gsub(searchString, debugWeightQuery, '')
 end  
 
+
+local affectQuery, affect = rex.match(searchString, [[( -a (".+?"|\w+))]])
+if (affectQuery) then
+  affect = rex.gsub(affect, [[^"(.*)"$]], '%1')
+  if (affect == 'weighted') then
+    debugWeightQuery = true
+  end
+end
+
+
 -- this needs to be last as missing will skip the regular search
 
 
@@ -532,13 +604,7 @@ elseif (#results == 1) then
   if (rawQuery) then
     display(catalog.items[catalog.itemsIndex[results[1]]])
   else
-    catalog.displayItem(results[1])
-    
-    if debugWeightQuery then    
-      catalog.getAffect(catalog.items[catalog.itemsIndex[results[1]]], 'weighted', nil, stats, true)    
-    end
-    
-    
+    catalog.displayItem(results[1], debugWeightQuery)    
   end
 
 else
@@ -553,7 +619,7 @@ else
   
     local vnum = '[' .. demonnic:cfText('&lt;green&gt;' .. tostring(idx) .. '&lt;reset&gt;', {alignment="right", width=4, nogap=true}) .. ']'
     
-    cechoLink(vnum, function() catalog.displayItem(idx) end, "display item", true)
+    cechoLink(vnum, function() catalog.displayItem(idx, debugWeightQuery) end, "display item", true)
     if (useUnIDnameSearch) then
       cecho(' ' .. demonnic:cfText(string.sub(data['Unidentified Name'], 1, 50), {alignment = "left", width = 50, nogap=true}) .. ' ')
     else    
@@ -787,276 +853,284 @@ if catalog.player.gear["left hand"] and catalog.player.gear["left hand"].base th
   end
 end
 
+local weightedQuery = nil
+if (affect and affect == 'weighted') then
+  weightedQuery = true
+end
+
 -- display('weapon 2h/oh', usingTwoHandedWeapon, usingOffHandWeapon)
 
-catalog.getStats(function(stats) 
+catalog.getSkills(function()
 
-  -- display('stats are:', stats)
-
-  catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
+  catalog.getStats(function(stats) 
   
-    local baseQuery = ' -c ' .. gmcp.Char.Score.class .. ' -l 1-' .. tostring(gmcp.Char.Score.level) ..
-                      ' -g ' .. catalog.player.identity.Sex .. ' -r ' .. tostring(catalog.player.identity.Race) .. 
-                      ' -A ' .. catalog.player.identity.Alignment .. ' --limit ' .. tostring(limitResults)
+    -- display('stats are:', stats)
   
-    local failItems = ''
+    catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
     
-    local gearTotal = 0
-  
-    cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; audit results for ' .. affect .. '\n')
-  
-  
-    local itemHasNegativeAffect = function(idx) 
-      local item = catalog.itemsIndex[idx]
-      local data = catalog.items[item]  
-      if (affect) then
-        local amt = catalog.getAffect(data, affect, nil, stats)
-        -- display(item, amt)
-        if (amt &lt; 0) then 
-          return true
-        end
-      end
+      local baseQuery = ' -c ' .. gmcp.Char.Score.class .. ' -l 1-' .. tostring(gmcp.Char.Score.level) ..
+                        ' -g ' .. catalog.player.identity.Sex .. ' -r ' .. tostring(catalog.player.identity.Race) .. 
+                        ' -A ' .. catalog.player.identity.Alignment .. ' --limit ' .. tostring(limitResults)
+    
+      local failItems = ''
       
-      return false  
-    end
-  
-    local displayItem = function(idx, isEquipped, includeAverageDamage)
+      local gearTotal = 0
     
-      local item = catalog.itemsIndex[idx]
-      local data = catalog.items[item]
-         
-      local lcolor = '&lt;green&gt;'            
-      if (isEquipped) then
-        lcolor = '&lt;red&gt;'  
-      end           
-                  
-      local vnum = '[' .. demonnic:cfText(lcolor .. tostring(idx) .. '&lt;reset&gt;', {alignment="right", width=4, nogap=true}) .. ']'
-      cechoLink(vnum, function() catalog.displayItem(idx) end, "display item", true)
-  
-      cecho(' ' .. demonnic:cfText(string.sub(data.name, 1, 50), {alignment = "left", width = 50, nogap=true}) .. '')
-  
-      if (affect) then
-        local amt = catalog.getAffect(data, affect, nil, stats)
-        
-        cecho(demonnic:fText('level ' .. tostring(data.Level), {alignment = "left", width = 8, nogap=true}) .. ', ')
-              
-        local amt_msg = affect .. ' is ' .. tostring(amt) .. '&lt;reset&gt;'
-        
-        if (amt &lt; 0) then 
-          amt_msg = '&lt;red&gt;' .. amt_msg 
+      cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; audit results for ' .. affect .. '\n')
+    
+    
+      local itemHasNegativeAffect = function(idx) 
+        local item = catalog.itemsIndex[idx]
+        local data = catalog.items[item]  
+        if (affect) then
+          local amt = catalog.getAffect(data, affect, nil, stats)
+          -- display(item, amt)
+          if (amt &lt; 0) then 
+            return true
+          end
         end
         
-        if affect == 'skills' then
-          local skills = {}
+        return false  
+      end
+    
+      local displayItem = function(idx, isEquipped, includeAverageDamage)
+      
+        local item = catalog.itemsIndex[idx]
+        local data = catalog.items[item]
+           
+        local lcolor = '&lt;green&gt;'            
+        if (isEquipped) then
+          lcolor = '&lt;red&gt;'  
+        end           
+                    
+        local vnum = '[' .. demonnic:cfText(lcolor .. tostring(idx) .. '&lt;reset&gt;', {alignment="right", width=4, nogap=true}) .. ']'
+        cechoLink(vnum, function() catalog.displayItem(idx, weightedQuery) end, "display item", true)
+    
+        cecho(' ' .. demonnic:cfText(string.sub(data.name, 1, 50), {alignment = "left", width = 50, nogap=true}) .. '')
+    
+        if (affect) then
+          local amt = catalog.getAffect(data, affect, nil, stats)
           
+          cecho(demonnic:fText('level ' .. tostring(data.Level), {alignment = "left", width = 8, nogap=true}) .. ', ')
+                
+          local amt_msg = affect .. ' is ' .. tostring(amt) .. '&lt;reset&gt;'
           
-          for idx, aff in ipairs(data.affects) do
-            laff = aff.name:lower()
-            if player.skills[laff] and player.skills[laff] &gt; 0 then
-              table.insert(skills, laff)
-            end          
+          if (amt &lt; 0) then 
+            amt_msg = '&lt;red&gt;' .. amt_msg 
           end
           
-          if (#skills &gt; 0) then
-            amt_msg = 'skills: ' .. table.concat(skills, ', ')
-          else
-            amt_msg = ''
-          end
-          
-        
-        end
-        
-        
-        cecho(amt_msg)
-        
-      end
-      
-      cecho('\n')          
-    end    
-  
-    
-  
-    for sidx, slot in ipairs(slots) do 
-      local skipSlot = false
-      
-      if (usingTwoHandedWeapon and slot == 'left hand') then
-        skipSlot = true
-      end
-    
-      for lidx, layer in ipairs(layers)  do 
-      
-        local skipLayer = false
-        local includeAverageDamage = false
-      
-        -- display(slot, layer)
-  
-        local amt = 0
-        local emptySlot = false
-        local slotMessage = ''
-        local tcatItem, tcatItemAltSide, isAltItemAdditive
-        
-        local cmd = baseQuery .. ' -w ' .. catalog.slotConversion[slot] .. '.' .. layer
-        
-        if ((usingOffHandWeapon or usingTwoHandedWeapon) and slot == 'right hand' and layer ~= 'base') then
-          skipLayer = true
-        end   
-        
-        if (slot == 'right hand') then
-          if (layer == 'base') then
-            if (mainWeapType) then
-              cmd = cmd .. ' -W ' .. mainWeapType
+          if affect == 'skills' then
+            local skills = {}
+            
+            
+            for idx, aff in ipairs(data.affects) do
+              laff = aff.name:lower()
+              if player.skills[laff] and player.skills[laff] &gt; 0 then
+                table.insert(skills, laff)
+              end          
             end
-            if usingTwoHandedWeapon then
-               cmd = cmd .. ' --two-handed'            
+            
+            if (#skills &gt; 0) then
+              amt_msg = 'skills: ' .. table.concat(skills, ', ')
             else
-              cmd = cmd .. ' --main-hand'
+              amt_msg = ''
             end
-          else
-            skipLayer = true
+            
+          
           end
-        end     
-        
-        if (usingOffHandWeapon and slot == 'left hand') then
-          if (layer == 'base') then
-            cmd = cmd .. ' -W ' .. offWeapType
-          else
-            skipLayer = true
-          end
-        end     
-        
-        if usingTwoHandedWeapon and slot == 'left hand' then
-           skipLayer = true
+          
+          
+          cecho(amt_msg)
+          
         end
-  
         
-        if (not usingOffHandWeapon and slot == 'left hand') then
-          if (layer == 'base') then
-             cmd = cmd .. ' -t other'
-          end
-        end     
-          
-  
-        if not (skipSlot or skipLayer) then
+        cecho('\n')          
+      end    
+    
+      
+    
+      for sidx, slot in ipairs(slots) do 
+        local skipSlot = false
         
-          if catalog.player.gear[slot] and catalog.player.gear[slot][layer] then
+        if (usingTwoHandedWeapon and slot == 'left hand') then
+          skipSlot = true
+        end
+      
+        for lidx, layer in ipairs(layers)  do 
+        
+          local skipLayer = false
+          local includeAverageDamage = false
+        
+          -- display(slot, layer)
+    
+          local amt = 0
+          local emptySlot = false
+          local slotMessage = ''
+          local tcatItem, tcatItemAltSide, isAltItemAdditive
           
-            local thisItem = catalog.player.gear[slot][layer].raw
-            tcatItem = catalog.getSlotLayerItem(slot, layer, thisItem)
-                      
-            if (not tcatItem) then
-              slotMessage = '&lt;orange&gt;Unable to locate item in catalog - ' .. thisItem 
-            else              
-              amt = catalog.getAffect(tcatItem, affect, nil, stats)
-            end
-            
-          else 
-            slotMessage = '&lt;yellow&gt;nothing equipped'
-            emptySlot = true
-          end -- end if this slot has an item...
-  
+          local cmd = baseQuery .. ' -w ' .. catalog.slotConversion[slot] .. '.' .. layer
           
-          if (affect) then 
-            if (sidegradeQuery) then
-              cmd = cmd .. ' -a "' .. affect .. '".gte.' .. tostring(amt)
-            else           
-              cmd = cmd .. ' -a "' .. affect .. '".gt.' .. tostring(amt)
-            end
-          end
+          if ((usingOffHandWeapon or usingTwoHandedWeapon) and slot == 'right hand' and layer ~= 'base') then
+            skipLayer = true
+          end   
           
-          -- display('cmd: ' .. cmd)
-          if (tcatItem) then
-            gearTotal = gearTotal + catalog.getAffect(tcatItem, affect, true, stats)
-          end
-          
-          -- display(cmd)  
-          
-          
-          local results = catalog.search(cmd, stats)
-          
-          -- remove any duplicate items from results where affects are not additive.
-          -- ie bracers etc that you can only wear one of
-            
-          local altSlotIdx  
-            
-          if (#results &gt; 0 and rex.find(slot, [[^(left|right) ]]) == 1) then
-   
-            if slot:find('left') then
-              altSlot = slot:gsub('left', 'right')
-            else
-              altSlot = slot:gsub('right', 'left')
-            end
-            
-            if catalog.player.gear[altSlot] and catalog.player.gear[altSlot][layer] then      
-              local altItem = catalog.player.gear[altSlot][layer].raw
-              tcatItemAltSide = catalog.getSlotLayerItem(altSlot, layer,  altItem)
-              if (tcatItemAltSide) then 
-                isAltItemAdditive = catalog.hasAffect(tcatItemAltSide, 'Effects are additive.')
+          if (slot == 'right hand') then
+            if (layer == 'base') then
+              if (mainWeapType) then
+                cmd = cmd .. ' -W ' .. mainWeapType
+              end
+              if usingTwoHandedWeapon then
+                 cmd = cmd .. ' --two-handed'            
               else
-                cecho('&lt;yellow&gt; &lt;---&lt;white&gt; unable to check: ' .. altItem)
+                cmd = cmd .. ' --main-hand'
+              end
+            else
+              skipLayer = true
+            end
+          end     
+          
+          if (usingOffHandWeapon and slot == 'left hand') then
+            if (layer == 'base') then
+              cmd = cmd .. ' -W ' .. offWeapType
+            else
+              skipLayer = true
+            end
+          end     
+          
+          if usingTwoHandedWeapon and slot == 'left hand' then
+             skipLayer = true
+          end
+    
+          
+          if (not usingOffHandWeapon and slot == 'left hand') then
+            if (layer == 'base') then
+               cmd = cmd .. ' -t other'
+            end
+          end     
+            
+    
+          if not (skipSlot or skipLayer) then
+          
+            if catalog.player.gear[slot] and catalog.player.gear[slot][layer] then
+            
+              local thisItem = catalog.player.gear[slot][layer].raw
+              tcatItem = catalog.getSlotLayerItem(slot, layer, thisItem)
+                        
+              if (not tcatItem) then
+                slotMessage = '&lt;orange&gt;Unable to locate item in catalog - ' .. thisItem 
+              else              
+                amt = catalog.getAffect(tcatItem, affect, nil, stats)
+              end
+              
+            else 
+              slotMessage = '&lt;yellow&gt;nothing equipped'
+              emptySlot = true
+            end -- end if this slot has an item...
+    
+            
+            if (affect) then 
+              if (sidegradeQuery) then
+                cmd = cmd .. ' -a "' .. affect .. '".gte.' .. tostring(amt)
+              else           
+                cmd = cmd .. ' -a "' .. affect .. '".gt.' .. tostring(amt)
               end
             end
             
-          
+            -- display('cmd: ' .. cmd)
+            if (tcatItem) then
+              gearTotal = gearTotal + catalog.getAffect(tcatItem, affect, true, stats)
+            end
             
-            -- non additive item on alt side, remove it if it's in the results
-            if (tcatItemAltSide and isAltItemAdditive == false) then
+            -- display(cmd)  
+            
+            
+            local results = catalog.search(cmd, stats)
+            
+            -- remove any duplicate items from results where affects are not additive.
+            -- ie bracers etc that you can only wear one of
+              
+            local altSlotIdx  
+              
+            if (#results &gt; 0 and rex.find(slot, [[^(left|right) ]]) == 1) then
+     
+              if slot:find('left') then
+                altSlot = slot:gsub('left', 'right')
+              else
+                altSlot = slot:gsub('right', 'left')
+              end
+              
+              if catalog.player.gear[altSlot] and catalog.player.gear[altSlot][layer] then      
+                local altItem = catalog.player.gear[altSlot][layer].raw
+                tcatItemAltSide = catalog.getSlotLayerItem(altSlot, layer,  altItem)
+                if (tcatItemAltSide) then 
+                  isAltItemAdditive = catalog.hasAffect(tcatItemAltSide, 'Effects are additive.')
+                else
+                  cecho('&lt;yellow&gt; &lt;---&lt;white&gt; unable to check: ' .. altItem)
+                end
+              end
+              
+            
+              
+              -- non additive item on alt side, remove it if it's in the results
+              if (tcatItemAltSide and isAltItemAdditive == false) then
+                for idx = #results, 1, -1 do
+                  if (results[idx] == tcatItemAltSide.catalogIndex) then
+                    table.remove(results, idx)
+                  end      
+                end
+              end
+           
+            end
+            
+            -- remove any identical items from results (in case we are looking for sidegrades)
+            if (tcatItem and sidegradeQuery) then
               for idx = #results, 1, -1 do
-                if (results[idx] == tcatItemAltSide.catalogIndex) then
+                if (results[idx] == tcatItem.catalogIndex) then
                   table.remove(results, idx)
                 end      
-              end
-            end
-         
-          end
-          
-          -- remove any identical items from results (in case we are looking for sidegrades)
-          if (tcatItem and sidegradeQuery) then
-            for idx = #results, 1, -1 do
-              if (results[idx] == tcatItem.catalogIndex) then
-                table.remove(results, idx)
-              end      
-            end        
-          end
-          
-          if (verboseQuery or #results &gt; 0 or (tcatItem and itemHasNegativeAffect(tcatItem.catalogIndex))) then          
-            
-            cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
-            cechoLink('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']&lt;reset&gt; ', function() expandAlias(cmd) end, "show all usable items for " .. slot .. '.' .. layer, true)
-            
-            if (results.limit and results.totalCount and results.totalCount &gt; results.limit) then
-              cecho('displaying ' ..tostring(results.limit) .. ' of ' .. tostring(results.totalCount) .. ' results ')
+              end        
             end
             
-            cecho(slotMessage .. '\n') 
-            
-            if (tcatItem) then
-              displayItem(tcatItem.catalogIndex, true, includeAverageDamage)
-            end        
-            
-            if emptySlot and #results == 0 then
-              cecho('No ' .. affect .. ' items available, ') 
+            if (verboseQuery or #results &gt; 0 or (tcatItem and itemHasNegativeAffect(tcatItem.catalogIndex))) then          
+              
               cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
-              cechoLink('&lt;white&gt;see all items&lt;reset&gt;', function() expandAlias(cmd) end, "show items for " .. slot .. '.' .. layer, true)
-              cecho('\n')
-            end
-    
-            for zidx, idx in ipairs(results) do
-              displayItem(idx, nil, includeAverageDamage)
+              cechoLink('\n&lt;white&gt;[' .. slot .. '.' .. layer .. ']&lt;reset&gt; ', function() expandAlias(cmd) end, "show all usable items for " .. slot .. '.' .. layer, true)
+              
+              if (results.limit and results.totalCount and results.totalCount &gt; results.limit) then
+                cecho('displaying ' ..tostring(results.limit) .. ' of ' .. tostring(results.totalCount) .. ' results ')
+              end
+              
+              cecho(slotMessage .. '\n') 
+              
+              if (tcatItem) then
+                displayItem(tcatItem.catalogIndex, true, includeAverageDamage)
+              end        
+              
+              if emptySlot and #results == 0 then
+                cecho('No ' .. affect .. ' items available, ') 
+                cmd = 'tcat -w ' .. catalog.slotConversion[slot] .. '.' .. layer .. baseQuery
+                cechoLink('&lt;white&gt;see all items&lt;reset&gt;', function() expandAlias(cmd) end, "show items for " .. slot .. '.' .. layer, true)
+                cecho('\n')
+              end
+      
+              for zidx, idx in ipairs(results) do
+                displayItem(idx, nil, includeAverageDamage)
+              end
+              
             end
             
-          end
-          
-        end -- if skipSlot or skipLayer
+          end -- if skipSlot or skipLayer
+        
+        end -- loop layers
+      end -- loop slots
       
-      end -- loop layers
-    end -- loop slots
+        
+      cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; total ' .. affect .. ' equipped is ' .. tostring(gearTotal) .. '\n') 
     
-      
-    cecho('\n\n&lt;green&gt;TCAT:&lt;white&gt; total ' .. affect .. ' equipped is ' .. tostring(gearTotal) .. '\n') 
+    end)
   
-  end)
-
-  send('queue identity &amp; queue equipment')
+    send('queue identity &amp; queue equipment')
+  end) -- end of get skills
   
 end)
 
@@ -1534,7 +1608,7 @@ catalog.events = catalog.events or {}
 catalog.events.CHECK_PROMPT =  'tfecat: checked yo prompt'
 catalog.events.PARSED_EQUIPMENT = 'tfecat: checked out ya gear'
 catalog.events.PARSED_IDENTITY = 'tfecat: checked your papers'
-
+catalog.events.PARSED_ABILITIES = 'tfecat: checked your moves'
 
 catalog.items = catalog.items or {}
 catalog.itemsIndex = catalog.itemsIndex or {}
@@ -1885,7 +1959,7 @@ catalog.getItemAllowedFlags = function(flags)
 end
 
 
-catalog.displayItem = function(idx)
+catalog.displayItem = function(idx, weightedQuery)
   
   local item = catalog.items[catalog.itemsIndex[idx]]
   local flags = catalog.getItemAllowedFlags(catalog.itemCalculated[idx])
@@ -1905,7 +1979,7 @@ catalog.displayItem = function(idx)
   cecho(item.buffer)
   cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
   
-  local hasAdditionalInfo = true
+  local hasAdditionalInfo = false
   
   if (flags.hasRestrictions or item.averageDamage) then
     hasAdditionalInfo = true
@@ -1927,9 +2001,14 @@ catalog.displayItem = function(idx)
   end
   
   if (hasAdditionalInfo) then
-    cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
+    cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
   end
   
+  if (weightedQuery) then    
+    cecho('\n&lt;white&gt;Item Weight summary:&lt;reset&gt;\n\n')
+    catalog.getAffect(item, 'weighted', nil, stats, true)   
+    cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
+  end
   
 end
 
@@ -2800,6 +2879,16 @@ catalog.player.gear = catalog.player.gear or {}
 
 
 
+catalog.getSkills = function(cb)
+
+  catalog.common.onNextEvent(catalog.events.PARSED_ABILITIES, function()
+    cecho('&lt;green&gt;CATALOG&lt;white&gt;: parsed player skills\n')
+    cb(player.skills)
+  end)
+  send('$abil all')
+
+end
+
 catalog.getStats = function(cb)
 
   local checkTrigger
@@ -3054,20 +3143,47 @@ end
   ["Remort Level"] = true,
 }
 
+-- everyone should be a reaver so these are great defaults ;-)
 catalog.weights = catalog.weights or {
-  damroll = 1,
+  damroll = 1.5,
   hitroll = 0.5,
   dexterity = 2,
   constitution = 1.5,
-  resist = 0.05,
-  mana_regen = 0.25,
-  move_regen = 0.33,
+  resist = 0.1,
+  mana_regen = 0.5,
+  move_regen = 0.75,
   hit_regen = 0.05,
-  smart = 0.33,
-  ["Armor Class"] = 0.01,
-  deflection = 0.1,
+  hit_points = 0.02,
+  ["Armor Class"] = 0.05,
+  ["Global Armor"] = 0.15,
+  deflection = 0.25,
+  ["Second Attack"] = 2,
+  ["Third Attack"] = 2,
+  ["Fourth Attack"] = 2,
+  ["Fifth Attack"] = 2,
+  ["off-hand attack"] = 2, 
+  ["second off-hand attack"] = 2,  
+  doublecross = 2,
+  ["chaos beacon"] = 2,
+  pandemonium = 2,
+  bedlam = 2,
+  doublefeint = 2,
+  doublevision = 3,  
 }
 
+
+catalog.getAffectIfHasSkill = function(item, skill)
+  local iSkill = catalog.getAffect(item, skill)        
+  if (player.skills) then        
+    if (player.skills[skill] and player.skills[skill] &gt; 0) then
+      return iSkill
+    else
+      return 0  
+    end        
+  else        
+    return iSkill          
+  end      
+end
 
 catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDebug)
     
@@ -3094,6 +3210,11 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDe
   
   affect = affect:lower()
 
+  -- adding a fake affect so we can still get pseudo affects like armor class
+  item.affects = item.affects or {
+    { amount = 0, name = 'placeholder', type = 'pseudo' }
+  }
+  
 
   if (item.affects) then
     
@@ -3119,18 +3240,16 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDe
       end
       
       if (affect == 'weighted') then
-            
-        
+                  
         for affect, weight in pairs(catalog.weights) do
           local amt = catalog.getAffect(item, affect, nil, stats)
           
           if amt ~= 0 then      
 
             if (showWeightDebug) then              
-              if (affAmt == 0) then
-                cecho('\n&lt;green&gt;CATALOG: &lt;white&gt;' .. item.name .. '\n')
-              end            
-              cecho(affect .. ' weight: ' .. tostring(amt * weight) .. '\n')
+
+    
+              cecho(demonnic:cfText('&lt;white&gt;' .. affect .. ':&lt;reset&gt; ', {alignment = "right", width = 21, nogap=true}) .. tostring(amt * weight) .. '\n')
             end
             
             affAmt = affAmt + (amt * weight)
@@ -3138,7 +3257,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDe
         end         
         
         if (showWeightDebug) then
-          cecho('total weight: ' .. tostring(affAmt) .. '\n\n')
+          cecho('\n' .. demonnic:cfText('&lt;white&gt;total weight:&lt;reset&gt; ', {alignment = "right", width = 21, nogap=true}) .. tostring(affAmt) .. '\n')
         end
         
         return affAmt         
@@ -3356,11 +3475,15 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDe
     
     if (affect == 'deflection') then
       local gac = tonumber(item['Global Armor'] or 0)
+
       local defSkills = 
-        catalog.getAffect(item, 'dodge') * 2 + 
-        catalog.getAffect(item, 'tumble') * 1 + 
-        catalog.getAffect(item, 'guard') * 5 + 
-        catalog.getAffect(item, 'parry') * 4        
+      
+        catalog.getAffectIfHasSkill(item, 'dodge') * 2 + 
+        catalog.getAffectIfHasSkill(item, 'tumble') * 1 + 
+        catalog.getAffectIfHasSkill(item, 'guard') * 5 + 
+        catalog.getAffectIfHasSkill(item, 'parry') * 4 + 
+        catalog.getAffectIfHasSkill(item, 'quickstep') * 5  -- this is a guess
+                      
       return propVal + gac + defSkills    
     end
   
