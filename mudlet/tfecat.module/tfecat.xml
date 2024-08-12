@@ -2005,7 +2005,7 @@ catalog.displayItem = function(idx, weightedQuery)
   end
   
   if (weightedQuery) then    
-    cecho('\n&lt;white&gt;Item Weight summary:&lt;reset&gt;\n\n')
+    cecho('\n               &lt;white&gt;Weight summary:&lt;reset&gt;\n\n')
     catalog.getAffect(item, 'weighted', nil, stats, true)   
     cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
   end
@@ -3249,7 +3249,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDe
             if (showWeightDebug) then              
 
     
-              cecho(demonnic:cfText('&lt;white&gt;' .. affect .. ':&lt;reset&gt; ', {alignment = "right", width = 21, nogap=true}) .. tostring(amt * weight) .. '\n')
+              cecho(demonnic:cfText('&lt;white&gt;' .. affect .. ':&lt;reset&gt; ', {alignment = "right", width = 31, nogap=true}) .. tostring(amt * weight) .. '\n')
             end
             
             affAmt = affAmt + (amt * weight)
@@ -3257,7 +3257,7 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDe
         end         
         
         if (showWeightDebug) then
-          cecho('\n' .. demonnic:cfText('&lt;white&gt;total weight:&lt;reset&gt; ', {alignment = "right", width = 21, nogap=true}) .. tostring(affAmt) .. '\n')
+          cecho('\n' .. demonnic:cfText('&lt;white&gt;total weight:&lt;reset&gt; ', {alignment = "right", width = 31, nogap=true}) .. tostring(affAmt) .. '\n')
         end
         
         return affAmt         
