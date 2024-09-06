@@ -2919,7 +2919,7 @@ catalog.getStats = function(cb)
     end                    
   end)
 
-  checkResistTrigger = njs50.tempMatchAllRegex([[\s+(Magic|Fire|Cold|Mind|Electric|Acid|Poison):\s+\+?(-?\d+)%]], function ()        
+  checkResistTrigger = catalog.common.tempMatchAllRegex([[\s+(Magic|Fire|Cold|Mind|Electric|Acid|Poison):\s+\+?(-?\d+)%]], function ()        
     for i=1,#matches / 3 do
       local res = matches[((i-1) * 3) + 2]
       local val = matches[((i-1) * 3) + 3]      
@@ -4930,6 +4930,25 @@ end
 				<packageName></packageName>
 				<script>catalog = catalog or {}
 catalog.common = catalog.common or {}
+
+
+
+catalog.common.tempMatchAllRegexCount = catalog.common.tempMatchAllRegexCount or 0
+catalog.common.tempMatchAllRegex = function(substring, code, expireAfter)
+-- tempComplexRegexTrigger(name, regex, code, multiline, fgColor, bgColor, filter, matchAll, highlightFgColor, highlightBgColor, playSoundFile, fireLength, lineDelta, expireAfter)
+  
+  -- if we have overwritten this function to return the correct id
+  if (oTempComplexRegexTrigger) then  
+    return tempComplexRegexTrigger("njs50.tempMatchAllRegex", substring, code, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, expireAfter)
+  else
+    catalog.common.tempMatchAllRegexCount = catalog.common.tempMatchAllRegexCount + 1
+    local id = "njs50.tempMatchAllRegex_" .. tostring(catalog.common.tempMatchAllRegexCount)
+    tempComplexRegexTrigger(id, substring, code, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, expireAfter)
+    return id
+  end
+  
+end
+
 
 catalog.common.onNextEvent = function (evt, callback)
 
