@@ -1041,7 +1041,10 @@ catalog.getSkills(function()
               end
             end
             
+            
             -- display('cmd: ' .. cmd)
+            
+            
             if (tcatItem) then
               gearTotal = gearTotal + catalog.getAffect(tcatItem, affect, true, stats)
             end
@@ -1050,6 +1053,8 @@ catalog.getSkills(function()
             
             
             local results = catalog.search(cmd, stats)
+            
+            -- display(cmd, results)
             
             -- remove any duplicate items from results where affects are not additive.
             -- ie bracers etc that you can only wear one of
@@ -1087,14 +1092,19 @@ catalog.getSkills(function()
            
             end
             
-            -- remove any identical items from results (in case we are looking for sidegrades)
-            if (tcatItem and sidegradeQuery) then
+            
+            -- remove any identical items from results 
+            -- not sure why this had anything to do with sidegrades
+            --(in case we are looking for sidegrades)
+            if (tcatItem) then -- and sidegradeQuery
               for idx = #results, 1, -1 do
                 if (results[idx] == tcatItem.catalogIndex) then
                   table.remove(results, idx)
                 end      
               end        
             end
+            
+            -- display(tcatItem.catalogIndex, results)
             
             if (verboseQuery or #results &gt; 0 or (tcatItem and itemHasNegativeAffect(tcatItem.catalogIndex))) then          
               
