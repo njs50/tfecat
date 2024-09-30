@@ -3,7 +3,6 @@ The web version (for non mudlet users) is available [here](https://njs50.github.
 
 ## Installing the TFECat mudlet client
 
-```
 install via my mudlet package manager:
 ```lua
 lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')
