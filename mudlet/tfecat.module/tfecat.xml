@@ -1893,6 +1893,34 @@ catalog.purgeVersionItems = function(version)
 
 end
 
+
+catalog.removeItem = function(rname)
+ 
+  local purgeItems = {}
+  
+  for name, item in pairs(catalog.items) do
+    if name == rname then
+      table.insert(purgeItems, name)
+    end
+  end
+ 
+  display(purgeItems)  
+   
+  local pcount = #purgeItems
+   
+  if (pcount &gt; 0) then
+    
+    purgeItems = catalog.common.json.encode(purgeItems)
+    
+    postHTTP(purgeItems, catalog.serverUrl .. "/catalog/deleteItems", {["Content-type"] = "application/json"})
+    cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;' .. tostring(pcount) .. ' items sent to server to be purged!\n')  
+  
+  else
+    cecho('\n&lt;yellow&gt;TFECAT: &lt;white&gt;no items needed purging!\n')  
+  end
+
+end
+
 catalog.fixMissingDot = function(affect)
 
   local newItems = {}
