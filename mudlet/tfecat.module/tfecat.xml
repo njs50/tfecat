@@ -809,6 +809,47 @@ if (affectQuery) then
   searchString = rex.gsub(searchString, affectQuery, '')
 end
 
+
+local levelQuery, levelLimit = rex.match(searchString, [[( -l (\d+))]])
+if (levelQuery) then  
+  searchString = rex.gsub(searchString, levelQuery, '')
+else
+  levelLimit = gmcp.Char.Score.level
+end
+
+
+local alignQuery, alignment = rex.match(searchString, [[( -A (\w\w))]])
+if (alignQuery) then
+  searchString = rex.gsub(searchString, alignQuery, '')
+else
+  alignment = catalog.player.identity.Alignment  
+end
+
+  
+local classQuery, class = rex.match(searchString, [[( -c (\w+))]])
+if (classQuery) then  
+  searchString = rex.gsub(searchString, classQuery, '')
+else
+  class = gmcp.Char.Score.class
+end
+
+local genderQuery, gender = rex.match(searchString, [[( -g (\w+))]])
+if (genderQuery) then
+  searchString = rex.gsub(searchString, genderQuery, '')
+else
+  gender = catalog.player.identity.Sex
+end
+
+local raceQuery, race = rex.match(searchString, [[( -r (\w+))]])
+if (raceQuery) then
+  searchString = rex.gsub(searchString, raceQuery, '')
+else
+  race = catalog.player.identity.Race
+end
+
+
+
+
 local limitResults = 10
 local limitQuery, limitString = rex.match(searchString, [[( --limit (\d+))]])
 if (limitQuery) then
@@ -828,6 +869,7 @@ end
 if (affect == 'skills') then
   sidegradeQuery = true
 end
+
 
 if (not affect or affect == '') then
   cecho('\n&lt;red&gt;TFECAT: &lt;white&gt;an affect must be specified with tcat-audit -a to perform an audit\n\n')
@@ -865,6 +907,9 @@ end
 
 -- display('weapon 2h/oh', usingTwoHandedWeapon, usingOffHandWeapon)
 
+
+
+
 catalog.getSkills(function()
 
   catalog.getStats(function(stats) 
@@ -873,9 +918,9 @@ catalog.getSkills(function()
   
     catalog.common.onNextEvent(catalog.events.PARSED_EQUIPMENT, function()
     
-      local baseQuery = ' -c ' .. gmcp.Char.Score.class .. ' -l 1-' .. tostring(gmcp.Char.Score.level) ..
-                        ' -g ' .. catalog.player.identity.Sex .. ' -r ' .. tostring(catalog.player.identity.Race) .. 
-                        ' -A ' .. catalog.player.identity.Alignment .. ' --limit ' .. tostring(limitResults)
+      local baseQuery = ' -c ' .. class .. ' -l 1-' .. tostring(levelLimit) ..
+                        ' -g ' .. gender .. ' -r ' .. race .. 
+                        ' -A ' .. alignment .. ' --limit ' .. tostring(limitResults)
     
       local failItems = ''
       
@@ -3703,19 +3748,20 @@ catalog.search = function(searchString, stats)
       display(days, getEpoch(), afterTime)
     end
   end    
-  
-  local alignQuery, align = rex.match(searchString, [[( -A (\w\w))]])
-  if (alignQuery) then
-    searchString = rex.gsub(searchString, alignQuery, '')
-  end
-  
+
   local limitResults = 10
   local limitQuery, limitString = rex.match(searchString, [[( --limit (\d+))]])
   if (limitQuery) then
     limitResults = tonumber(limitString)
     searchString = rex.gsub(searchString, limitQuery, '')
   end  
+
   
+  local alignQuery, align = rex.match(searchString, [[( -A (\w\w))]])
+  if (alignQuery) then
+    searchString = rex.gsub(searchString, alignQuery, '')
+  end
+    
   local classQuery, charClass = rex.match(searchString, [[( -c (\w+))]])
   if (classQuery) then
     searchString = rex.gsub(searchString, classQuery, '')
