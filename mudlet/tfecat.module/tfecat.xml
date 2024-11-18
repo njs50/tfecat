@@ -3668,13 +3668,13 @@ end
 
 
 
-catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage)
+catalog.hasAffect = function(item, affect, filterType, filterAmount, includeWeaponDamage, stats)
     
   if (filterAmount ~= '') then
     filterAmount = tonumber(filterAmount)
   end
     
-  local amount = catalog.getAffect(item,affect)
+  local amount = catalog.getAffect(item, affect, nil, stats)
   
   if (amount ~= 0) then
     if (
@@ -3696,6 +3696,8 @@ end
 
 
 catalog.search = function(searchString, stats)
+  
+  -- display(searchString, stats)
     
   local results = {}  
     
@@ -3873,7 +3875,7 @@ catalog.search = function(searchString, stats)
       (not itemLocationQuery or table.contains(data["Wear Loc."],catalog.slotConversion[location])) and
       (layer == nil or layer == '' or table.contains(data.Layer,layer)) and
       -- affectQuery, affect
-      (not affectQuery or catalog.hasAffect(data, affect, affectFilterType, affectFilterVal, includeWeaponDamage)) and
+      (not affectQuery or catalog.hasAffect(data, affect, affectFilterType, affectFilterVal, includeWeaponDamage, stats)) and
       
       (not alignQuery or flags.charAlignments[align]) and
       (not classQuery or flags.charClasses[charClass]) and
@@ -3909,6 +3911,8 @@ catalog.search = function(searchString, stats)
              -- 
     -- end)
     
+    
+  
   -- pre sort by item level
   table.sort(results, function(a,b)   
      
