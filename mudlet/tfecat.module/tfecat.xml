@@ -695,6 +695,24 @@ end
 		<Alias isActive="yes" isFolder="no">
 			<name>tcat-audit</name>
 			<script>
+
+if (not (catalog and catalog.player and catalog.player.identity and catalog.player.identity.Race)) then
+
+  local params = matches[2]
+
+  cecho('\n&lt;red&gt;TFECAT: &lt;white&gt;identity has not yet been parsed\n\n')
+  
+  catalog.common.onNextEvent(catalog.events.PARSED_IDENTITY, function()    
+    expandAlias('tcat-audit' .. params)
+  end)
+  send('queue identity')
+  
+  return
+end
+
+
+
+
 if matches[2] == ' help' or matches[2] == '' then
   cecho('&lt;green&gt;SYNTAX\n')
   cecho('\n')
@@ -2437,6 +2455,7 @@ catalog.load = function(cb, altSrc)
       module = 'tfecat',
       githubUser = 'njs50',
       branch = 'gh-pages',
+      filename = 'catalog.json',
       callback = function(hash)
         -- cecho('\n&lt;green&gt;TFECAT:&lt;white&gt; current data is from - ' .. hash .. '\n\n')
         local URL = 'https://raw.githubusercontent.com/njs50/tfecat/' .. hash .. '/catalog.json'    
@@ -5097,6 +5116,9 @@ catalog.common.itemShortenOverride['darkgem'] = 'darkgem'
 catalog.common.itemShortenOverride['darklight'] = 'darklight'
 catalog.common.itemShortenOverride['shadowbox'] = 'shadowbox'
 
+catalog.common.itemShortenOverride['woolen.socks'] = 'woolen.sock'
+catalog.common.itemShortenOverride['woolen socks'] = 'woolen.sock'
+
 -- a bracer of the emerald moon                          55   armor    AC: 4
 -- [4396] an emerald bracelet 
 
@@ -5137,6 +5159,9 @@ catalog.common.itemSanitize = function(string, keepEnchant)
     string = rex.gsub(string, [[frost-covered,? ]], '')
   end
   
+  -- only use first word in item of 'stupid name'  
+  string = rex.gsub(string, [['(.+?)\s(.+)']], '%1')
+  
   return string
 
 end
@@ -5145,17 +5170,25 @@ end
 
 catalog.common.itemShorten = function(item, keepEnchant)
 
+  item, itemEnchant = rex.match(item, [[^(.+?)( \+\d)?$]])
+
   item = catalog.common.dotCase(catalog.common.itemSanitize(item, keepEnchant))
   
-  if (catalog.common.itemShortenOverride[item]) then
-    return catalog.common.itemShortenOverride[item]
-  else
   
-    return rex.gsub(	rex.gsub(item,"'(.*)'",'%1'),
+  if (catalog.common.itemShortenOverride[item]) then
+    item = catalog.common.itemShortenOverride[item]    
+  else  
+    item = rex.gsub(	rex.gsub(item,"'(.*)'",'%1'),
       	'([^.][^.][^.][^.]?)[^.]+',
       	'%1'
     )
   end
+  
+  if keepEnchant and itemEnchant then
+    item = item .. rex.gsub(itemEnchant, ' ', '.')
+  end
+
+  return item
 
 end
 
