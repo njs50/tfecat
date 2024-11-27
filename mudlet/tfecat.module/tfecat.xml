@@ -2451,19 +2451,20 @@ catalog.load = function(cb, altSrc)
     cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; downloading catalog from ' .. src .. '\n\n')
     downloadFile(getMudletHomeDir().."/catalog.json", src .. '?_=' .. tostring(getEpoch))
   else
+  
+  
     njs50pm.getRemoteHash({
       module = 'tfecat',
       githubUser = 'njs50',
       branch = 'gh-pages',
-      filename = 'catalog.json',
-      callback = function(hash)
-        -- cecho('\n&lt;green&gt;TFECAT:&lt;white&gt; current data is from - ' .. hash .. '\n\n')
-        local URL = 'https://raw.githubusercontent.com/njs50/tfecat/' .. hash .. '/catalog.json'    
-        cecho('\n&lt;green&gt;TFECAT:&lt;white&gt; loading - ' .. URL)
-        downloadFile(getMudletHomeDir().."/catalog.json", URL)
+      filename = 'catalog.json',      
+    }, function(hash)
+      -- cecho('\n&lt;green&gt;TFECAT:&lt;white&gt; current data is from - ' .. hash .. '\n\n')
+      local URL = 'https://raw.githubusercontent.com/njs50/tfecat/' .. hash .. '/catalog.json'    
+      cecho('\n&lt;green&gt;TFECAT:&lt;white&gt; loading - ' .. URL)
+      downloadFile(getMudletHomeDir().."/catalog.json", URL)
 
-      end
-    })    
+    end)    
   end
 
 
