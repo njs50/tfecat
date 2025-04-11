@@ -37,7 +37,7 @@ elseif player.gearParsing then
 		player.gearCurrentSlot = rex.gsub(matches[2], [[^(floating|worn on|worn around|worn about) ]], "", 1)
 	end
 
-	local item = catalog.common.itemSanitize(matches[4])
+	local item = catalog.common.itemSanitize(matches[4], true)
 
 	player.gear[player.gearCurrentSlot] = player.gear[player.gearCurrentSlot] or {}
 	player.gear[player.gearCurrentSlot][matches[3]] = {item = item, raw = matches[4], condition = matches[5] }
@@ -3139,20 +3139,17 @@ end
 
 catalog.sanitizeItemName = function(itemName)
   
-  itemName = rex.gsub(itemName,[[^an enchanted ([aeiou])]], 'an %1')
-  itemName = rex.gsub(itemName,[[^an enchanted]], 'a')
-  itemName = rex.gsub(itemName,[[of enchanted]], 'of')
-  itemName = rex.gsub(itemName,[[^enchanted ]], '')
-  itemName = rex.gsub(itemName, [[(a|an)? ?(.*) labeled .*$]], 'an empty %2')
+  itemName = rex.gsub(itemName, [[(a|an)? ?(.*) labeled .*$]], 'an empty %2')  
   itemName = rex.gsub(itemName,[[ \+\d$]], '')
-
+  
+  
 -- Missing ID - an enchanted journeyman's astrolabe
 -- Missing ID - an enchanted eldrich bracelet
 
 -- Missing ID - a pair of enchanted herbal anklets
 
 -- Missing ID - a feather-patterned white leather sack labeled meat
-  return itemName
+  return catalog.common.itemSanitize(itemName)
 end
 
 catalog.findItem = function(itemName, items, allowMultipleExact) 
@@ -3171,8 +3168,8 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
     
     local thisIn = item.name or ''
     local thisUn = item["Unidentified Name"] or ''
-    thisIn = thisIn:lower()
-    thisUn = thisUn:lower()
+    thisIn = catalog.sanitizeItemName(thisIn:lower())
+    thisUn = catalog.sanitizeItemName(thisUn:lower())
 
     
     if (
@@ -5150,7 +5147,7 @@ catalog.common.itemSanitize = function(string, keepEnchant)
     return ''
   end
 
-  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |divinely flamed,? |enchanted,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled )]], '')
+  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |divinely flamed,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled )]], '')
 
   if (keepEnchant ~= true) then
     string = rex.gsub(string, [[(\s\+\d)]], '')  
@@ -5162,6 +5159,12 @@ catalog.common.itemSanitize = function(string, keepEnchant)
   
   -- only use first word in item of 'stupid name'  
   string = rex.gsub(string, [['(.+?)\s(.+)']], '%1')
+
+
+  string = rex.gsub(string,[[^an enchanted,? ([aeiou])]], 'an %1')
+  string = rex.gsub(string,[[^an enchanted,?]], 'a')
+  string = rex.gsub(string,[[of enchanted]], 'of')
+  string = rex.gsub(string,[[^enchanted,? ]], '')
   
   return string
 
