@@ -3756,7 +3756,7 @@ catalog.search = function(searchString, stats)
   if (afterQuery) then
     searchString = rex.gsub(searchString, afterQuery, '')
     afterTime = os.time({day=day,month=month,year=year}) 
-    display(year,month,day, afterTime)
+    -- display(year,month,day, afterTime)
   end  
   
   if (not afterQuery) then
@@ -3764,7 +3764,7 @@ catalog.search = function(searchString, stats)
     if (afterQuery) then
       searchString = rex.gsub(searchString, afterQuery, '')      
       afterTime = getEpoch() - (tonumber(days) * 24 * 60 * 60) 
-      display(days, getEpoch(), afterTime)
+      -- display(days, getEpoch(), afterTime)
     end
   end    
 
@@ -3794,6 +3794,7 @@ catalog.search = function(searchString, stats)
   local raceQuery, race = rex.match(searchString, [[( -r (\w+))]])
   if (raceQuery) then
     searchString = rex.gsub(searchString, raceQuery, '')
+    race = rex.gsub(race, 'lizardman', 'lizardfolk')    
   end
       
   
