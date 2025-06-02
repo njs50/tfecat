@@ -69,6 +69,150 @@ end
 			</regexCodePropertyList>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>parse trainer</name>
+			<script>catalog.trainers = catalog.trainers or {}
+
+local skills = {}
+
+
+local skillParser =  tempRegexTrigger([[^([A-Za-z].*?)\s{2,}(\d+|unk)\s{2,}]], function()
+  table.insert(skills, matches[2])
+end)
+
+
+tempPromptTrigger(function()
+  
+  killTrigger(skillParser)
+
+  for idx, skill in ipairs(skills) do
+    
+    catalog.trainers[skill] = catalog.trainers[skill] or {}
+    
+    if (not table.contains(catalog.trainers[skill], gmcp.Room.Info.num)) then
+      table.insert(catalog.trainers[skill], gmcp.Room.Info.num)
+    end
+      
+  end
+
+end, 1)</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>Skill                 Level       Cost       Prac</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>2</integer>
+			</regexCodePropertyList>
+		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>parse customs</name>
+			<script>catalog.customs = catalog.customs or {}
+
+local startLine = matches[1]
+
+local custom
+local customs = {}
+
+-- full line
+local ctrig = tempRegexTrigger([[^([A-Za-z].*?)\s+(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()
+  if (custom) then
+    customs[custom.name] = custom
+  end
+  custom = {
+    name = matches[2],
+    price = matches[3],
+    weight = matches[4],
+    level = matches[5],
+    ingredients = {matches[6]},
+  }
+end)
+
+
+-- custom name only line
+local ctrig3 = tempRegexTrigger([[^([A-z][a-z]\D+?)\s*$]], function()
+ 
+  -- don't trigger on the first line
+  if (matches[2] == startLine) then
+    return
+  end
+ 
+  if (custom) then
+    customs[custom.name] = custom
+  end
+  custom = {
+    name = matches[2]
+  }
+end)
+
+
+-- ingrediants by themselves
+local ctrig2 = tempRegexTrigger([[^\s{2,}([A-Za-z].+)$]], function()
+  custom.ingredients = custom.ingredients or {}
+  table.insert(custom.ingredients, matches[2])
+end)
+
+-- custom details only line
+local ctrig4 = tempRegexTrigger([[^(\s{2,})(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()  
+  custom.price = matches[3]
+  custom.weight = matches[4]
+  custom.level = matches[5]
+  custom.ingredients = {matches[6]}  
+end)
+
+tempPromptTrigger(function()
+
+  if (custom) then
+    customs[custom.name] = custom
+  end
+  
+  	killTrigger(ctrig)
+  killTrigger(ctrig2)
+  killTrigger(ctrig3)
+  killTrigger(ctrig4)
+  
+  local key = tostring(gmcp.Room.Info.num)
+  
+  catalog.customs[key] = catalog.customs[key] or {
+    room =  gmcp.Room.Info.name,
+    location = gmcp.Room.Info.num,
+    customs = {},
+  }
+  
+  for customName, custom in pairs(customs) do    
+    catalog.customs[key].customs[customName] = custom
+  end
+  
+  -- display(catalog.customs)
+    
+end, 1)
+
+</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand></mCommand>
+			<packageName></packageName>
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile></mSoundFile>
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>Item                        Price  Weight  Lvl  Ingredients</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>2</integer>
+			</regexCodePropertyList>
+		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>parse skills</name>
 			<script>-- replicate             unk        1920    8    minor enchantment [7] &amp; continual light [7]
 -- riding                 10
