@@ -75,7 +75,7 @@ end
 local skills = {}
 
 
-local skillParser =  tempRegexTrigger([[^([A-Za-z].*?)\s{2,}(\d+|unk)\s{2,}]], function()
+local skillParser =  tempRegexTrigger([[^([A-Za-z].*?)\s{2,}(\d+|unk|Y)\s{2,}]], function()
   table.insert(skills, matches[2])
 end)
 
@@ -88,8 +88,9 @@ tempPromptTrigger(function()
     
     catalog.trainers[skill] = catalog.trainers[skill] or {}
     
-    if (not table.contains(catalog.trainers[skill], gmcp.Room.Info.num)) then
+    if (not table.contains(catalog.trainers[skill], gmcp.Room.Info.num)) then      
       table.insert(catalog.trainers[skill], gmcp.Room.Info.num)
+      catalog.debouncedLoadTrainers()
     end
       
   end
@@ -497,7 +498,11 @@ end</script>
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; loaded ' .. tostring(#catalog.itemsIndex) .. ' items into catalog.items!\n\n') 
     end)
   end,  
-  
+
+  loadTrainers = function()
+    catalog.loadTrainers()
+  end,  
+    
   loadV13 = function()    
     catalog.load(function()
       cecho('\n\n&lt;green&gt;CATALOG:&lt;white&gt; loaded ' .. tostring(#catalog.itemsIndex) .. ' items into catalog.items!\n\n') 
@@ -540,7 +545,8 @@ end</script>
      
     cecho('&lt;white&gt;tfecat generate &lt;reset&gt;- uploads any items missing in the main catalog\n') 
 
-    cecho('&lt;white&gt;tfecat load     &lt;reset&gt;- refreshes the current catalog data for use by tcat\n\n')
+    cecho('&lt;white&gt;tfecat load         &lt;reset&gt;- refreshes the current catalog data for use by tcat\n\n')
+    cecho('&lt;white&gt;tfecat loadTrainers &lt;reset&gt;- refreshes the trainer data for use by tcat\n\n')    
     
     cecho('&lt;white&gt;tfecat summary  &lt;reset&gt;- list the number of contributions from each account\n\n') 
     
@@ -1400,6 +1406,79 @@ end)
 			<packageName></packageName>
 			<regex>^(help tcat-audit)\s*$</regex>
 		</Alias>
+		<Alias isActive="yes" isFolder="no">
+			<name>tfind</name>
+			<script>-- tfind sword
+-- Sword:
+  -- [ 672] Koheleth                       [36074] The Camel's Tongue
+  -- [1003] Trenhk                         [  918] The Chiiron Weapon Shop
+  -- [ 331] Saurd                          [19001] Weapon Smithy
+  -- [ 456] K'salsk                        [30754] Weaponcrafter's Home
+  -- [ 347] Dreglor                        [30339] Arena of Honor
+  -- [ 867] Wellburn                       [20010] Wellburn's Weapons
+  -- [ 299] Lanthar                        [30016] Lanthar's Premium Weapons
+  -- [1323] Angamoth                       [63504] Warleader's Chamber
+  -- [1797] Sniblik                        [60018] Sniblik's House of Blades
+  -- [ 222] Harkin                         [27031] Master Smith, Harkin
+
+if (#table.keys(catalog.trainers) &gt; 10) then
+    
+  local ss = matches[2]:lower() 
+  
+  for skill, rlist in pairs(catalog.trainers) do
+  
+    if skill:lower():match(ss) then
+    
+      -- demonnic:fText('rintro &lt;cleric&gt;', {alignment = "left", width = 18, nogap=true})
+      cecho('\n&lt;white&gt;' .. skill .. ':&lt;reset&gt;\n')
+    
+      for idx, rnum in ipairs(rlist) do
+    
+        local rname = getRoomName(rnum)
+        local aname = getRoomAreaName(getRoomArea(rnum))
+        
+        cecho('&lt;white&gt;[')
+        if (tfe and tfe.turboWalkToRoom) then
+          cechoLink(
+            '&lt;green&gt;' .. demonnic:fText(tostring(rnum), {alignment = "right", width = 6, nogap=true}), 
+            function() tfe.turboWalkToRoom(rnum) end, 
+            "speedwalk to this room", 
+            true
+          )
+        else
+          cecho(demonnic:fText(tostring(rnum), {alignment = "right", width = 6, nogap=true}))
+        end
+        cecho('&lt;white&gt;] ')
+        
+        if (rname) then
+          cecho(demonnic:fText(rname, {alignment = "left", width = 30, nogap=true}))
+        end
+        
+        if (aname) then
+          cecho('(' .. aname .. ')')
+        end
+        
+        cecho('\n')               
+      
+      end
+    
+    end
+  
+  end
+
+else
+  -- need to load the catalog
+  local cmd = matches[2]
+  cecho('\n&lt;green&gt;CATALOG:&lt;white&gt; loading trainers...\n\n')
+  catalog.loadTrainers(function()
+    expandAlias('tfind ' .. cmd)
+  end)
+ 
+end</script>
+			<command></command>
+			<packageName></packageName>
+			<regex>^tfind (.{2,})$</regex>
+		</Alias>
 	</AliasPackage>
 	<ActionPackage />
 	<ScriptPackage>
@@ -1837,6 +1916,9 @@ catalog.itemsIndex = catalog.itemsIndex or {}
 catalog.itemCalculated = catalog.itemCalculated or {}
 
 catalog.summary = catalog.summary or {}
+
+catalog.customs = catalog.customs or {}
+catalog.trainers = catalog.trainers or {}
 
 catalog.parsing = false
 
@@ -2414,10 +2496,8 @@ end
 
 
 catalog.load = function(cb, altSrc)
-  
-  
-  
-  local src = altSrc or 'https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json'
+      
+  local src = altSrc or 'https://njs50.github.io/tfecat/catalog.json'
 
   local downloadHandler
 
@@ -2663,7 +2743,7 @@ end
 
 catalog.showSummary = function()
   
-  catalog.loadFile('https://raw.githubusercontent.com/njs50/tfecat/master/public/summary.json', function(summary)
+  catalog.loadFile('https://njs50.github.io/tfecat/summary.json', function(summary)
     catalog.summary = summary
     
     local st = demonnic.TableMaker:new({
@@ -2703,10 +2783,114 @@ catalog.showSummary = function()
 end
 
 
+catalog.debouncedLoadTrainers = function()
+  
+  if (catalog.nextLoadTrainers) then
+    killTimer(catalog.nextLoadTrainers)
+  end
+  
+  catalog.nextLoadTrainers = tempTimer(600, function()    
+    catalog.nextLoadTrainers = nil
+    catalog.loadTrainers()
+  end, 'sync trainers')
+
+end
+
+catalog.loadTrainers = function(cb)
+
+  -- kill any pending loads
+  if (catalog.nextLoadTrainers) then
+    killTimer(catalog.nextLoadTrainers)
+    catalog.nextLoadTrainers = nil
+  end
+  
+  local skillCount = #table.keys(catalog.trainers)
+  
+  catalog.loadFile('https://njs50.github.io/tfecat/trainers.json', function(published)
+    
+    local diff = {}
+    for skill, rlist in pairs(catalog.trainers) do      
+      if (not published[skill]) then
+        diff[skill] = rlist
+      else
+        for idx, rnum in ipairs(catalog.trainers[skill]) do
+          if not table.contains(published[skill], rnum) then
+            diff[skill] = diff[skill] or {}
+            table.insert(diff[skill], rnum)
+          end
+        end            
+      end    
+    end
+    
+    -- merge any new items back into the local catalog
+    for skill, rlist in pairs(published) do      
+      if (not catalog.trainers[skill]) then
+        catalog.trainers[skill] = rlist
+      else
+        for idx, rnum in ipairs(published[skill]) do
+          if not table.contains(catalog.trainers[skill], rnum) then
+            table.insert(catalog.trainers[skill], rnum)
+          end
+        end            
+      end    
+    end    
+    
+    catalog.uploadDiff('trainers', diff, function()
+      local newCount = #table.keys(catalog.trainers)
+      if (newCount ~= skillCount) then
+        cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;trainers for ' .. tostring(#table.keys(catalog.trainers)) .. ' skills loaded!\n')
+      else
+        cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;trainers up to date!\n')
+      end
+      if (cb) then cb() end
+    end)    
+    
+  end)
+
+end
+
+
+
+catalog.uploadDiff = function(diffType, diff, cb)
+
+  local records = #table.keys(diff)
+
+  if (records &gt; 0) then
+    
+    local catJson = yajl.to_string(diff)
+    
+    local postDoneHandler
+    local postUrl = catalog.serverUrl .. "/" .. diffType .. "/diff"
+        
+    postDoneHandler = registerAnonymousEventHandler("sysPostHttpDone", function(_, url, body)
+    
+      if (url == postUrl) then
+        killAnonymousEventHandler(postDoneHandler)
+        cecho('\n&lt;green&gt;TFECAT: &lt;white&gt;' .. tostring(records) .. ' new ' .. diffType .. ' sent to server!\n')
+        if (cb) then
+          cb()
+        end
+      end
+      
+    end)
+            
+    postHTTP(catJson, postUrl, {["Content-type"] = "application/json"})
+
+  else
+    
+    if (cb) then
+      cb()
+    end
+        
+  end
+
+end
+
+
 
 catalog.showDiff = function()
   
-  catalog.loadFile('https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json', function(published)
+  catalog.loadFile('https://njs50.github.io/tfecat/catalog.json', function(published)
     catalog.summary = summary
     
     local st = demonnic.TableMaker:new({
