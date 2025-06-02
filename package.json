@@ -7,6 +7,9 @@
     "build": "export NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service build",
     "lint": "vue-cli-service lint",
     "deploy": "npm run build; push-dir --dir=dist --branch=gh-pages --cleanup",
+    "update": "npm run update-trainers; npm run update-customs; npm run update-catalog; npm run update-summary",
+    "update-trainers": "curl http://vault-thirteen.net:49160/trainers > ./public/trainers.json",
+    "update-customs": "curl http://vault-thirteen.net:49160/customs > ./public/customs.json",
     "update-catalog": "curl http://vault-thirteen.net:49160/catalog > ./public/catalog.json",
     "update-summary": "curl http://vault-thirteen.net:49160/catalog/summary > ./public/summary.json",
     "server": "node ./server/app.js"

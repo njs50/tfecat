@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node:20-alpine
 RUN apk add --update tini
 
 # Tini is now available at /sbin/tini
