@@ -401,26 +401,3 @@ NPuzzleSolver.prototype.swap = function(pos1, pos2) {
 
 
 module.exports = NPuzzleSolver
-
-// (state) => {
-  
-//   // console.log(state)
-
-//   const solver = new NPuzzleSolver(state);
-
-//   const solution = solver.solve();
-  
-
-//   console.log(solution)
-
-//   const moves = [];
-  
-//   // for (x in solution) {
-//   //   moves.push(solution[x].number);
-//   // }
-
-//   return moves
-
-// }
-
-
