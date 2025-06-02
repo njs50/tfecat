@@ -6,7 +6,7 @@ const got = require('got');
 
 const NPuzzleSolver = require('./solver')
 
-let catalog, summary
+let catalog, summary, trainers, customs
 
 // load catalog from github
 const catSrc = 'https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json'
@@ -16,6 +16,24 @@ got(catSrc)
    updateSummary()
 
   //  console.log(summary)
+  }).catch(error => {
+    console.log(error);
+  })
+;
+
+const trainerSrc = 'https://raw.githubusercontent.com/njs50/tfecat/master/public/trainers.json'
+got(trainerSrc)
+  .then(response => {
+    trainers = JSON.parse(response.body);
+  }).catch(error => {
+    console.log(error);
+  })
+;
+
+const customsSrc = 'https://raw.githubusercontent.com/njs50/tfecat/master/public/customs.json'
+got(customsSrc)
+  .then(response => {
+    customs = JSON.parse(response.body);
   }).catch(error => {
     console.log(error);
   })
@@ -44,8 +62,42 @@ app.get("/catalog", (req, res, next) => {
   res.json(catalog);
 });
 
+app.get("/customs", (req, res, next) => {
+  res.json(customs);
+});
+
+app.get("/trainers", (req, res, next) => {
+  res.json(trainers);
+});
+
 app.get("/catalog/summary", (req, res, next) => {
   res.json(summary);
+});
+
+app.post("/customs/diff", (req, res, next) => {
+  for (let roomNumber in req.body) {
+    customs[roomNumber] = customs[roomNumber] || {
+      "location": req.body[roomNumber].location,
+      "room": req.body[roomNumber].room,
+      customs: {}
+    };
+    for (let itemName in req.body[roomNumber].customs) {
+      customs[roomNumber].customs[itemName] = req.body[roomNumber].customs[itemName];
+    }    
+  }
+  res.end("");
+});
+
+app.post("/trainers/diff", (req, res, next) => {
+  for (let skill in req.body) {
+    trainers[skill] = trainers[skill] || [];
+    req.body[skill].forEach(roomNumber => {
+      if (!trainers[skill].includes(roomNumber)) {
+        trainers[skill].push(roomNumber);
+      }
+    })       
+  }
+  res.end("");
 });
 
 app.post("/catalog/diff", (req, res, next) => {
