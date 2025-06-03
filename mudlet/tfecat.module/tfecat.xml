@@ -1423,6 +1423,10 @@ end)
   -- [1797] Sniblik                        [60018] Sniblik's House of Blades
   -- [ 222] Harkin                         [27031] Master Smith, Harkin
 
+if (matches[2] == 'diff') then
+  return catalog.diffRemoteTrainers()
+end
+
 if (#table.keys(catalog.trainers) &gt; 10) then
     
   local ss = matches[2]:lower() 
@@ -2795,6 +2799,33 @@ catalog.debouncedLoadTrainers = function()
     catalog.nextLoadTrainers = nil
     catalog.loadTrainers()
   end, 'sync trainers')
+
+end
+
+
+catalog.diffRemoteTrainers = function(cb)
+  
+  catalog.loadFile('https://njs50.github.io/tfecat/trainers.json', function(published)
+    catalog.loadFile(catalog.serverUrl .. "/trainers", function(pending)    
+
+      local diff = {}
+      for skill, rlist in pairs(pending) do      
+        if (not published[skill]) then
+          diff[skill] = rlist
+        else
+          for idx, rnum in ipairs(pending[skill]) do
+            if not table.contains(published[skill], rnum) then
+              diff[skill] = diff[skill] or {}
+              table.insert(diff[skill], rnum)
+            end
+          end            
+        end    
+      end
+    
+      display(diff)
+    
+    end)
+  end)
 
 end
 
