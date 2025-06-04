@@ -1441,7 +1441,7 @@ if (#table.keys(catalog.trainers) &gt; 10) then
       for idx, rnum in ipairs(rlist) do
     
         local rname = getRoomName(rnum)
-        local aname = getRoomAreaName(getRoomArea(rnum))
+        local aname = getRoomAreaName(getRoomArea(rnum) or -1)
         
         cecho('&lt;white&gt;[')
         if (tfe and tfe.turboWalkToRoom) then
