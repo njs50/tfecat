@@ -1,50 +1,77 @@
 <template>
   <v-app id="tfecat">
-    <v-app-bar :clipped-left="true" app>
+    <v-app-bar :clipped-left="true" app class="px-2">
       <v-icon color="white">mdi-cat</v-icon>
       <v-toolbar-title>TFE Items</v-toolbar-title>
       <v-spacer></v-spacer>
 
       <v-dialog
-        max-width="900"
+        max-width="600"
         v-model="isInstallModalVisible"
       >
         <template #activator="{ props }">
           <v-btn 
             color="primary" 
             variant="elevated"
+            prepend-icon="mdi-download"
             v-bind="props"
           >
             Install
           </v-btn>
         </template>
 
-        <v-card>
-          <v-card-title>
-            Installing mudlet package:
+        <v-card class="modal-card">
+          <v-card-title class="modal-title d-flex align-center">
+            <v-icon class="mr-3" color="primary">mdi-package-variant</v-icon>
+            <span>Install the tfecat mudlet package</span>
           </v-card-title>
 
-          <v-card-text>
-            To install the tfecat mudlet package for the first time copy and paste the following into your mudlet input bar:
-            <v-text-field
+          <v-card-text class="modal-content pa-4">
+            <div class="mb-4">
+              <p class="text-body-1 mb-3">
+                To install the tfecat package for the first time, copy and paste the following command into your Mudlet input bar:
+              </p>
+
+            </div>
+
+            <v-textarea
               ref="installInput"
-              append-icon="mdi-content-copy"
               readonly
-              @click:append="copyInstall"
               v-model='installCode'
-            ></v-text-field>
+              variant="outlined"
+              density="compact"
+              bg-color="grey-darken-4"
+              class="font-mono"
+              hide-details
+              rows="3"
+              auto-grow
+            ></v-textarea>
+
+            <div class="mt-3 text-caption text-grey-lighten-1">
+              <v-icon size="small" class="mr-1">mdi-lightbulb</v-icon>
+              Click the copy button to copy the command to your clipboard
+            </div>
           </v-card-text>
 
           <v-divider></v-divider>
 
-          <v-card-actions>
+          <v-card-actions class="modal-actions pa-4">
             <v-spacer></v-spacer>
+            <v-btn
+              color="secondary"
+              variant="outlined"
+              prepend-icon="mdi-content-copy"
+              @click="copyInstall"
+            >
+              Copy
+            </v-btn>
             <v-btn
               color="primary"
               variant="elevated"
+              prepend-icon="mdi-check"
               @click="isInstallModalVisible = false"
             >
-              Done
+              Got it!
             </v-btn>
           </v-card-actions>
         </v-card>
@@ -52,13 +79,13 @@
     </v-app-bar>
 
     <v-main>
-      <v-container fluid>
+      <v-container fluid class="pa-2">
         <v-expansion-panels>
           <v-expansion-panel>
             <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <v-row align="center">
-                <v-col class="d-flex" cols="12">
+            <v-expansion-panel-text class="pa-1">
+              <v-row align="center" class="mb-0">
+                <v-col class="d-flex pa-1" cols="12">
                   <v-range-slider
                     v-model="levelRange"
                     min="0"
@@ -66,100 +93,125 @@
                     thumb-label="always"
                     label="Item Level Range"
                     hide-details
+                    density="compact"
                   ></v-range-slider>
                 </v-col>
               </v-row>
 
-              <v-row align="center">
-                <v-col class="d-flex" cols="3">
-                  <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable></v-select>
+              <v-row align="center" class="mb-0">
+                <v-col class="d-flex pa-1" cols="3">
+                  <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex" cols="3">
-                  <v-select v-model="charRace" :items="charRaces" label="Race" density="compact" clearable></v-select>
+                <v-col class="d-flex pa-1" cols="3">
+                  <v-select v-model="charRace" :items="charRaces" label="Race" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex" cols="3">
-                  <v-select v-model="charClass" :items="charClasses" label="Class" density="compact" clearable></v-select>
+                <v-col class="d-flex pa-1" cols="3">
+                  <v-select v-model="charClass" :items="charClasses" label="Class" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex" cols="3">
-                  <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable></v-select>
-                </v-col>
-              </v-row>
-
-              <v-row align="center">
-                <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable></v-select>
-                </v-col>
-
-                <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable></v-select>
-                </v-col>
-
-                <v-col class="d-flex" cols="4">
-                  <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable></v-autocomplete>
+                <v-col class="d-flex pa-1" cols="3">
+                  <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable hide-details></v-select>
                 </v-col>
               </v-row>
 
-              <v-row align="center">
-                <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable></v-select>
+              <v-row align="center" class="mb-0">
+                <v-col class="d-flex pa-1" cols="4">
+                  <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable></v-select>
+                <v-col class="d-flex pa-1" cols="4">
+                  <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex" cols="4">
-                  <v-autocomplete v-model="itemProperty" :items="itemProperties" label="Item Property" density="compact" clearable></v-autocomplete>
+                <v-col class="d-flex pa-1" cols="4">
+                  <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
+                </v-col>
+              </v-row>
+
+              <v-row align="center" class="mb-0">
+                <v-col class="d-flex pa-1" cols="4">
+                  <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="d-flex pa-1" cols="4">
+                  <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="d-flex pa-1" cols="4">
+                  <v-autocomplete v-model="itemProperty" :items="itemProperties" label="Item Property" density="compact" clearable hide-details></v-autocomplete>
                 </v-col>
               </v-row>
             </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
 
-        <v-card>
-          <v-card-title>
+        <v-card class="mt-2 elevation-2 rounded-lg">
+          <v-card-title class="d-flex align-center py-1">
             <v-spacer></v-spacer>
             <v-text-field
-                v-model="searchText"
-                append-icon="mdi-magnify"
-                label="Search"
-                single-line
-                hide-details
-                clearable
+              v-model="searchText"
+              append-icon="mdi-magnify"
+              label="Search"
+              single-line
+              hide-details
+              clearable
+              density="compact"
+              class="ma-1"
+              style="max-width: 400px;"
             ></v-text-field>
           </v-card-title>
-
+          <v-divider></v-divider>
           <v-data-table
             :headers="headers"
             :items="catalog"
             :footer-props="footerProps"
+            class="elevation-0"
+            hover
           >
-            <template #item="{ item }">
-              <tr @click="rowClicked(item)" style="cursor:pointer">
-                <td v-for="header in headers" :key="header.key">
-                  {{ item[header.key] }}
+            <template #item="{ item, index }">
+              <tr
+                @click="rowClicked(item)"
+                style="cursor:pointer;"
+                :class="[index % 2 === 0 ? 'bg-grey-darken-4' : '', 'hover-row']"
+              >
+                <td v-for="header in headers" :key="header.key" :style="{ 'text-align': header.align || 'start' }">
+                  <template v-if="header.key === 'Weight'">
+                    <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
+                  </template>
+                  <template v-else-if="header.key === 'averageDamage'">
+                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }}</span>
+                  </template>
+                  <template v-else-if="header.key === 'Wear Loc.'">
+                    <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
+                  </template>
+                  <template v-else-if="header.key === 'Layer'">
+                    <span v-if="item.Layer">{{ Array.isArray(item.Layer) ? item.Layer.join(', ') : item.Layer }}</span>
+                  </template>
+                  <template v-else>
+                    {{ item[header.key] }}
+                  </template>
                 </td>
               </tr>
             </template>
           </v-data-table>
         </v-card>
 
-        <v-dialog v-model="showSelectedItem" max-width="1100" persistent>
-          <v-card>
-            <v-card-title class="d-flex justify-space-between align-center">
-              <span style="text-transform: capitalize;">{{ selectedItem?.name }}</span>
-              <v-btn icon @click.stop="showSelectedItem = false">
-                <v-icon color="grey">mdi-close</v-icon>
+        <v-dialog v-model="showSelectedItem" max-width="80vw" max-height="80vh">
+          <v-card class="modal-card" style="max-height: 80vh;">
+            <v-card-title class="d-flex justify-space-between align-center pb-2 modal-title">
+              <span style="text-transform: capitalize; font-size: 1.4rem; font-weight: 500;">{{ selectedItem?.name }}</span>
+              <v-btn icon variant="text" @click.stop="showSelectedItem = false">
+                <v-icon color="grey-darken-1">mdi-close</v-icon>
               </v-btn>
             </v-card-title>
-            <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" style="text-transform: capitalize;">
+            <v-divider></v-divider>
+            <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" class="modal-subtitle" style="text-transform: capitalize; font-size: 1.1rem; color: #888;">
               {{ selectedItem["Unidentified Name"] }}
             </v-card-subtitle>
-            <v-card-text>
-              <pre>{{ selectedItem ? selectedItem.buffer : '' }}</pre>
+            <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px; max-height: calc(80vh - 200px); overflow: auto;">
+              <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto;">{{ selectedItem ? selectedItem.buffer : '' }}</pre>
             </v-card-text>
           </v-card>
         </v-dialog>
@@ -396,17 +448,17 @@ const catalog = computed(() => {
 })
 
 // Methods
-const rowClicked = (row: any) => {
-  selectedItem.value = row
+const rowClicked = (item: any) => {
+  selectedItem.value = item
   showSelectedItem.value = true
-  console.info('item selected', row)
+  console.info('item selected', item)
 }
 
 const copyInstall = () => {
-  const input = document.querySelector('input[readonly]') as HTMLInputElement
-  if (input) {
-    input.focus()
-    input.select()
+  const textarea = document.querySelector('textarea[readonly]') as HTMLTextAreaElement
+  if (textarea) {
+    textarea.focus()
+    textarea.select()
     document.execCommand('copy')
   }
 }
@@ -417,7 +469,7 @@ onMounted(() => {
 })
 </script>
 
-<style>
+<style scoped>
 /* Ensure icons are visible in dark theme */
 .v-icon {
   color: inherit;
@@ -436,5 +488,71 @@ onMounted(() => {
 /* Ensure icons in text fields are visible */
 .v-text-field .v-icon {
   color: rgba(255, 255, 255, 0.7) !important; 
+}
+
+.hover-row:hover {
+  background: #333 !important;
+}
+.bg-grey-darken-4 {
+  background: #232323 !important;
+}
+</style>
+
+<style>
+/* Modal contrast improvements - high specificity classes */
+.modal-card {
+  border: 2px solid #424242 !important;
+  background: #1e1e1e !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+}
+
+.modal-title {
+  background: #2d2d2d !important;
+  border-bottom: 1px solid #424242 !important;
+}
+
+.modal-subtitle {
+  background: #262626 !important;
+  border-bottom: 1px solid #424242 !important;
+}
+
+.modal-content {
+  background: #1e1e1e !important;
+}
+
+.modal-actions {
+  background: #2d2d2d !important;
+  border-top: 1px solid #424242 !important;
+}
+
+/* Overlay background for better contrast */
+.v-dialog .v-overlay__scrim {
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Additional specificity for modal components */
+.v-dialog .v-card.v-card {
+  border: 2px solid #424242 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8) !important;
+  background: #1e1e1e !important;
+}
+
+.v-dialog .v-card .v-card-title {
+  background: #2d2d2d !important;
+  border-bottom: 1px solid #424242 !important;
+}
+
+.v-dialog .v-card .v-card-subtitle {
+  background: #262626 !important;
+  border-bottom: 1px solid #424242 !important;
+}
+
+.v-dialog .v-card .v-card-text {
+  background: #1e1e1e !important;
+}
+
+.v-dialog .v-card .v-card-actions {
+  background: #2d2d2d !important;
+  border-top: 1px solid #424242 !important;
 }
 </style>
