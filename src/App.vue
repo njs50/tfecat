@@ -198,20 +198,20 @@
           </v-data-table>
         </v-card>
 
-        <v-dialog v-model="showSelectedItem" max-width="80vw" max-height="80vh">
-          <v-card class="modal-card" style="max-height: 80vh;">
-            <v-card-title class="d-flex justify-space-between align-center pb-2 modal-title">
-              <span style="text-transform: capitalize; font-size: 1.4rem; font-weight: 500;">{{ selectedItem?.name }}</span>
+        <v-dialog v-model="showSelectedItem" max-width="80vw" max-height="90vh">
+          <v-card class="modal-card" style="max-height: 90vh;">
+            <v-card-title class="d-flex justify-space-between align-center pb-1 modal-title">
+              <span style="text-transform: capitalize; font-size: 1.2rem; font-weight: 500;">{{ selectedItem?.name }}</span>
               <v-btn icon variant="text" @click.stop="showSelectedItem = false">
                 <v-icon color="grey-darken-1">mdi-close</v-icon>
               </v-btn>
             </v-card-title>
             <v-divider></v-divider>
-            <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" class="modal-subtitle" style="text-transform: capitalize; font-size: 1.1rem; color: #888;">
+            <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" class="modal-subtitle py-1" style="text-transform: capitalize; font-size: 1rem; color: #888;">
               {{ selectedItem["Unidentified Name"] }}
             </v-card-subtitle>
-            <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px; max-height: calc(80vh - 200px); overflow: auto;">
-              <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto;">{{ selectedItem ? selectedItem.buffer : '' }}</pre>
+            <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px; flex: 1; overflow: auto; display: flex; flex-direction: column;">
+              <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto; flex: 1; min-height: 0;">{{ selectedItem ? selectedItem.buffer : '' }}</pre>
             </v-card-text>
           </v-card>
         </v-dialog>
