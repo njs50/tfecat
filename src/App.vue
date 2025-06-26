@@ -1,11 +1,7 @@
-
-
 <template>
-
   <v-app id="tfecat">
-
     <v-app-bar :clipped-left="true" app>
-      <v-icon>mdi-cat</v-icon>
+      <v-icon color="white">mdi-cat</v-icon>
       <v-toolbar-title>TFE Items</v-toolbar-title>
       <v-spacer></v-spacer>
 
@@ -13,12 +9,11 @@
         max-width="900"
         v-model="isInstallModalVisible"
       >
-        <template v-slot:activator="{ on, attrs }">
+        <template #activator="{ props }">
           <v-btn 
             color="primary" 
-            dark
-            v-bind="attrs"
-            v-on="on"
+            variant="elevated"
+            v-bind="props"
           >
             Install
           </v-btn>
@@ -46,28 +41,22 @@
             <v-spacer></v-spacer>
             <v-btn
               color="primary"
+              variant="elevated"
               @click="isInstallModalVisible = false"
             >
               Done
             </v-btn>
           </v-card-actions>
         </v-card>
-
       </v-dialog>
-
-      
-      
     </v-app-bar>
 
-    <v-content>
-
+    <v-main>
       <v-container fluid>
-
         <v-expansion-panels>
           <v-expansion-panel>
-            <v-expansion-panel-header>Filter Items</v-expansion-panel-header>
-            <v-expansion-panel-content>
-
+            <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
+            <v-expansion-panel-text>
               <v-row align="center">
                 <v-col class="d-flex" cols="12">
                   <v-range-slider
@@ -76,444 +65,376 @@
                     max="90"
                     thumb-label="always"
                     label="Item Level Range"
-                    hide-details="true"
+                    hide-details
                   ></v-range-slider>
                 </v-col>
               </v-row>
 
               <v-row align="center">
                 <v-col class="d-flex" cols="3">
-                  <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" dense clearable></v-select>
+                  <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable></v-select>
                 </v-col>
 
                 <v-col class="d-flex" cols="3">
-                  <v-select v-model="charRace" :items="charRaces" label="Race" dense clearable></v-select>
+                  <v-select v-model="charRace" :items="charRaces" label="Race" density="compact" clearable></v-select>
                 </v-col>
 
                 <v-col class="d-flex" cols="3">
-                  <v-select v-model="charClass" :items="charClasses" label="Class" dense clearable></v-select>
+                  <v-select v-model="charClass" :items="charClasses" label="Class" density="compact" clearable></v-select>
                 </v-col>
 
                 <v-col class="d-flex" cols="3">
-                  <v-select v-model="charGender" :items="charGenders" label="Gender" dense clearable></v-select>
+                  <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable></v-select>
                 </v-col>
-
               </v-row>
 
               <v-row align="center">
-
                 <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemType" :items="itemTypes" label="Item Type" dense clearable></v-select>
+                  <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable></v-select>
                 </v-col>
 
                 <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemClass" :items="itemClasses" label="Item Class" dense clearable></v-select>
+                  <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable></v-select>
                 </v-col>
 
                 <v-col class="d-flex" cols="4">
-                  <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" dense clearable></v-autocomplete>
+                  <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable></v-autocomplete>
                 </v-col>
-
               </v-row>
 
               <v-row align="center">
-
                 <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" dense clearable></v-select>
+                  <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable></v-select>
                 </v-col>
 
                 <v-col class="d-flex" cols="4">
-                  <v-select v-model="itemLayer" :items="itemLayers" label="Layer" dense clearable></v-select>
+                  <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable></v-select>
                 </v-col>
 
                 <v-col class="d-flex" cols="4">
-                  <v-autocomplete v-model="itemProperty" :items="itemProperties" label="Item Property" dense clearable></v-autocomplete>
+                  <v-autocomplete v-model="itemProperty" :items="itemProperties" label="Item Property" density="compact" clearable></v-autocomplete>
                 </v-col>
-
               </v-row>
-
-            </v-expansion-panel-content>
+            </v-expansion-panel-text>
           </v-expansion-panel>
         </v-expansion-panels>
 
-<v-card>
-  <v-card-title>
+        <v-card>
+          <v-card-title>
+            <v-spacer></v-spacer>
+            <v-text-field
+                v-model="searchText"
+                append-icon="mdi-magnify"
+                label="Search"
+                single-line
+                hide-details
+                clearable
+            ></v-text-field>
+          </v-card-title>
 
-    <v-spacer></v-spacer>
-    <v-text-field
-        v-model="searchText"
-        append-icon="mdi-magnify"
-        label="Search"
-        single-line
-        hide-details
-        clearable
-    ></v-text-field>
+          <v-data-table
+            :headers="headers"
+            :items="catalog"
+            :footer-props="footerProps"
+          >
+            <template #item="{ item }">
+              <tr @click="rowClicked(item)" style="cursor:pointer">
+                <td v-for="header in headers" :key="header.key">
+                  {{ item[header.key] }}
+                </td>
+              </tr>
+            </template>
+          </v-data-table>
+        </v-card>
 
-  </v-card-title>
-
-  <v-data-table
-    :headers="headers"
-    :items="catalog"
-    @click:row="rowClicked"
-    :footer-props="footerProps"
-  >
-    <template v-slot:item.Weight="{ item }">
-      <span v-if="item.Weight">{{item.Weight.toFixed(2)}} lbs</span>
-    </template>
-
-    <template v-slot:item.averageDamage="{ item }">
-      <span v-if="item.averageDamage">{{item.averageDamage.toFixed(1)}}</span>
-    </template>
-
-  </v-data-table>
-</v-card>
-
-
-
-        <v-dialog
-          v-model="showSelectedItem"
-          max-width="900"
-          v-if="selectedItem"
-        >
-          <v-card class="pa-5" width="auto">
-
-             <v-btn icon @click.stop="showSelectedItem = false" class="float-right">
-              <v-icon>mdi-close</v-icon>
-            </v-btn>
-
-            <v-card-title style="text-transform: capitalize;">
-              {{selectedItem.name}}
+        <v-dialog v-model="showSelectedItem" max-width="1100" persistent>
+          <v-card>
+            <v-card-title class="d-flex justify-space-between align-center">
+              <span style="text-transform: capitalize;">{{ selectedItem?.name }}</span>
+              <v-btn icon @click.stop="showSelectedItem = false">
+                <v-icon color="grey">mdi-close</v-icon>
+              </v-btn>
             </v-card-title>
-
-            <v-card-subtitle style="text-transform: capitalize;" v-if="selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()">
-              {{selectedItem["Unidentified Name"]}}
+            <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" style="text-transform: capitalize;">
+              {{ selectedItem["Unidentified Name"] }}
             </v-card-subtitle>
-
-            <!-- <v-expansion-panels v-model="itemPanel">
-
-              <v-expansion-panel>
-                <v-expansion-panel-header>Item</v-expansion-panel-header>
-                <v-expansion-panel-content>
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                </v-expansion-panel-content>
-              </v-expansion-panel>
-
-              <v-expansion-panel>
-                <v-expansion-panel-header>Raw Identification</v-expansion-panel-header>
-                <v-expansion-panel-content> -->
-                <div class="d-inline-flex">
-                  <pre>{{ selectedItem ? selectedItem.buffer : ''}}</pre>
-                </div>
-                <!-- </v-expansion-panel-content>
-              </v-expansion-panel>
-
-            </v-expansion-panels> -->
-
-
+            <v-card-text>
+              <pre>{{ selectedItem ? selectedItem.buffer : '' }}</pre>
+            </v-card-text>
           </v-card>
         </v-dialog>
-
-    
-    
-
-
-
       </v-container>
-    </v-content>
-
-
-
-
-    <!-- <v-footer :inset="footer.inset" app>
-      <span class="px-4">&copy; {{ new Date().getFullYear() }}</span>
-    </v-footer> -->
+    </v-main>
   </v-app>
 </template>
 
-<script lang="ts">
-import Vue from "vue";
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
 
+const store = useStore()
 
-export default Vue.extend({
-  name: "App",
+// Reactive data
+const isInstallModalVisible = ref(false)
+const installCode = ref(`lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')`)
+const searchText = ref("")
+const levelRange = ref([0, 90])
+const charAlignment = ref<string | null>(null)
+const charClass = ref<string | null>(null)
+const charRace = ref<string | null>(null)
+const charGender = ref<string | null>(null)
+const itemType = ref(null)
+const itemClass = ref(null)
+const itemAffect = ref(null)
+const itemProperty = ref(null)
+const itemSlot = ref(null)
+const itemLayer = ref(null)
+const selectedItem = ref<any>(null)
+const showSelectedItem = ref(false)
 
-  components: {
-    
+const headers = ref([
+  {
+    title: 'Item',
+    align: 'start' as const,
+    key: 'name',
   },
+  { title: 'Wear Loc.', key: 'Wear Loc.', align: 'start' as const },
+  { title: 'Layer', key: 'Layer', align: 'start' as const },
+  { title: 'Level', key: 'Level', align: 'end' as const },
+  { title: 'Weight', key: 'Weight', align: 'end' as const },
+  { title: 'Av. Damage', key: 'averageDamage', align: 'end' as const},
+  { title: 'Armor Class', key: 'Armor Class', align: 'end' as const },
+])
 
-  mounted() {
-    this.$store.dispatch("GET_CATALOG");
-  },
+const footerProps = ref({
+  "items-per-page-options": [5,10,15,20,25,30,-1]
+})
 
-  computed: {
+const itemSlots = ref([
+  "arms",
+  "body",
+  "feet",
+  "finger",
+  "hands",
+  "head",
+  "left_hand",
+  "legs",
+  "float_nearby",
+  "neck",
+  "right_hand",
+  "waist",
+  "wrist",
+])
 
-    itemTypes() {
-      const itemTypes = this.$store.getters.ITEM_TYPES;
-      if (!itemTypes) {
-        return [];
-      }
-      return itemTypes;
-    },
+const itemLayers = ref([ 'bottom', 'under', 'base', 'over', 'top' ])
 
+const charClasses = ref([
+  "Bard",
+  "Bulwark",
+  "Cleric",
+  "Druid",
+  "Harbinger",
+  "Legate",
+  "Mage",
+  "Monk",
+  "Paladin",
+  "Ranger",
+  "Reaver",
+  "Thief",
+  "Warrior"
+].sort())
 
-    itemClasses() {
-      const itemClasses = this.$store.getters.ITEM_CLASSES;
-      if (!itemClasses) {
-        return [];
-      }
-      return itemClasses;
-    },
+const charRaces = ref([
+  "Ogre",
+  "Troll",
+  "Orc",
+  "Vyan",
+  "Goblin",
+  "Human",
+  "Lizardfolk",
+  "Dwarf",
+  "Halfling",
+  "Gnome",
+  "Ent",
+  "Elf"
+].sort())
 
-    itemAffects() {
-      const itemAffects = this.$store.getters.ITEM_AFFECTS;
-      if (!itemAffects) {
-        return [];
-      }
-      return itemAffects;
-    },
+const charAlignments = ref([
+  "Lawful Good",
+  "Lawful Neutral",
+  "Lawful Evil",
+  "Neutral Good",
+  "True Neutral",
+  "Neutral Evil",
+  "Chaotic Good",
+  "Chaotic Neutral",
+  "Chaotic Evil"
+].sort())
 
-    itemProperties() {
-      const itemProperties = this.$store.getters.ITEM_PROPERTIES;
-      if (!itemProperties) {
-        return [];
-      }
-      return itemProperties;
-    },
+const charGenders = ref([
+  "Female",
+  "Male",
+].sort())
 
-    catalog() {
-
-      const catalog = this.$store.getters.CATALOG;
-
-      if (!catalog) {
-        return [];
-      }
-
-      return catalog.filter((item: any) => {
-        // if search text is provided search on that first
-        if (this.$data.searchText) {
-          if (
-            item["Unidentified Name"]
-              .toLowerCase()
-              .indexOf(this.$data.searchText.toLowerCase()) === -1 &&
-            item.buffer
-              .toLowerCase()
-              .indexOf(this.$data.searchText.toLowerCase()) === -1 && // remove this buffer search when we can search attributes etc
-            item.name
-              .toLowerCase()
-              .indexOf(this.$data.searchText.toLowerCase()) === -1
-          ) {
-            return false;
-          }
-        }
-
-        if (this.$data.itemType) {
-          if (item.itemType !== this.$data.itemType) {
-            return false;
-          }
-        }
-        if (this.$data.itemClass) {
-          if (!item.Class || item.Class !== this.$data.itemClass) {
-            return false;
-          }
-        }
-        if (this.$data.itemAffect) {
-          if (!item.affects || !item.affects.find((aff: any) => aff.name === this.$data.itemAffect)) {
-            return false;
-          }
-        }
-        if (this.$data.itemProperty) {
-          if (!item.affects || !item.affects.find((aff: any) => aff.name === this.$data.itemProperty)) {
-            return false;
-          }
-        }
-
-
-        // item wear location / layer
-        if (this.$data.itemSlot) {
-          if (!item["Wear Loc."] || item["Wear Loc."].indexOf(this.$data.itemSlot) < 0) {
-            return false;
-          }
-        }
-        if (this.$data.itemLayer) {
-          if (!item.Layer || item.Layer.indexOf(this.$data.itemLayer) < 0) {
-            return false;
-          }
-        }
-
-        if (this.$data.charAlignment && !item.charAlignments[this.$data.charAlignment]) {
-          return false;
-        }
-
-        if (this.$data.charRace && !item.charRaces[this.$data.charRace.toLowerCase()]) {
-          return false;
-        }
-
-        if (this.$data.charClass && !item.charClasses[this.$data.charClass.toLowerCase()]) {
-          return false;
-        }
-
-        if (this.$data.charGender && !item.charGenders[this.$data.charGender.toLowerCase()]) {
-          return false;
-        }
-
-
-        // filter on level range
-        if (
-          item.Level < this.$data.levelRange[0] ||
-          item.Level > this.$data.levelRange[1]
-        ) {
-          return false;
-        }
-
-        return true;
-      });
-    }
-  },
-
-  data: () => ({
-
-    isInstallModalVisible: false,
-    installCode: `lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')`,
-
-    searchText: "",
-
-    levelRange: [0, 90],
-
-    charAlignment: null,
-    charClass: null,
-    charRace: null,
-    charGender: null,
-
-    itemType: null,
-    itemClass: null,
-    itemAffect: null,
-    itemProperty: null,
-
-    itemSlot: null,
-    itemLayer: null,
-
-    selectedItem: null,
-
-    showSelectedItem: false,
-    itemPanel: 0,
-
-    headers: [
-      {
-        text: 'Item',
-        align: 'start',
-        value: 'name',
-      },
-      { text: 'Wear Loc.', value: 'Wear Loc.', align: 'start' },
-      { text: 'Layer', value: 'Layer', align: 'start' },
-      { text: 'Level', value: 'Level', align: 'end' },
-      { text: 'Weight', value: 'Weight', align: 'end' },
-      // { text: '', value: 'Damage' },
-      // { text: 'Damage', value: 'Damage', align: 'center'},
-      { text: 'Av. Damage', value: 'averageDamage', align: 'end'},
-
-      { text: 'Armor Class', value: 'Armor Class', align: 'end' },
-      // { text: 'Global Armor', value: 'Global Armor', align: 'center' },
-    ],
-
-    footerProps: {
-      "items-per-page-options": [5,10,15,20,25,30,-1]
-    },
-
-    itemSlots: [
-      "arms",
-      "body",
-      "feet",
-      "finger",
-      "hands",
-      "head",
-      "left_hand",
-      "legs",
-      "float_nearby",
-      "neck",
-      "right_hand",
-      "waist",
-      "wrist",
-    ],
-
-    itemLayers: [ 'bottom', 'under', 'base', 'over', 'top' ],
-
-    charClasses: [
-      "Bard",
-      "Bulwark",
-      "Cleric",
-      "Druid",
-      "Harbinger",
-      "Legate",
-      "Mage",
-      "Monk",
-      "Paladin",
-      "Ranger",
-      "Reaver",
-      "Thief",
-      "Warrior"
-    ].sort(),
-    charRaces: [
-      "Ogre",
-      "Troll",
-      "Orc",
-      "Vyan",
-      "Goblin",
-      "Human",
-      "Lizardfolk",
-      "Dwarf",
-      "Halfling",
-      "Gnome",
-      "Ent",
-      "Elf"
-    ].sort(),
-    charAlignments: [
-      "Lawful Good",
-      "Lawful Neutral",
-      "Lawful Evil",
-      "Neutral Good",
-      "True Neutral",
-      "Neutral Evil",
-      "Chaotic Good",
-      "Chaotic Neutral",
-      "Chaotic Evil"
-    ].sort(),
-
-    charGenders: [
-      "Female",
-      "Male",
-    ].sort(),
-
-    drawers: ["Default (no property)", "Permanent", "Temporary"],
-    primaryDrawer: {
-      model: null,
-      type: "permanent",
-      clipped: true,
-      floating: false,
-      mini: false
-    },
-    footer: {
-      inset: false
-    }
-  }),
-
-  methods: {
-    rowClicked (item: any, row: any) {
-      this.$data.selectedItem = item;
-      this.$data.showSelectedItem = true;
-      console.info('item selected', item)
-    },
-    showInstallModal() {
-      this.isInstallModalVisible = true;
-    },
-    closeInstallModal() {
-      this.isInstallModalVisible = false;
-    },
-    copyInstall() {
-      const input = this.$refs.installInput as HTMLElement;
-      input.focus();
-      document.execCommand('selectAll');
-      document.execCommand('copy');
-    },
+// Computed properties
+const itemTypes = computed(() => {
+  const itemTypes = store.getters.ITEM_TYPES
+  if (!itemTypes) {
+    return []
   }
-});
+  return itemTypes
+})
+
+const itemClasses = computed(() => {
+  const itemClasses = store.getters.ITEM_CLASSES
+  if (!itemClasses) {
+    return []
+  }
+  return itemClasses
+})
+
+const itemAffects = computed(() => {
+  const itemAffects = store.getters.ITEM_AFFECTS
+  if (!itemAffects) {
+    return []
+  }
+  return itemAffects
+})
+
+const itemProperties = computed(() => {
+  const itemProperties = store.getters.ITEM_PROPERTIES
+  if (!itemProperties) {
+    return []
+  }
+  return itemProperties
+})
+
+const catalog = computed(() => {
+  const catalog = store.getters.CATALOG
+
+  if (!catalog) {
+    return []
+  }
+
+  return catalog.filter((item: any) => {
+    // if search text is provided search on that first
+    if (searchText.value) {
+      if (
+        item["Unidentified Name"]
+          .toLowerCase()
+          .indexOf(searchText.value.toLowerCase()) === -1 &&
+        item.buffer
+          .toLowerCase()
+          .indexOf(searchText.value.toLowerCase()) === -1 && // remove this buffer search when we can search attributes etc
+        item.name
+          .toLowerCase()
+          .indexOf(searchText.value.toLowerCase()) === -1
+      ) {
+        return false
+      }
+    }
+
+    if (itemType.value) {
+      if (item.itemType !== itemType.value) {
+        return false
+      }
+    }
+    if (itemClass.value) {
+      if (!item.Class || item.Class !== itemClass.value) {
+        return false
+      }
+    }
+    if (itemAffect.value) {
+      if (!item.affects || !item.affects.find((aff: any) => aff.name === itemAffect.value)) {
+        return false
+      }
+    }
+    if (itemProperty.value) {
+      if (!item.affects || !item.affects.find((aff: any) => aff.name === itemProperty.value)) {
+        return false
+      }
+    }
+
+    // item wear location / layer
+    if (itemSlot.value) {
+      if (!item["Wear Loc."] || item["Wear Loc."].indexOf(itemSlot.value) < 0) {
+        return false
+      }
+    }
+    if (itemLayer.value) {
+      if (!item.Layer || item.Layer.indexOf(itemLayer.value) < 0) {
+        return false
+      }
+    }
+
+    if (charAlignment.value && !item.charAlignments[charAlignment.value]) {
+      return false
+    }
+
+    if (charRace.value && !item.charRaces[charRace.value.toLowerCase()]) {
+      return false
+    }
+
+    if (charClass.value && !item.charClasses[charClass.value.toLowerCase()]) {
+      return false
+    }
+
+    if (charGender.value && !item.charGenders[charGender.value.toLowerCase()]) {
+      return false
+    }
+
+    // filter on level range
+    if (
+      item.Level < levelRange.value[0] ||
+      item.Level > levelRange.value[1]
+    ) {
+      return false
+    }
+
+    return true
+  })
+})
+
+// Methods
+const rowClicked = (row: any) => {
+  selectedItem.value = row
+  showSelectedItem.value = true
+  console.info('item selected', row)
+}
+
+const copyInstall = () => {
+  const input = document.querySelector('input[readonly]') as HTMLInputElement
+  if (input) {
+    input.focus()
+    input.select()
+    document.execCommand('copy')
+  }
+}
+
+// Lifecycle
+onMounted(() => {
+  store.dispatch("GET_CATALOG")
+})
 </script>
+
+<style>
+/* Ensure icons are visible in dark theme */
+.v-icon {
+  color: inherit;
+}
+
+/* Ensure icons in app bar are visible */
+.v-app-bar .v-icon {
+  color: white !important;
+}
+
+/* Ensure icons in buttons are visible */
+.v-btn .v-icon {
+  color: inherit;
+}
+
+/* Ensure icons in text fields are visible */
+.v-text-field .v-icon {
+  color: rgba(255, 255, 255, 0.7) !important; 
+}
+</style>

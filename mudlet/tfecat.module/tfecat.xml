@@ -133,6 +133,7 @@ local ctrig = tempRegexTrigger([[^([A-Za-z].*?)\s+(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+
     weight = matches[4],
     level = matches[5],
     ingredients = {matches[6]},
+    raw = matches[1]
   }
 end)
 
@@ -148,8 +149,10 @@ local ctrig3 = tempRegexTrigger([[^([A-z][a-z]\D+?)\s*$]], function()
   if (custom) then
     customs[custom.name] = custom
   end
+  
   custom = {
-    name = matches[2]
+    name = matches[2],
+    raw = matches[1],
   }
 end)
 
@@ -157,6 +160,7 @@ end)
 -- ingrediants by themselves
 local ctrig2 = tempRegexTrigger([[^\s{2,}([A-Za-z].+)$]], function()
   custom.ingredients = custom.ingredients or {}
+  custom.raw = custom.raw .. '\n' .. matches[1]
   table.insert(custom.ingredients, matches[2])
 end)
 
@@ -166,6 +170,7 @@ local ctrig4 = tempRegexTrigger([[^(\s{2,})(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A
   custom.weight = matches[4]
   custom.level = matches[5]
   custom.ingredients = {matches[6]}  
+  custom.raw = custom.raw .. '\n' .. matches[1]
 end)
 
 tempPromptTrigger(function()

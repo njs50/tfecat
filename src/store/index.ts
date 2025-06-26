@@ -1,10 +1,7 @@
 import Axios from 'axios'
-import Vue from 'vue'
-import Vuex from 'vuex'
+import { createStore } from 'vuex'
 
-Vue.use(Vuex)
-
-export default new Vuex.Store({
+export default createStore({
   state: {
     catalog: null,
     itemTypes: null,
@@ -51,7 +48,7 @@ export default new Vuex.Store({
     GET_CATALOG : async (context) => {
       const { data } = await Axios.get('./catalog.json?_='+ (new Date().getTime()).toString() )
 
-      let catalog: any[] = [];
+      const catalog: any[] = [];
       const itemTypes: any = {};
       const itemAffects: any = {};
       const itemProps: any = {}
@@ -198,13 +195,13 @@ export default new Vuex.Store({
       context.commit('SET_ITEM_CLASSES', Object.keys(itemClasses).sort())
 
       // sort by level then name
-      catalog = catalog.sort((a, b) => {
-        let dif = a.Level - b.Level;
-        if (dif === 0) {
-          dif = a.name.toLowerCase() < b.name.toLowerCase() ? 0 : 1
+      catalog.sort((a, b) => {
+        if (a.level !== b.level) {
+          return a.level - b.level;
         }
-        return dif;
+        return a.name.localeCompare(b.name);
       });
+
       context.commit('SET_CATALOG', catalog)
    },
   },

@@ -2,10 +2,12 @@
   "name": "tfecat",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "serve": "export NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service serve",
-    "build": "export NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service build",
-    "lint": "vue-cli-service lint",
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "deploy": "npm run build; push-dir --dir=dist --branch=gh-pages --cleanup",
     "update": "npm run update-trainers; npm run update-customs; npm run update-catalog; npm run update-summary",
     "update-trainers": "curl http://vault-thirteen.net:49160/trainers > ./public/trainers.json",
@@ -15,36 +17,30 @@
     "server": "node ./server/app.js"
   },
   "dependencies": {
-    "body-parser": "^1.19.0",
-    "express": "^4.17.1",
-    "got": "^11.8.1"
+    "@mdi/font": "^7.4.47",
+    "@mdi/js": "^7.4.47",
+    "axios": "^1.10.0",
+    "body-parser": "^2.2.0",
+    "express": "^5.1.0",
+    "got": "^14.4.7",
+    "vue": "^3.5.17",
+    "vue-router": "^4.5.1",
+    "vuetify": "^3.8.11",
+    "vuex": "^4.1.0"
   },
   "devDependencies": {
-    "@mdi/font": "^3.9.97",
-    "@typescript-eslint/eslint-plugin": "^2.33.0",
-    "@typescript-eslint/parser": "^2.33.0",
-    "@vue/cli-plugin-babel": "~4.4.0",
-    "@vue/cli-plugin-eslint": "~4.4.0",
-    "@vue/cli-plugin-typescript": "~4.4.0",
-    "@vue/cli-plugin-vuex": "~4.4.0",
-    "@vue/cli-service": "^3.0.5",
-    "@vue/eslint-config-typescript": "^5.0.2",
-    "axios": "^0.21.1",
-    "core-js": "^3.6.5",
-    "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^6.2.2",
+    "@typescript-eslint/eslint-plugin": "^8.35.0",
+    "@typescript-eslint/parser": "^8.35.0",
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/eslint-config-typescript": "^14.5.1",
+    "@vue/tsconfig": "^0.5.1",
+    "eslint": "^9.29.0",
+    "eslint-plugin-vue": "^10.2.0",
     "push-dir": "^0.4.1",
-    "roboto-fontface": "*",
-    "sass-loader": "^8.0.2",
-    "typescript": "~3.9.3",
-    "vue": "^2.6.11",
-    "vue-class-component": "^7.2.3",
-    "vue-cli-plugin-axios": "0.0.4",
-    "vue-cli-plugin-vuetify": "~2.0.5",
-    "vue-property-decorator": "^8.4.2",
-    "vue-template-compiler": "^2.6.11",
-    "vuetify": "^2.2.11",
-    "vuex": "^3.4.0"
+    "sass": "^1.89.2",
+    "typescript": "~5.8.3",
+    "vite": "^5.0.0",
+    "vue-tsc": "^2.2.10"
   },
   "eslintConfig": {
     "root": true,
@@ -52,7 +48,7 @@
       "node": true
     },
     "extends": [
-      "plugin:vue/essential",
+      "plugin:vue/vue3-essential",
       "@vue/typescript/recommended"
     ],
     "parserOptions": {
