@@ -18,6 +18,19 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vuex'],
+          'vuetify-vendor': ['vuetify'],
+          'utils-vendor': ['axios']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  },
+  optimizeDeps: {
+    include: ['vue', 'vuex', 'vuetify', 'axios']
   }
 }) 
