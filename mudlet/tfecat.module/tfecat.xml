@@ -197,7 +197,7 @@ tempPromptTrigger(function()
         
         local fw = rex.match(material, [[^(\S+)]])                
         
-        local amt = common.getNumber(fw)
+        local amt = catalog.common.getNumber(fw)
         
         if (amt &gt; 1) then
           material = rex.gsub(material, "^" .. fw .. " ", "")
@@ -5509,6 +5509,43 @@ end
 catalog.common = catalog.common or {}
 
 
+catalog.common.getNumber = function (text)
+
+	local wordToNumberData = {
+    	a = 1,
+    	an = 1,
+    	the = 1,
+		one = 1,
+		two = 2,
+		three = 3,
+		four = 4,
+		five = 5,
+		six = 6,
+		seven = 7,
+		eight = 8,
+		nine = 9,
+		ten = 10,
+		eleven = 11,
+		twelve = 12,
+		thrirteen = 13,
+		fourteen = 14,
+    fifteen = 15,
+    twenty = 20,
+    thirty = 30,
+    forty = 40,
+    fifty = 50,
+	}
+
+	local numTxt = rex.match(text, [[^\S+]])
+
+	if (numTxt) then
+		return wordToNumberData[string.lower(numTxt)] or 1
+	else
+		-- either it's more than 14 or a proper noun. i.e Stinky (your mount
+		return 1
+	end
+
+end
 
 catalog.common.tempMatchAllRegexCount = catalog.common.tempMatchAllRegexCount or 0
 catalog.common.tempMatchAllRegex = function(substring, code, expireAfter)
