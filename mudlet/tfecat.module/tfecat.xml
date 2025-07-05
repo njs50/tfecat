@@ -218,6 +218,7 @@ tempPromptTrigger(function()
       catItem.custom[key] = {
         ingredients = mats,
         price = custom.price,
+        raw = custom.raw
       }      
       
       updatedItems[catItem.name] = catItem          
