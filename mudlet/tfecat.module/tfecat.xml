@@ -115,9 +115,7 @@ end, 1)</script>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>parse customs</name>
-			<script>catalog.customs = catalog.customs or {}
-
-local startLine = matches[1]
+			<script>local startLine = matches[1]
 
 local custom
 local customs = {}
@@ -149,10 +147,9 @@ local ctrig3 = tempRegexTrigger([[^([A-z][a-z]\D+?)\s*$]], function()
   if (custom) then
     customs[custom.name] = custom
   end
-  
   custom = {
-    name = matches[2],
     raw = matches[1],
+    name = matches[2]
   }
 end)
 
@@ -192,11 +189,52 @@ tempPromptTrigger(function()
     customs = {},
   }
   
-  for customName, custom in pairs(customs) do    
-    catalog.customs[key].customs[customName] = custom
+  local updatedItems = {}
+  for customName, custom in pairs(customs) do  
+  
+    local catItem = catalog.findItem(custom.name)
+    
+    if (catItem and (not catItem.custom or (catItem.custom and not catItem.custom[key]))) then
+      catItem.custom = catItem.custom or {}
+      
+      local mats = {}
+      
+      for idx, material in ipairs(custom.ingredients) do
+        
+        local fw = rex.match(material, [[^(\S+)]])                
+        
+        local amt = common.getNumber(fw)
+        
+        if (amt &gt; 1) then
+          material = rex.gsub(material, "^" .. fw .. " ", "")
+        end
+                
+        table.insert(mats, {material = material, amount = amt})
+      
+      end      
+      
+      catItem.datetime = getEpoch()
+      catItem.source = gmcp.Char.Score.name
+      catItem.custom[key] = {
+        ingredients = mats,
+        price = custom.price,
+      }      
+      
+      updatedItems[catItem.name] = catItem          
+        
+      cecho('\n&lt;green&gt;CUSTOM:&lt;white&gt; new custom - ' .. custom.name .. ' : ' .. ((catItem and catItem.name and 'in catalog') or 'not found')  ) 
+      
+    end
+    
+    
   end
   
-  -- display(catalog.customs)
+  if (#table.keys(updatedItems) &gt; 0) then
+    catalog.transmit(updatedItems)
+    -- display('items updated:', #updatedItems, updatedItems)
+  end
+  
+  
     
 end, 1)
 
@@ -2353,6 +2391,59 @@ catalog.displayItem = function(idx, weightedQuery)
     cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
   end
   
+  if (item.custom and #table.keys(item.custom)) then
+    
+    for rnum, data in pairs(item.custom) do
+  
+      cecho('\n       &lt;white&gt;Custom&lt;reset&gt; for ' .. tostring(data.price) .. ' at #')
+
+      local rname = getRoomName(rnum)
+      local aname = getRoomAreaName(getRoomArea(rnum) or -1)      
+      
+      if (tfe and tfe.turboWalkToRoom) then
+        cechoLink(
+          '&lt;green&gt;' .. tostring(rnum), 
+          function() tfe.turboWalkToRoom(rnum) end, 
+          "speedwalk to this room", 
+          true
+        )
+      else
+        cecho(tostring(rnum))
+      end
+              
+      if (rname) then
+        cecho(' - ' .. rname)
+      end
+      
+      if (aname) then
+        cecho(' (' .. aname .. ')')
+      end      
+      
+      cecho('\n')
+      
+      for idx, mat in ipairs(data.ingredients) do 
+        local matItem = catalog.findItem(mat.material)
+            
+        cecho('         ' .. tostring(mat.amount) .. ' x ')
+        
+        if (matItem) then
+          cechoLink('&lt;green&gt;' .. mat.material .. '&lt;reset&gt;', function() catalog.displayItem(matItem.catalogIndex, false) end, "display material", true)
+        else
+          cecho(mat.material)
+        end
+        
+        cecho('\n')
+        
+        
+      end
+    
+    end
+  
+    cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n')
+  end
+  
+  
+  
 end
 
 
@@ -3574,6 +3665,11 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
   
   -- try sanitized name if still no luck (gets rid of flaming etc)
   local siname = catalog.common.itemSanitize(iname)
+
+  
+  -- also remove any potential plurals
+  siname = rex.gsub(siname, [[e?s$]], '')
+
   if (siname ~= iname) then
     return catalog.findItem(siname, items, allowMultipleExact)
   end
