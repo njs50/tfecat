@@ -183,12 +183,6 @@ tempPromptTrigger(function()
   
   local key = tostring(gmcp.Room.Info.num)
   
-  catalog.customs[key] = catalog.customs[key] or {
-    room =  gmcp.Room.Info.name,
-    location = gmcp.Room.Info.num,
-    customs = {},
-  }
-  
   local updatedItems = {}
   for customName, custom in pairs(customs) do  
   
