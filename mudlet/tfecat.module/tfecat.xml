@@ -3669,12 +3669,15 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
   
   -- also remove any potential plurals
   siname = rex.gsub(siname, [[e?s$]], '')
-
+  
   if (siname ~= iname) then
     return catalog.findItem(siname, items, allowMultipleExact)
   end
+   
+  -- remove any details of container contents
+  iname = rex.gsub(iname, [[ (contains|containing|of) .*$]], '')  
   
-  
+
   -- try partial matches if nothing found
   -- display('trying partial match for: ' .. iname)
 
@@ -3682,12 +3685,22 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
     
     local thisIn = item.name or ''
     local thisUn = item["Unidentified Name"] or ''
+    
     thisIn = thisIn:lower()
     thisUn = thisUn:lower()    
   
     if (
-      (rex.match(thisIn, iname .. '$')) or
-      (rex.match(thisUn, iname .. '$'))
+      (rex.match(thisIn, iname)) or
+      (rex.match(thisUn, iname)) or
+      (rex.match(thisIn, 'a ' .. iname)) or 
+      (rex.match(thisIn, 'an ' .. iname)) or
+      (rex.match(thisIn, 'a pair of ' .. iname)) or
+      (rex.match(thisIn, 'a set of ' .. iname)) or
+      (rex.match(thisUn, 'a ' .. iname)) or 
+      (rex.match(thisUn, 'an ' .. iname)) or
+      (rex.match(thisUn, 'a pair of ' .. iname)) or
+      (rex.match(thisUn, 'a set of ' .. iname))      
+      
     ) then
       -- display(item)
       if allowMultipleExact then
