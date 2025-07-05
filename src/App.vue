@@ -210,9 +210,21 @@
             <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" class="modal-subtitle py-1" style="text-transform: capitalize; font-size: 1rem; color: #888;">
               {{ selectedItem["Unidentified Name"] }}
             </v-card-subtitle>
-            <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px; flex: 1; overflow: auto; display: flex; flex-direction: column;">
+            <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px;">
               <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto; flex: 1; min-height: 0;">{{ selectedItem ? selectedItem.buffer : '' }}</pre>
+              <!-- <pre>{{ selectedItem  ? JSON.stringify(selectedItem, null, 2) : '' }}</pre> -->
+              <div v-if="selectedItem && selectedItem.custom && Object.keys(selectedItem.custom).length > 0" class="mt-4">
+                        
+                <div v-for="(custom, roomKey) in selectedItem.custom" :key="roomKey" class="mb-3">
+                  <div class="text-subtitle-1 mb-1" style="color: #888;">Custom in Room #{{ roomKey }}:</div>
+                  <pre style="margin: 0; color: #e0e0e0; font-size: 0.9rem; white-space: pre; overflow-x: auto; background: #2a2a2a; padding: 8px; border-radius: 4px;">Item                        Price  Weight  Lvl  Ingredients
+----                        -----  ------  ---  -----------
+{{ custom.raw }}</pre>
+                </div>
+              </div>
+
             </v-card-text>
+
           </v-card>
         </v-dialog>
       </v-container>
