@@ -121,7 +121,7 @@ local custom
 local customs = {}
 
 -- full line
-local ctrig = tempRegexTrigger([[^([A-Za-z].*?)\s+(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()
+local ctrig = tempRegexTrigger([[^([A-Za-z]\D+?)\s*(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()
   if (custom) then
     customs[custom.name] = custom
   end
@@ -1465,14 +1465,23 @@ if (matches[2] == 'diff') then
   return catalog.diffRemoteTrainers()
 end
 
-if (#table.keys(catalog.trainers) &gt; 10) then
+-- catalog.lastTrainerUpdate
+
+catalog.lastTrainerUpdate = catalog.lastTrainerUpdate or 0
+
+local twentyFourHours = 24 * 60 * 60  -- 86400 seconds
+local timeDifference = getEpoch() - catalog.lastTrainerUpdate
+
+if ((#table.keys(catalog.trainers) &gt; 300) and timeDifference &lt; twentyFourHours) then
+  
+  local tFound = false
     
   local ss = matches[2]:lower() 
   
   for skill, rlist in pairs(catalog.trainers) do
   
     if skill:lower():match(ss) then
-    
+      tFound = true
       -- demonnic:fText('rintro &lt;cleric&gt;', {alignment = "left", width = 18, nogap=true})
       cecho('\n&lt;white&gt;' .. skill .. ':&lt;reset&gt;\n')
     
@@ -1508,6 +1517,10 @@ if (#table.keys(catalog.trainers) &gt; 10) then
     
     end
   
+  end
+  
+  if (not tFound) then
+    cecho('\n&lt;green&gt;CATALOG:&lt;white&gt; no trainer found for "' .. matches[2] .. '", use "&lt;orange&gt;tfecat loadTrainers&lt;white&gt;" to reload trainer data\n\n')
   end
 
 else
@@ -2969,6 +2982,8 @@ catalog.loadTrainers = function(cb)
       if (cb) then cb() end
     end)    
     
+    catalog.lastTrainerUpdate = getEpoch()
+    
   end)
 
 end
@@ -3628,10 +3643,12 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
     if (
       (thisIn == iname) or 
       (thisUn == iname) or
+      (thisIn == 'the ' .. iname) or 
       (thisIn == 'a ' .. iname) or 
       (thisIn == 'an ' .. iname) or
       (thisIn == 'a pair of ' .. iname) or
       (thisIn == 'a set of ' .. iname) or
+      (thisUn == 'the ' .. iname) or
       (thisUn == 'a ' .. iname) or 
       (thisUn == 'an ' .. iname) or
       (thisUn == 'a pair of ' .. iname) or
@@ -3687,10 +3704,12 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
     if (
       (rex.match(thisIn, iname)) or
       (rex.match(thisUn, iname)) or
+      (rex.match(thisIn, 'the ' .. iname)) or 
       (rex.match(thisIn, 'a ' .. iname)) or 
       (rex.match(thisIn, 'an ' .. iname)) or
       (rex.match(thisIn, 'a pair of ' .. iname)) or
       (rex.match(thisIn, 'a set of ' .. iname)) or
+      (thisUn == 'the ' .. iname) or
       (rex.match(thisUn, 'a ' .. iname)) or 
       (rex.match(thisUn, 'an ' .. iname)) or
       (rex.match(thisUn, 'a pair of ' .. iname)) or
