@@ -3629,16 +3629,15 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
   local mResults = {}
 
   for idx, item in pairs(items) do 
-    -- display(item.name)
     
     -- remove +x from the end of any item names
     item.name = rex.gsub(item.name,[[\s+\+\d$]], '')
     
     local thisIn = item.name or ''
     local thisUn = item["Unidentified Name"] or ''
+
     thisIn = catalog.sanitizeItemName(thisIn:lower())
     thisUn = catalog.sanitizeItemName(thisUn:lower())
-
     
     if (
       (thisIn == iname) or 
@@ -3687,7 +3686,9 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
   end
    
   -- remove any details of container contents
-  iname = rex.gsub(iname, [[ (contains|containing|of) .*$]], '')  
+  
+  -- i had added of here but it needs to be more specific, bleh
+  iname = rex.gsub(iname, [[ (contains|containing) .*$]], '')  
   
 
   -- try partial matches if nothing found
