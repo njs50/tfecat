@@ -2948,10 +2948,13 @@ catalog.loadTrainers = function(cb)
     local diff = {}
     for skill, rlist in pairs(catalog.trainers) do      
       if (not published[skill]) then
-        diff[skill] = rlist
+        if (not table.contains(published[skill], 0)) then
+          diff[skill] = rlist
+        end
       else
         for idx, rnum in ipairs(catalog.trainers[skill]) do
-          if not table.contains(published[skill], rnum) then
+          if (not table.contains(published[skill], rnum)) and 
+             (not table.contains(published[skill], 0)) then
             diff[skill] = diff[skill] or {}
             table.insert(diff[skill], rnum)
           end
@@ -2962,15 +2965,24 @@ catalog.loadTrainers = function(cb)
     -- merge any new items back into the local catalog
     for skill, rlist in pairs(published) do      
       if (not catalog.trainers[skill]) then
-        catalog.trainers[skill] = rlist
+        if (not table.contains(rlist, 0)) then
+          catalog.trainers[skill] = rlist
+        end
       else
         for idx, rnum in ipairs(published[skill]) do
-          if not table.contains(catalog.trainers[skill], rnum) then
+          -- remove any items marked as deleted (contains rnum = 0)
+          if (rnum == 0) then
+            catalog.trainers[skill] = nil
+            break
+          elseif not table.contains(catalog.trainers[skill], rnum) then
             table.insert(catalog.trainers[skill], rnum)
           end
         end            
       end    
     end    
+    
+    
+    
     
     catalog.uploadDiff('trainers', diff, function()
       local newCount = #table.keys(catalog.trainers)
