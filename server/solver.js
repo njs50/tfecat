@@ -400,4 +400,4 @@ NPuzzleSolver.prototype.swap = function(pos1, pos2) {
 
 
 
-module.exports = NPuzzleSolver
+export default NPuzzleSolver;

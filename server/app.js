@@ -1,10 +1,9 @@
-const express = require("express");
+import express from "express";
+import bodyParser from 'body-parser';
+import got from 'got';
+import NPuzzleSolver from './solver.js';
+
 const app = express();
-
-const bodyParser = require('body-parser')
-const got = require('got');
-
-const NPuzzleSolver = require('./solver')
 
 let catalog, summary, trainers, customs
 

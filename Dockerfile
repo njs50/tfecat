@@ -5,10 +5,10 @@ RUN apk add --update tini
 ENTRYPOINT ["/sbin/tini", "--"]
 
 # Copy application files
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY server ./server/
 
-RUN npm install --only=prod
+RUN npm ci --only=prod
 
 EXPOSE 3000
 
