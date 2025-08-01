@@ -74,14 +74,23 @@ end
 
 local skills = {}
 
+-- 
+-- Skill                 Level       Cost       Prac
+-- -----                 -----       ----       ----
+-- humanic                 7 
+-- elvish                 unk           5         2
+-- dwarvish               unk           5         2
 
-local skillParser =  tempRegexTrigger([[^([A-Za-z].*?)\s{2,}(\d+|unk|Y)\s{2,}]], function()
+-- cecho('&lt;green&gt; &lt;-- &lt;white&gt; inc trainers!')
+
+local skillParser =  tempRegexTrigger([[^([A-Za-z]\D*?)\s+(\d+|unk|Y)\s*\d*?\s+?\d*?\s*$]], function()
+  -- cecho('&lt;green&gt; &lt;-- &lt;white&gt; ' .. matches[2])
   table.insert(skills, matches[2])
 end)
 
 
-tempPromptTrigger(function()
-  
+local processSkills = function()
+  -- cecho('&lt;green&gt; &lt;-- &lt;white&gt; trainers done!')
   killTrigger(skillParser)
 
   for idx, skill in ipairs(skills) do
@@ -95,7 +104,12 @@ tempPromptTrigger(function()
       
   end
 
-end, 1)</script>
+end
+
+-- was using prompt trigger but it seems some people have the thing
+-- that makes it work disabled...
+tempRegexTrigger([[^(|&lt;.*)$]], processSkills, 1)
+</script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
@@ -110,7 +124,7 @@ end, 1)</script>
 				<string>Skill                 Level       Cost       Prac</string>
 			</regexCodeList>
 			<regexCodePropertyList>
-				<integer>2</integer>
+				<integer>3</integer>
 			</regexCodePropertyList>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
