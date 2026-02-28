@@ -1,0 +1,15 @@
+info:
+  name: solve puzzle
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://vault-thirteen.net:49160/puzzle/tile
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

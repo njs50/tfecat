@@ -1,0 +1,4 @@
+name: prod
+variables:
+  - name: baseUrl
+    value: http://vault-thirteen.net:49160

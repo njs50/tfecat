@@ -131,14 +131,14 @@ app.post("/puzzle/tile", (req, res, next) => {
 
   const solution = solver.solve();
   
-  const moves = [];
+  let moves = [];
   
   if (!solution) {
       console.error('unsolvable puzzle...')
-  } else {
-    for (x in solution) {
-      moves.push(solution[x].number);
-    }
+  } else {  
+
+    moves = solution.map(x => x.number)
+
   }
 
   res.json(moves);
