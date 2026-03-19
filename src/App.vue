@@ -167,6 +167,7 @@
             :headers="headers"
             :items="catalog"
             :footer-props="footerProps"
+            :sort-by="[{ key: 'datetime', order: 'desc' }]"
             class="elevation-0"
             hover
           >
