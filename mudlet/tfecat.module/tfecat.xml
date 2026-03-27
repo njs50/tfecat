@@ -2663,19 +2663,15 @@ catalog.load = function(cb, altSrc)
     catalog.items = catalog.common.json.decode(catJson)
     
     -- enhance items
-    for idx, item in pairs(catalog.items) do
-      -- remove +x from the end of any item names  
-      item.name = rex.gsub(item.name,[[\s+\+\d$]], '')
-      
-      local thisIn = item.name or ''
-      local thisUn = item["Unidentified Name"] or ''
-  
-      item.searchItemName = catalog.sanitizeItemName(thisIn:lower())
-      item.searchUnidentifiedItemName = catalog.sanitizeItemName(thisUn:lower())    
-    
+    local count = 1
+    for idx, item in pairs(catalog.items) do  
+      item.searchItemName = catalog.sanitizeItemName(item.name or '')
+      item.searchUnidentifiedItemName = catalog.sanitizeItemName(item["Unidentified Name"] or '')
+      count = count + 1
+      if (count % 200 == 0) then
+        collectgarbage('collect')
+      end
     end
-    
-    
     
     catalog.itemsIndex = table.keys(catalog.items)
     
