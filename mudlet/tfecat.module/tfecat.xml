@@ -1998,6 +1998,21 @@ catalog.serverUrl = 'http://vault-thirteen.net:49160'
 
 local itemVersion = 1.3 -- bumped for reaver/legate/harb updates (maybe bulwark)
 
+local processedVersion = 1.0
+
+-- if the current processedversion doesn't match what we have loaded we need to reload the catalog
+if (catalog.processedVersion ~= processedVersion) then
+  cecho('\n&lt;yellow&gt;TFECAT: &lt;white&gt;catalog item processing has been updated, need to reload catalog!\n')  
+  catalog.items = {}
+  catalog.itemsIndex = {}
+  catalog.itemCalculated = {}
+  catalog.summary = {}
+  catalog.customs = {}
+  catalog.trainers = {}
+  catalog.processedVersion = processedVersion
+  tempTimer(1, catalog.load)
+end
+
 local affectMissingDot = {
   ["Grants Haste"] = true,
   ["Can provide occasional hardiness"] = true,
@@ -2646,6 +2661,22 @@ catalog.load = function(cb, altSrc)
   
   
     catalog.items = catalog.common.json.decode(catJson)
+    
+    -- enhance items
+    for idx, item in pairs(catalog.items) do
+      -- remove +x from the end of any item names  
+      item.name = rex.gsub(item.name,[[\s+\+\d$]], '')
+      
+      local thisIn = item.name or ''
+      local thisUn = item["Unidentified Name"] or ''
+  
+      item.searchItemName = catalog.sanitizeItemName(thisIn:lower())
+      item.searchUnidentifiedItemName = catalog.sanitizeItemName(thisUn:lower())    
+    
+    end
+    
+    
+    
     catalog.itemsIndex = table.keys(catalog.items)
     
     
@@ -3633,8 +3664,11 @@ end
 
 catalog.sanitizeItemName = function(itemName)
   
-  itemName = rex.gsub(itemName, [[(a|an)? ?(.*) labeled .*$]], 'an empty %2')  
+  itemName = itemName:lower()
+  itemName = rex.gsub(itemName,[[^(the |a |an |a pair of |a set of )]], '')  
+  itemName = rex.gsub(itemName, [[(.*) labeled .*$]], 'an empty %1')  
   itemName = rex.gsub(itemName,[[ \+\d$]], '')
+  itemName = rex.gsub(itemName, [[ (contains|containing) .*$]], '')  
   
   
 -- Missing ID - an enchanted journeyman's astrolabe
@@ -3650,35 +3684,15 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
 
   items = items or catalog.items
  
-  local iname = catalog.sanitizeItemName(itemName:lower())
+  local iname = catalog.sanitizeItemName(itemName)
 
   local mResults = {}
 
   for idx, item in pairs(items) do 
     
-    -- remove +x from the end of any item names
-    item.name = rex.gsub(item.name,[[\s+\+\d$]], '')
-    
-    local thisIn = item.name or ''
-    local thisUn = item["Unidentified Name"] or ''
-
-    thisIn = catalog.sanitizeItemName(thisIn:lower())
-    thisUn = catalog.sanitizeItemName(thisUn:lower())
-    
     if (
-      (thisIn == iname) or 
-      (thisUn == iname) or
-      (thisIn == 'the ' .. iname) or 
-      (thisIn == 'a ' .. iname) or 
-      (thisIn == 'an ' .. iname) or
-      (thisIn == 'a pair of ' .. iname) or
-      (thisIn == 'a set of ' .. iname) or
-      (thisUn == 'the ' .. iname) or
-      (thisUn == 'a ' .. iname) or 
-      (thisUn == 'an ' .. iname) or
-      (thisUn == 'a pair of ' .. iname) or
-      (thisUn == 'a set of ' .. iname)
-      
+      (item.searchItemName == iname) or 
+      (item.searchUnidentifiedItemName == iname)      
     ) then
       
       if allowMultipleExact then
@@ -3700,58 +3714,13 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
   end
   
   
-  -- try sanitized name if still no luck (gets rid of flaming etc)
-  local siname = catalog.common.itemSanitize(iname)
-
-  
-  -- also remove any potential plurals
-  siname = rex.gsub(siname, [[e?s$]], '')
+  -- maybe we need to get rid of a plural? (seems unlikely)
+  local siname = rex.gsub(iname, [[e?s$]], '')
   
   if (siname ~= iname) then
     return catalog.findItem(siname, items, allowMultipleExact)
   end
-   
-  -- remove any details of container contents
-  
-  -- i had added of here but it needs to be more specific, bleh
-  iname = rex.gsub(iname, [[ (contains|containing) .*$]], '')  
-  
-
-  -- try partial matches if nothing found
-  -- display('trying partial match for: ' .. iname)
-
-  for idx, item in pairs(items) do 
-    
-    local thisIn = item.name or ''
-    local thisUn = item["Unidentified Name"] or ''
-    
-    thisIn = thisIn:lower()
-    thisUn = thisUn:lower()    
-  
-    if (
-      (rex.match(thisIn, iname)) or
-      (rex.match(thisUn, iname)) or
-      (rex.match(thisIn, 'the ' .. iname)) or 
-      (rex.match(thisIn, 'a ' .. iname)) or 
-      (rex.match(thisIn, 'an ' .. iname)) or
-      (rex.match(thisIn, 'a pair of ' .. iname)) or
-      (rex.match(thisIn, 'a set of ' .. iname)) or
-      (thisUn == 'the ' .. iname) or
-      (rex.match(thisUn, 'a ' .. iname)) or 
-      (rex.match(thisUn, 'an ' .. iname)) or
-      (rex.match(thisUn, 'a pair of ' .. iname)) or
-      (rex.match(thisUn, 'a set of ' .. iname))      
-      
-    ) then
-      -- display(item)
-      if allowMultipleExact then
-        table.insert(mResults, item)
-      else
-        return item
-      end
-    end
-    
-  end   
+     
   
   if allowMultipleExact and #mResults &gt; 0 then
     return mResults
