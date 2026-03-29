@@ -2010,7 +2010,10 @@ if (catalog.processedVersion ~= processedVersion) then
   catalog.customs = {}
   catalog.trainers = {}
   catalog.processedVersion = processedVersion
-  tempTimer(1, catalog.load)
+  tempTimer(1, function()
+    -- nb catalog.load might not exist yet :p
+    catalog.load()
+  end)
 end
 
 local affectMissingDot = {
