@@ -129,66 +129,77 @@ tempRegexTrigger([[^(|&lt;.*)$]], processSkills, 1)
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>parse customs</name>
-			<script>local startLine = matches[1]
-
+			<script>
 local custom
 local customs = {}
 
--- full line
-local ctrig = tempRegexTrigger([[^([A-Za-z]\D+?)\s*(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()
-  if (custom) then
-    customs[custom.name] = custom
-  end
-  custom = {
-    name = matches[2],
-    price = matches[3],
-    weight = matches[4],
-    level = matches[5],
-    ingredients = {matches[6]},
-    raw = matches[1]
-  }
-end)
+local ctrig, ctrig2, ctrig3, ctrig4
 
+-- only pase customs if we saw the copper pieces thing first, so clan messages stop triggering it
+local startParsingTrig = tempBeginOfLineTrigger("Item                        Price  Weight  Lvl  Ingredients", function()
+  
+  local startLine = matches[1]
+  
+  
+  -- full line
+  ctrig = tempRegexTrigger([[^([A-Za-z]\D+?)\s*(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()
+    if (custom) then
+      customs[custom.name] = custom
+    end
+    custom = {
+      name = matches[2],
+      price = matches[3],
+      weight = matches[4],
+      level = matches[5],
+      ingredients = {matches[6]},
+      raw = matches[1]
+    }
+  end)
+  
+  
+  -- custom name only line
+  ctrig3 = tempRegexTrigger([[^([A-z][a-z]\D+?)\s*$]], function()
+   
+    -- don't trigger on the first line
+    if (matches[2] == startLine) then
+      return
+    end
+   
+    if (custom) then
+      customs[custom.name] = custom
+    end
+    custom = {
+      raw = matches[1],
+      name = matches[2]
+    }
+  end)
+  
+  
+  -- ingrediants by themselves
+  ctrig2 = tempRegexTrigger([[^\s{2,}([A-Za-z].+)$]], function()
+    custom.ingredients = custom.ingredients or {}
+    custom.raw = custom.raw .. '\n' .. matches[1]
+    table.insert(custom.ingredients, matches[2])
+  end)
+  
+  -- custom details only line
+  ctrig4 = tempRegexTrigger([[^(\s{2,})(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()  
+    custom.price = matches[3]
+    custom.weight = matches[4]
+    custom.level = matches[5]
+    custom.ingredients = {matches[6]}  
+    custom.raw = custom.raw .. '\n' .. matches[1]
+  end)
 
--- custom name only line
-local ctrig3 = tempRegexTrigger([[^([A-z][a-z]\D+?)\s*$]], function()
- 
-  -- don't trigger on the first line
-  if (matches[2] == startLine) then
-    return
-  end
- 
-  if (custom) then
-    customs[custom.name] = custom
-  end
-  custom = {
-    raw = matches[1],
-    name = matches[2]
-  }
-end)
-
-
--- ingrediants by themselves
-local ctrig2 = tempRegexTrigger([[^\s{2,}([A-Za-z].+)$]], function()
-  custom.ingredients = custom.ingredients or {}
-  custom.raw = custom.raw .. '\n' .. matches[1]
-  table.insert(custom.ingredients, matches[2])
-end)
-
--- custom details only line
-local ctrig4 = tempRegexTrigger([[^(\s{2,})(\d+)\s+(\d+\.\d+)\s+?(\d+|\*+)\s+([A-Za-z].*)$]], function()  
-  custom.price = matches[3]
-  custom.weight = matches[4]
-  custom.level = matches[5]
-  custom.ingredients = {matches[6]}  
-  custom.raw = custom.raw .. '\n' .. matches[1]
-end)
+end, 1)
 
 tempPromptTrigger(function()
 
   if (custom) then
     customs[custom.name] = custom
   end
+  
+  killTrigger(startParsingTrig)
   
   	killTrigger(ctrig)
   killTrigger(ctrig2)
@@ -259,10 +270,10 @@ end, 1)
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
-				<string>Item                        Price  Weight  Lvl  Ingredients</string>
+				<string>^Copper Pieces: \d+</string>
 			</regexCodeList>
 			<regexCodePropertyList>
-				<integer>2</integer>
+				<integer>1</integer>
 			</regexCodePropertyList>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
@@ -5674,7 +5685,7 @@ catalog.common.itemSanitize = function(string, keepEnchant)
     return ''
   end
 
-  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |acid-dripping,? |divinely flamed,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled )]], '')
+  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |thanatotic,? |acid-dripping,? |divinely flamed,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled )]], '')
 
   if (keepEnchant ~= true) then
     string = rex.gsub(string, [[(\s\+\d)]], '')  
