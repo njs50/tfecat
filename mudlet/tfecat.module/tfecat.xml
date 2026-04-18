@@ -3675,8 +3675,9 @@ end
 catalog.sanitizeItemName = function(itemName)
   
   itemName = itemName:lower()
-  itemName = rex.gsub(itemName,[[^(the |a pair of |a set of |a |an )]], '')  
-  itemName = rex.gsub(itemName, [[(.*) labeled .*$]], 'an empty %1')  
+  itemName = rex.gsub(itemName,[[^(the |a |an )]], '')  
+  itemName = rex.gsub(itemName,[[^(pair of |set of)]], '')    
+  itemName = rex.gsub(itemName, [[(.*) labeled .*$]], 'an empty %1')    
   itemName = rex.gsub(itemName,[[ \+\d$]], '')
   itemName = rex.gsub(itemName, [[ (contains|containing) .*$]], '')  
   
@@ -3714,10 +3715,31 @@ catalog.findItem = function(itemName, items, allowMultipleExact)
     
   end
   
-    
   if allowMultipleExact and #mResults &gt; 0 then
     return mResults
   end  
+  
+  -- lets  match things that contain the the string, so that 
+  -- "tear-shaped jewel" matches "floating tear-shaped jewel"
+  for idx, item in pairs(items) do 
+    
+    if (
+      (item.searchItemName:ends(iname)) or 
+      (item.searchUnidentifiedItemName:ends(iname))      
+    ) then
+      
+      if allowMultipleExact then
+        table.insert(mResults, item)
+      else
+        return item
+      end
+    end
+    
+  end  
+  
+  if allowMultipleExact and #mResults &gt; 0 then
+    return mResults
+  end   
       
   if (rex.match(iname, [[^an empty]])) then
     return catalog.findItem(rex.gsub(iname, [[^an empty ]], 'a closed '), items, allowMultipleExact)
@@ -5685,7 +5707,7 @@ catalog.common.itemSanitize = function(string, keepEnchant)
     return ''
   end
 
-  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |thanatotic,? |acid-dripping,? |divinely flamed,? |empty,? |spiteful,? |jinxing,? |flaming,? |labeled )]], '')
+  string = rex.gsub(string, [[(\+chaotic\+,? |\+lawful\+,? |\+evil\+,? |\+good\+,? |thanatotic,? |acid-dripping,? |divinely flamed,? |an empty,? |empty,?  |spiteful,? |jinxing,? |flaming,? |labeled )]], '')
 
   if (keepEnchant ~= true) then
     string = rex.gsub(string, [[(\s\+\d)]], '')  
