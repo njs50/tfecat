@@ -241,7 +241,7 @@ const store = useStore()
 
 // Reactive data
 const isInstallModalVisible = ref(false)
-const installCode = ref(`lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')`)
+const installCode = ref(`lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://raw.githubusercontent.com/njs50/njs50-package-manager/main/njs50-package-manager.xml')`)
 const searchText = ref("")
 const levelRange = ref([0, 90])
 const charAlignment = ref<string | null>(null)

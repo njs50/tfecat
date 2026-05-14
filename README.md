@@ -5,7 +5,7 @@ The web version (for non mudlet users) is available [here](https://njs50.github.
 
 install via my mudlet package manager:
 ```lua
-lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://tinyurl.com/ykjbnsf8/njs50-package-manager.xml')
+lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://raw.githubusercontent.com/njs50/njs50-package-manager/main/njs50-package-manager.xml')
 ```
 to search your catalog and upload new/updated items:
 ```
