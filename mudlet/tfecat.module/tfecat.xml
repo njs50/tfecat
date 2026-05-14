@@ -1990,7 +1990,9 @@ catalog.common.json = json</script>
 			<Script isActive="yes" isFolder="no">
 				<name>catalog</name>
 				<packageName></packageName>
-				<script>catalog = catalog or {}
+				<script>player = player or {}
+
+catalog = catalog or {}
 catalog.events = catalog.events or {}
 
 catalog.events.CHECK_PROMPT =  'tfecat: checked yo prompt'
