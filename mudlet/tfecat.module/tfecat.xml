@@ -52,11 +52,11 @@ end
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
@@ -113,11 +113,11 @@ tempRegexTrigger([[^(|&lt;.*)$]], processSkills, 1)
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
@@ -267,11 +267,11 @@ end, 1)
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
@@ -291,8 +291,8 @@ end, 1)
 
 -- we will ignore skill bonuses from items
 
-player = player or {}
-player.skills = player.skills or {}
+catalog.player = catalog.player or {}
+catalog.player.skills = catalog.player.skills or {}
 local skillParser = tempRegexTrigger([[^(.+?)\s{1,}(\d+|unk|Y)\(?(\d*)\)?\s]], function()
   
   local skill = matches[2]
@@ -315,7 +315,7 @@ local skillParser = tempRegexTrigger([[^(.+?)\s{1,}(\d+|unk|Y)\(?(\d*)\)?\s]], f
   end
   
   
-  player.skills[skill] = level
+  catalog.player.skills[skill] = level
 end)
 
 
@@ -323,17 +323,17 @@ tempPromptTrigger(function()
   	
   killTrigger(skillParser)
   -- display(player.skills)
-  raiseEvent(catalog.events.PARSED_ABILITIES, player.skills)    
+  raiseEvent(catalog.events.PARSED_ABILITIES, catalog.player.skills)    
     
 end, 1)</script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
@@ -344,8 +344,37 @@ end, 1)</script>
 			</regexCodePropertyList>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>remorted - reset skills</name>
+			<script>catalog.player = catalog.player or {}
+catalog.player.skills = nil
+catalog.player.stats = nil
+
+catalog.player.gear = {}
+catalog.player.itemSlot = {}</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand />
+			<packageName />
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile />
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>You are about to find yourself in the world of the Forest's Edge.</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>2</integer>
+			</regexCodePropertyList>
+		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>You have nothing equipped.</name>
-			<script>player.gear = {}
+			<script>catalog.player = catalog.player or {}
+
+local player = catalog.player
+
+player.gear = {}
 player.itemSlot = {}
 
 player.gearParsing = nil
@@ -357,11 +386,11 @@ raiseEvent(catalog.events.PARSED_EQUIPMENT)
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
@@ -373,15 +402,15 @@ raiseEvent(catalog.events.PARSED_EQUIPMENT)
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="no" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>parse identity</name>
-			<script></script>
+			<script />
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
@@ -422,8 +451,7 @@ raiseEvent(catalog.events.PARSED_EQUIPMENT)
     id.Account = id.Atman
     id.longAlignment = id.Alignment
     id.Alignment = rex.gsub(id.longAlignment,[[^(\w).+ (\w).+$]], '%1%2'):upper()
-    raiseEvent(catalog.events.PARSED_IDENTITY)
-    -- display(id)
+    raiseEvent(catalog.events.PARSED_IDENTITY, id)    
   end
 
 end
@@ -431,11 +459,11 @@ end
 				<triggerType>0</triggerType>
 				<conditonLineDelta>0</conditonLineDelta>
 				<mStayOpen>0</mStayOpen>
-				<mCommand></mCommand>
-				<packageName></packageName>
+				<mCommand />
+				<packageName />
 				<mFgColor>#ff0000</mFgColor>
 				<mBgColor>#ffff00</mBgColor>
-				<mSoundFile></mSoundFile>
+				<mSoundFile />
 				<colorTriggerFgColor>#000000</colorTriggerFgColor>
 				<colorTriggerBgColor>#000000</colorTriggerBgColor>
 				<regexCodeList>
@@ -486,11 +514,11 @@ end
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
@@ -522,15 +550,73 @@ end</script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
-			<mCommand></mCommand>
-			<packageName></packageName>
+			<mCommand />
+			<packageName />
 			<mFgColor>#ff0000</mFgColor>
 			<mBgColor>#ffff00</mBgColor>
-			<mSoundFile></mSoundFile>
+			<mSoundFile />
 			<colorTriggerFgColor>#000000</colorTriggerFgColor>
 			<colorTriggerBgColor>#000000</colorTriggerBgColor>
 			<regexCodeList>
 				<string>^You look at (.+) you are (wearing|wielding|holding|carrying)\.$</string>
+			</regexCodeList>
+			<regexCodePropertyList>
+				<integer>1</integer>
+			</regexCodePropertyList>
+		</Trigger>
+		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
+			<name>parse player score (stats)</name>
+			<script>local checkTrigger, checkResistTrigger, finishTrigger, cleanupTrigger
+
+local stats = {}
+
+
+  -- bleh, for some reason it wont let me have nested capture groups. lame
+-- made a thing to do this (see resists below) but too lazy to update this one...
+checkTrigger = tempRegexTrigger([[^\s+(Str):\s+(\d+)[() 0-9]+(Int):\s+(\d+)[() 0-9]+(Wis):\s+(\d+)[() 0-9]+(Dex):\s+(\d+)[() 0-9]+(Con):\s+(\d+)[() 0-9]*$]], function ()        
+  for i=1,5 do
+    stats[matches[2*i]] = tonumber(matches[2*i + 1])
+  end                    
+end)
+
+checkResistTrigger = catalog.common.tempMatchAllRegex([[\s+(Magic|Fire|Cold|Mind|Electric|Acid|Poison):\s+\+?(-?\d+)%]], function ()        
+  for i=1,#matches / 3 do
+    local res = matches[((i-1) * 3) + 2]
+    local val = matches[((i-1) * 3) + 3]      
+    stats[res] = val      
+  end
+end)
+
+
+finishTrigger = tempRegexTrigger([[\s+\[Also try the command identity for more information.\]$]], function ()
+  
+  killTrigger(checkTrigger)
+  killTrigger(checkResistTrigger)                
+  killTrigger(cleanupTrigger)    
+  catalog.player.stats = stats      
+  raiseEvent(catalog.events.PARSED_SCORE, stats)
+  
+end, 1)
+
+ 
+cleanupTrigger = tempPromptTrigger(function()
+  -- ready or not we are done here
+  killTrigger(checkTrigger)
+  killTrigger(checkResistTrigger)
+  killTrigger(finishTrigger)  
+end)</script>
+			<triggerType>0</triggerType>
+			<conditonLineDelta>0</conditonLineDelta>
+			<mStayOpen>0</mStayOpen>
+			<mCommand />
+			<packageName />
+			<mFgColor>#ff0000</mFgColor>
+			<mBgColor>#ffff00</mBgColor>
+			<mSoundFile />
+			<colorTriggerFgColor>#000000</colorTriggerFgColor>
+			<colorTriggerBgColor>#000000</colorTriggerBgColor>
+			<regexCodeList>
+				<string>^\s+(\w+)\s*$</string>
 			</regexCodeList>
 			<regexCodePropertyList>
 				<integer>1</integer>
@@ -639,8 +725,8 @@ else
   end
   commands.help()
 end</script>
-			<command></command>
-			<packageName></packageName>
+			<command />
+			<packageName />
 			<regex>^tfecat ?(\S*) ?(.*)$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
@@ -908,8 +994,8 @@ else
 end
 
 </script>
-			<command></command>
-			<packageName></packageName>
+			<command />
+			<packageName />
 			<regex>^tcat( .*)$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
@@ -922,12 +1008,12 @@ if (not (catalog and catalog.player and catalog.player.identity and catalog.play
 
   cecho('\n&lt;red&gt;TFECAT: &lt;white&gt;identity has not yet been parsed\n\n')
   
-  catalog.common.onNextEvent(catalog.events.PARSED_IDENTITY, function()    
-    expandAlias('tcat-audit' .. params)
-  end)
-  send('queue identity')
-  
+  catalog.getIdentity(function()
+    expandAlias('tcat-audit' .. params)  
+  end) 
+   
   return
+  
 end
 
 
@@ -1433,15 +1519,15 @@ catalog.getSkills(function()
 end)
 
   </script>
-			<command></command>
-			<packageName></packageName>
+			<command />
+			<packageName />
 			<regex>^tcat-audit( ?.*)$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
 			<name>tcat help shortcut</name>
 			<script>expandAlias('tcat help')</script>
-			<command></command>
-			<packageName></packageName>
+			<command />
+			<packageName />
 			<regex>^(tcat|help tcat)\s*$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
@@ -1465,15 +1551,15 @@ end)
   cecho('}\n')
   cecho('\n')
   cecho('You can add anything that works with tcat -a into the weight table\n')</script>
-			<command></command>
-			<packageName></packageName>
+			<command />
+			<packageName />
 			<regex>^tcat help weighted$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
 			<name>tcat-audit help shortcut</name>
 			<script>expandAlias('tcat-audit')</script>
-			<command></command>
-			<packageName></packageName>
+			<command />
+			<packageName />
 			<regex>^(help tcat-audit)\s*$</regex>
 		</Alias>
 		<Alias isActive="yes" isFolder="no">
@@ -1562,8 +1648,8 @@ else
   end)
  
 end</script>
-			<command></command>
-			<packageName></packageName>
+			<command />
+			<packageName />
 			<regex>^tfind (.{2,})$</regex>
 		</Alias>
 	</AliasPackage>
@@ -1571,12 +1657,12 @@ end</script>
 	<ScriptPackage>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>catalog_export</name>
-			<packageName></packageName>
-			<script></script>
+			<packageName />
+			<script />
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
 				<name>JSON</name>
-				<packageName></packageName>
+				<packageName />
 				<script>-------------------------------------------------
 --         Put your Lua functions here.        --
 --                                             --
@@ -1989,7 +2075,7 @@ catalog.common.json = json</script>
 			</Script>
 			<Script isActive="yes" isFolder="no">
 				<name>catalog</name>
-				<packageName></packageName>
+				<packageName />
 				<script>player = player or {}
 
 catalog = catalog or {}
@@ -1999,6 +2085,7 @@ catalog.events.CHECK_PROMPT =  'tfecat: checked yo prompt'
 catalog.events.PARSED_EQUIPMENT = 'tfecat: checked out ya gear'
 catalog.events.PARSED_IDENTITY = 'tfecat: checked your papers'
 catalog.events.PARSED_ABILITIES = 'tfecat: checked your moves'
+catalog.events.PARSED_SCORE = 'tfecat: checked your stats'
 
 catalog.items = catalog.items or {}
 catalog.itemsIndex = catalog.itemsIndex or {}
@@ -2445,7 +2532,7 @@ catalog.displayItem = function(idx, weightedQuery)
   
   if (weightedQuery) then    
     cecho('\n               &lt;white&gt;Weight summary:&lt;reset&gt;\n\n')
-    catalog.getAffect(item, 'weighted', nil, stats, true)   
+    catalog.getAffect(item, 'weighted', nil, catalog.player.stats, true)   
     cecho('\n-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-\n\n')
   end
   
@@ -3520,74 +3607,52 @@ end</script>
 			</Script>
 			<Script isActive="yes" isFolder="no">
 				<name>audit</name>
-				<packageName></packageName>
+				<packageName />
 				<script>
 catalog = catalog or {}
 catalog.player = catalog.player or {}
 catalog.player.gear = catalog.player.gear or {}
 
+catalog.player.stats = catalog.player.stats or {
+  Con = 15,
+  Dex = 15,
+  Int = 15,
+  Str = 15,
+  Wis = 15,
+  Magic = 0,
+  Fire = 0,
+  Cold = 0,
+  Mind = 0,
+  Electric = 0,
+  Acid = 0,
+  Poison = 0,    
+} 
 
 
 catalog.getSkills = function(cb)
-
   catalog.common.onNextEvent(catalog.events.PARSED_ABILITIES, function()
     cecho('&lt;green&gt;CATALOG&lt;white&gt;: parsed player skills\n')
     cb(player.skills)
   end)
-  send('$abil all')
-
+  send('|$abil all')
 end
-
-
-
-
-
+  
 catalog.getStats = function(cb)
-
-  local checkTrigger, finishTrigger, checkResistTrigger
-  local stats = {}
-  
-
-  local timeout = tempTimer(10, function()
-    cecho('\n\n\n&lt;red&gt;PARSER:&lt;white&gt; failed to check stats!!!\n\n\n')
-    killTrigger(checkTrigger)
-    killTrigger(checkResistTrigger)
-    killTrigger(finishTrigger)
-  end)  
-
-  -- bleh, for some reason it wont let me have nested capture groups. lame
-  -- made a thing to do this (see resists below) but too lazy to update this one...
-  checkTrigger = tempRegexTrigger([[^\s+(Str):\s+(\d+)[() 0-9]+(Int):\s+(\d+)[() 0-9]+(Wis):\s+(\d+)[() 0-9]+(Dex):\s+(\d+)[() 0-9]+(Con):\s+(\d+)[() 0-9]*$]], function ()        
-    for i=1,5 do
-      stats[matches[2*i]] = tonumber(matches[2*i + 1])
-    end                    
+  catalog.common.onNextEvent(catalog.events.PARSED_SCORE, function(_, stats)
+    cecho('&lt;green&gt;CATALOG&lt;white&gt;: parsed player skills\n')    
+    cb(stats)        
   end)
+  send('|score')
+end  
 
-  checkResistTrigger = catalog.common.tempMatchAllRegex([[\s+(Magic|Fire|Cold|Mind|Electric|Acid|Poison):\s+\+?(-?\d+)%]], function ()        
-    for i=1,#matches / 3 do
-      local res = matches[((i-1) * 3) + 2]
-      local val = matches[((i-1) * 3) + 3]      
-      stats[res] = val      
-    end
+catalog.getIdentity = function(cb)
+  catalog.common.onNextEvent(catalog.events.PARSED_IDENTITY, function(_, identity)
+    cecho('&lt;green&gt;CATALOG&lt;white&gt;: parsed player identity\n')    
+    cb(identity)        
   end)
+  send('|identity')
+end 
 
-
-  finishTrigger = tempRegexTrigger([[\s+\[Also try the command identity for more information.\]$]], function ()
-    
-    killTrigger(checkTrigger)
-    killTrigger(checkResistTrigger)        
-    killTimer(timeout)      
-  
-    catalog.stats = stats
-  
-    cb(stats)
-    
-  end, 1)
-
-
-  send('Score')
-
-end
 
 
 catalog.isWearing = function(item)
@@ -3785,7 +3850,7 @@ end
 			</Script>
 			<Script isActive="yes" isFolder="no">
 				<name>search</name>
-				<packageName></packageName>
+				<packageName />
 				<script>catalog.itemNativeAffects = {
   ["Armor Class"] = true,
   ["Base Cost"] = true,
@@ -3857,7 +3922,6 @@ catalog.getAffect = function(item, affect, excludeWeaponDam, stats, showWeightDe
     Poison = 0,    
   } 
   
-
       
   if catalog.itemNativeAffects[affect] and item[affect] and item[affect] ~= '' then
 
@@ -4506,7 +4570,7 @@ end</script>
 		</ScriptGroup>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>demonnic</name>
-			<packageName></packageName>
+			<packageName />
 			<script>-------------------------------------------------
 --         Put your Lua functions here.        --
 --                                             --
@@ -4516,12 +4580,12 @@ end</script>
 			<eventHandlerList />
 			<ScriptGroup isActive="yes" isFolder="yes">
 				<name>TextFormatter</name>
-				<packageName></packageName>
-				<script></script>
+				<packageName />
+				<script />
 				<eventHandlerList />
 				<Script isActive="yes" isFolder="no">
 					<name>standaloneFormatter</name>
-					<packageName></packageName>
+					<packageName />
 					<script>--- fText processing
 -- @module demonnic
 demonnic = demonnic or {}
@@ -4827,7 +4891,7 @@ end
 				</Script>
 				<Script isActive="yes" isFolder="no">
 					<name>reusableFormatter</name>
-					<packageName></packageName>
+					<packageName />
 					<script>--- Stand alone text formatter object. Remembers the options you set and can be adjusted as needed
 -- @module demonnic.textFormatter
 demonnic.TextFormatter = {}
@@ -5008,7 +5072,7 @@ end
 				</Script>
 				<Script isActive="yes" isFolder="no">
 					<name>tableFormatter</name>
-					<packageName></packageName>
+					<packageName />
 					<script>--- Easy formatting for text tables
 -- @module demonnic.TableMaker
 
@@ -5553,12 +5617,12 @@ end
 		</ScriptGroup>
 		<ScriptGroup isActive="yes" isFolder="yes">
 			<name>common</name>
-			<packageName></packageName>
-			<script></script>
+			<packageName />
+			<script />
 			<eventHandlerList />
 			<Script isActive="yes" isFolder="no">
 				<name>scripts from njs50-common</name>
-				<packageName></packageName>
+				<packageName />
 				<script>catalog = catalog or {}
 catalog.common = catalog.common or {}
 
@@ -5769,7 +5833,7 @@ end
 		</ScriptGroup>
 		<Script isActive="yes" isFolder="no">
 			<name>catalog.posInstallHandler</name>
-			<packageName></packageName>
+			<packageName />
 			<script>catalog.posInstallHandler = function(evt, name, file)
 
   -- after installing the package manager see if there is a package we should install
@@ -5785,6 +5849,6 @@ end</script>
 	</ScriptPackage>
 	<KeyPackage />
 	<HelpPackage>
-		<helpURL></helpURL>
+		<helpURL />
 	</HelpPackage>
 </MudletPackage>
