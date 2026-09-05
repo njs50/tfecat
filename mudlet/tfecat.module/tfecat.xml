@@ -566,45 +566,49 @@ end</script>
 		</Trigger>
 		<Trigger isActive="yes" isFolder="no" isTempTrigger="no" isMultiline="no" isPerlSlashGOption="no" isColorizerTrigger="yes" isFilterTrigger="no" isSoundTrigger="no" isColorTrigger="no" isColorTriggerFg="no" isColorTriggerBg="no">
 			<name>parse player score (stats)</name>
-			<script>local checkTrigger, checkResistTrigger, finishTrigger, cleanupTrigger
-
-local stats = {}
-
-
-  -- bleh, for some reason it wont let me have nested capture groups. lame
--- made a thing to do this (see resists below) but too lazy to update this one...
-checkTrigger = tempRegexTrigger([[^\s+(Str):\s+(\d+)[() 0-9]+(Int):\s+(\d+)[() 0-9]+(Wis):\s+(\d+)[() 0-9]+(Dex):\s+(\d+)[() 0-9]+(Con):\s+(\d+)[() 0-9]*$]], function ()        
-  for i=1,5 do
-    stats[matches[2*i]] = tonumber(matches[2*i + 1])
-  end                    
-end)
-
-checkResistTrigger = catalog.common.tempMatchAllRegex([[\s+(Magic|Fire|Cold|Mind|Electric|Acid|Poison):\s+\+?(-?\d+)%]], function ()        
-  for i=1,#matches / 3 do
-    local res = matches[((i-1) * 3) + 2]
-    local val = matches[((i-1) * 3) + 3]      
-    stats[res] = val      
-  end
-end)
-
-
-finishTrigger = tempRegexTrigger([[\s+\[Also try the command identity for more information.\]$]], function ()
+			<script>if (matches[2] == player.name) then
   
-  killTrigger(checkTrigger)
-  killTrigger(checkResistTrigger)                
-  killTrigger(cleanupTrigger)    
-  catalog.player.stats = stats      
-  raiseEvent(catalog.events.PARSED_SCORE, stats)
+  local checkTrigger, checkResistTrigger, finishTrigger, cleanupTrigger
   
-end, 1)
-
- 
-cleanupTrigger = tempPromptTrigger(function()
-  -- ready or not we are done here
-  killTrigger(checkTrigger)
-  killTrigger(checkResistTrigger)
-  killTrigger(finishTrigger)  
-end)</script>
+  local stats = {}
+  
+  
+    -- bleh, for some reason it wont let me have nested capture groups. lame
+  -- made a thing to do this (see resists below) but too lazy to update this one...
+  checkTrigger = tempRegexTrigger([[^\s+(Str):\s+(\d+)[() 0-9]+(Int):\s+(\d+)[() 0-9]+(Wis):\s+(\d+)[() 0-9]+(Dex):\s+(\d+)[() 0-9]+(Con):\s+(\d+)[() 0-9]*$]], function ()        
+    for i=1,5 do
+      stats[matches[2*i]] = tonumber(matches[2*i + 1])
+    end                    
+  end)
+  
+  checkResistTrigger = catalog.common.tempMatchAllRegex([[\s+(Magic|Fire|Cold|Mind|Electric|Acid|Poison):\s+\+?(-?\d+)%]], function ()        
+    for i=1,#matches / 3 do
+      local res = matches[((i-1) * 3) + 2]
+      local val = matches[((i-1) * 3) + 3]      
+      stats[res] = val      
+    end
+  end)
+  
+  
+  finishTrigger = tempRegexTrigger([[\s+\[Also try the command identity for more information.\]$]], function ()
+    
+    killTrigger(checkTrigger)
+    killTrigger(checkResistTrigger)                
+    killTrigger(cleanupTrigger)    
+    catalog.player.stats = stats      
+    raiseEvent(catalog.events.PARSED_SCORE, stats)
+    
+  end, 1)
+  
+   
+  cleanupTrigger = tempPromptTrigger(function()
+    -- ready or not we are done here
+    killTrigger(checkTrigger)
+    killTrigger(checkResistTrigger)
+    killTrigger(finishTrigger)  
+  end, 1)
+  
+end</script>
 			<triggerType>0</triggerType>
 			<conditonLineDelta>0</conditonLineDelta>
 			<mStayOpen>0</mStayOpen>
