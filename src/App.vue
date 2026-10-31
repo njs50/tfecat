@@ -191,7 +191,7 @@
                     <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
                   </template>
                   <template v-else-if="header.key === 'damageOrAc'">
-                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av. Dam</span>
+                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
                     <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
                   </template>
                   <template v-else-if="header.key === 'Wear Loc.'">
@@ -269,7 +269,7 @@ const itemLayer = ref(null)
 const selectedItem = ref<any>(null)
 const showSelectedItem = ref(false)
 
-/** Level first; hide Wear Loc./Layer below md; merge damage/AC into one blank header. */
+/** Level first; below md hide Wear Loc./Layer; drop Weight or merged combat col depending on property filter. */
 const headers = computed(() => {
   const cols: { title: string; key: string; align: 'start' | 'end'; width?: string }[] = [
     { title: 'Level', key: 'Level', align: 'end', width: '4.5rem' },
@@ -284,17 +284,21 @@ const headers = computed(() => {
   }
 
   // Swap Weight for the selected item property so the table can sort by its amount.
+  // Below md: omit Weight entirely; keep the property column when a property is selected.
   if (itemProperty.value) {
     cols.push({
       title: String(itemProperty.value),
       key: 'propertyAmount',
       align: 'end',
     })
-  } else {
+  } else if (mdAndUp.value) {
     cols.push({ title: 'Weight', key: 'Weight', align: 'end' })
   }
 
-  cols.push({ title: '', key: 'damageOrAc', align: 'end' })
+  // Below md with a property selected, drop merged damage/AC to free space.
+  if (mdAndUp.value || !itemProperty.value) {
+    cols.push({ title: '', key: 'damageOrAc', align: 'end' })
+  }
   return cols
 })
 
