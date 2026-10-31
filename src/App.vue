@@ -90,6 +90,7 @@
                     v-model="levelRange"
                     min="0"
                     max="90"
+                    step="1"
                     thumb-label="always"
                     label="Item Level Range"
                     hide-details
