@@ -5,7 +5,7 @@
             <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
             <v-expansion-panel-text class="pa-1">
               <v-row class="align-center mb-0">
-                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" md="6">
+                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
                   <v-select
                     v-model="activeCharacterProfileId"
                     :items="characterProfileSelectItems"
@@ -26,21 +26,55 @@
                     <v-icon>mdi-pencil</v-icon>
                   </v-btn>
                 </v-col>
-              </v-row>
 
-              <v-row class="align-center mb-0">
-                <v-col class="d-flex pa-1" cols="12">
-                  <v-range-slider
-                    v-model="levelRange"
+                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
+                  <v-select
+                    v-model="activeWeightConfigId"
+                    :items="weightConfigSelectItems"
+                    label="Weighted search"
+                    density="compact"
+                    clearable
+                    hide-details
+                    class="flex-grow-1"
+                    @update:model-value="onWeightConfigSelected"
+                  ></v-select>
+                  <v-btn
+                    icon
+                    variant="tonal"
+                    density="compact"
+                    aria-label="Edit weight configurations"
+                    @click="openWeightsManager"
+                  >
+                    <v-icon>mdi-pencil</v-icon>
+                  </v-btn>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-text-field
+                    v-model.number="levelMin"
+                    type="number"
                     min="0"
                     max="90"
                     step="1"
-                    thumb-label="always"
-                    label="Item Level Range"
-                    hide-details
+                    label="Level min"
                     density="compact"
+                    hide-details
                     :disabled="characterFiltersLocked"
-                  ></v-range-slider>
+                  ></v-text-field>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-text-field
+                    v-model.number="levelMax"
+                    type="number"
+                    min="0"
+                    max="90"
+                    step="1"
+                    label="Level max"
+                    density="compact"
+                    hide-details
+                    :disabled="characterFiltersLocked"
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
@@ -113,28 +147,6 @@
 
                 <v-col class="filter-col d-flex pa-1" cols="6" md="4">
                   <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="6" md="4">
-                  <v-select
-                    v-model="activeWeightConfigId"
-                    :items="weightConfigSelectItems"
-                    label="Weighted search"
-                    density="compact"
-                    clearable
-                    hide-details
-                    class="flex-grow-1"
-                    @update:model-value="onWeightConfigSelected"
-                  ></v-select>
-                  <v-btn
-                    icon
-                    variant="tonal"
-                    density="compact"
-                    aria-label="Edit weight configurations"
-                    @click="openWeightsManager"
-                  >
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn>
                 </v-col>
 
                 <v-col class="filter-col d-flex pa-1" cols="6" md="4">
@@ -256,6 +268,31 @@ const activeCharacterStats = computed(() => activeCharacterProfile.value?.stats 
 
 const searchText = ref('')
 const levelRange = ref<[number, number]>([0, 90])
+
+const clampLevel = (n: unknown, fallback: number) => {
+  const v = typeof n === 'number' ? n : Number(n)
+  if (!Number.isFinite(v)) return fallback
+  return Math.min(90, Math.max(0, Math.round(v)))
+}
+
+const levelMin = computed({
+  get: () => levelRange.value[0],
+  set: (raw) => {
+    const min = clampLevel(raw, levelRange.value[0])
+    const max = Math.max(min, levelRange.value[1])
+    levelRange.value = [min, max]
+  },
+})
+
+const levelMax = computed({
+  get: () => levelRange.value[1],
+  set: (raw) => {
+    const max = clampLevel(raw, levelRange.value[1])
+    const min = Math.min(levelRange.value[0], max)
+    levelRange.value = [min, max]
+  },
+})
+
 const charAlignment = ref<string | null>(null)
 const charClass = ref<string | null>(null)
 const charRace = ref<string | null>(null)
