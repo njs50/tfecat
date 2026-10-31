@@ -1,11 +1,11 @@
 <template>
   <v-container fluid class="pa-2">
-        <v-expansion-panels multiple>
+        <v-expansion-panels>
           <v-expansion-panel>
-            <v-expansion-panel-title>Characters</v-expansion-panel-title>
+            <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
             <v-expansion-panel-text class="pa-1">
               <v-row class="align-center mb-0">
-                <v-col class="filter-col d-flex pa-1" cols="12" md="6">
+                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" md="6">
                   <v-select
                     v-model="activeCharacterProfileId"
                     :items="characterProfileSelectItems"
@@ -13,73 +13,21 @@
                     density="compact"
                     clearable
                     hide-details
+                    class="flex-grow-1"
                     @update:model-value="applyCharacterProfile"
                   ></v-select>
-                </v-col>
-                <v-col class="filter-col d-flex pa-1 align-center" cols="12" md="6">
                   <v-btn
+                    icon
                     variant="tonal"
                     density="compact"
-                    prepend-icon="mdi-account-cog"
+                    aria-label="Edit character profiles"
                     @click="openCharactersManager"
                   >
-                    Manage characters
+                    <v-icon>mdi-pencil</v-icon>
                   </v-btn>
                 </v-col>
               </v-row>
 
-              <v-row class="align-center mb-0">
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select v-model="charRace" :items="charRaces" label="Race" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select v-model="charClass" :items="charClasses" label="Class" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable hide-details></v-select>
-                </v-col>
-              </v-row>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-
-          <v-expansion-panel>
-            <v-expansion-panel-title>Weighted search</v-expansion-panel-title>
-            <v-expansion-panel-text class="pa-1">
-              <v-row class="align-center mb-0">
-                <v-col class="filter-col d-flex pa-1" cols="12" md="6">
-                  <v-select
-                    v-model="activeWeightConfigId"
-                    :items="weightConfigSelectItems"
-                    label="Weight configuration"
-                    density="compact"
-                    clearable
-                    hide-details
-                    @update:model-value="onWeightConfigSelected"
-                  ></v-select>
-                </v-col>
-                <v-col class="filter-col d-flex pa-1 align-center" cols="12" md="6">
-                  <v-btn
-                    variant="tonal"
-                    density="compact"
-                    prepend-icon="mdi-scale-balance"
-                    @click="openWeightsManager"
-                  >
-                    Manage weights
-                  </v-btn>
-                </v-col>
-              </v-row>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-
-          <v-expansion-panel>
-            <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
-            <v-expansion-panel-text class="pa-1">
               <v-row class="align-center mb-0">
                 <v-col class="d-flex pa-1" cols="12">
                   <v-range-slider
@@ -91,7 +39,58 @@
                     label="Item Level Range"
                     hide-details
                     density="compact"
+                    :disabled="characterFiltersLocked"
                   ></v-range-slider>
+                </v-col>
+              </v-row>
+
+              <v-row class="align-center mb-0">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select
+                    v-model="charAlignment"
+                    :items="charAlignments"
+                    label="Alignment"
+                    density="compact"
+                    clearable
+                    hide-details
+                    :disabled="characterFiltersLocked"
+                  ></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select
+                    v-model="charRace"
+                    :items="charRaces"
+                    label="Race"
+                    density="compact"
+                    clearable
+                    hide-details
+                    :disabled="characterFiltersLocked"
+                  ></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select
+                    v-model="charClass"
+                    :items="charClasses"
+                    label="Class"
+                    density="compact"
+                    clearable
+                    hide-details
+                    :disabled="characterFiltersLocked"
+                  ></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select
+                    v-model="charGender"
+                    :items="charGenders"
+                    label="Gender"
+                    density="compact"
+                    clearable
+                    hide-details
+                    :disabled="characterFiltersLocked"
+                  ></v-select>
                 </v-col>
               </v-row>
 
@@ -116,15 +115,38 @@
                   <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-autocomplete
-                    v-model="itemProperty"
-                    :items="itemProperties"
-                    label="Item Property"
+                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="6" md="4">
+                  <v-select
+                    v-model="activeWeightConfigId"
+                    :items="weightConfigSelectItems"
+                    label="Weighted search"
                     density="compact"
                     clearable
                     hide-details
+                    class="flex-grow-1"
+                    @update:model-value="onWeightConfigSelected"
+                  ></v-select>
+                  <v-btn
+                    icon
+                    variant="tonal"
+                    density="compact"
+                    aria-label="Edit weight configurations"
+                    @click="openWeightsManager"
+                  >
+                    <v-icon>mdi-pencil</v-icon>
+                  </v-btn>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+                  <v-autocomplete
+                    :model-value="itemPropertyDisplay"
+                    :items="itemPropertyItems"
+                    label="Item Property"
+                    density="compact"
+                    :clearable="!activeWeightConfig"
+                    hide-details
                     :disabled="!!activeWeightConfig"
+                    @update:model-value="onItemPropertyUpdate"
                   ></v-autocomplete>
                 </v-col>
               </v-row>
@@ -241,6 +263,29 @@ const itemProperty = ref<string | null>(null)
 const itemSlot = ref<string | null>(null)
 const itemLayer = ref<string | null>(null)
 
+/** Character profile locks level + align/race/class/gender until cleared. */
+const characterFiltersLocked = computed(() => !!activeCharacterProfileId.value)
+
+const itemTypes = computed(() => store.itemTypes ?? [])
+const itemClasses = computed(() => store.itemClasses ?? [])
+const itemAffects = computed(() => store.itemAffects ?? [])
+const itemProperties = computed(() => store.itemProperties ?? [])
+
+/** Item Property shows literal "weighted" while a weight config is active. */
+const itemPropertyDisplay = computed(() =>
+  activeWeightConfig.value ? 'weighted' : itemProperty.value,
+)
+const itemPropertyItems = computed(() =>
+  activeWeightConfig.value ? ['weighted'] : itemProperties.value,
+)
+
+const onItemPropertyUpdate = (value: string | null) => {
+  if (activeWeightConfig.value) {
+    return
+  }
+  itemProperty.value = value
+}
+
 const applyingRoute = ref(false)
 
 const applyQueryToState = () => {
@@ -260,6 +305,12 @@ const applyQueryToState = () => {
   itemLayer.value = partial.itemLayer ?? null
   activeWeightConfigId.value = partial.activeWeightConfigId ?? null
   activeCharacterProfileId.value = partial.activeCharacterProfileId ?? null
+  if (activeCharacterProfileId.value) {
+    applyCharacterProfile(activeCharacterProfileId.value)
+  }
+  if (activeWeightConfigId.value) {
+    itemProperty.value = null
+  }
   sortByScoreOrPropertyDesc()
   queueMicrotask(() => {
     applyingRoute.value = false
@@ -409,11 +460,6 @@ const charAlignments = [
 
 const charGenders = ['Female', 'Male'].sort()
 
-const itemTypes = computed(() => store.itemTypes ?? [])
-const itemClasses = computed(() => store.itemClasses ?? [])
-const itemAffects = computed(() => store.itemAffects ?? [])
-const itemProperties = computed(() => store.itemProperties ?? [])
-
 const catalog = computed<any[]>(() => {
   const catalog = store.catalog
   if (!catalog) return []
@@ -471,6 +517,7 @@ const onWeightConfigSelected = (id: string | null) => {
 }
 
 const applyCharacterProfile = (id: string | null) => {
+  // Clearing unlocks the fields but leaves current filter values in place.
   if (!id) return
   const profile = characterProfiles.value.find((p) => p.id === id)
   if (!profile) return
