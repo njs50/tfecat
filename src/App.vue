@@ -235,9 +235,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import { useCatalogStore } from './store'
 
-const store = useStore()
+const store = useCatalogStore()
 
 // Reactive data
 const isInstallModalVisible = ref(false)
@@ -341,7 +341,7 @@ const charGenders = ref([
 
 // Computed properties
 const itemTypes = computed(() => {
-  const itemTypes = store.getters.ITEM_TYPES
+  const itemTypes = store.itemTypes
   if (!itemTypes) {
     return []
   }
@@ -349,7 +349,7 @@ const itemTypes = computed(() => {
 })
 
 const itemClasses = computed(() => {
-  const itemClasses = store.getters.ITEM_CLASSES
+  const itemClasses = store.itemClasses
   if (!itemClasses) {
     return []
   }
@@ -357,7 +357,7 @@ const itemClasses = computed(() => {
 })
 
 const itemAffects = computed(() => {
-  const itemAffects = store.getters.ITEM_AFFECTS
+  const itemAffects = store.itemAffects
   if (!itemAffects) {
     return []
   }
@@ -365,7 +365,7 @@ const itemAffects = computed(() => {
 })
 
 const itemProperties = computed(() => {
-  const itemProperties = store.getters.ITEM_PROPERTIES
+  const itemProperties = store.itemProperties
   if (!itemProperties) {
     return []
   }
@@ -373,7 +373,7 @@ const itemProperties = computed(() => {
 })
 
 const catalog = computed<any[]>(() => {
-  const catalog = store.getters.CATALOG
+  const catalog = store.catalog
 
   if (!catalog) {
     return []
@@ -476,7 +476,7 @@ const copyInstall = () => {
 
 // Lifecycle
 onMounted(() => {
-  store.dispatch("GET_CATALOG")
+  store.fetchCatalog()
 })
 </script>
 

@@ -23,9 +23,9 @@
     "axios": "^1.10.0",
     "express": "^5.1.0",
     "got": "^16.2.0",
+    "pinia": "^4.1.0",
     "vue": "^3.5.44",
-    "vuetify": "^4.3.1",
-    "vuex": "^4.1.0"
+    "vuetify": "^4.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.10",
