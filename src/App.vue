@@ -40,25 +40,10 @@
 
     <v-main>
       <v-container fluid class="content-shell px-6 px-sm-8 py-10">
-        <v-expansion-panels class="filter-panel">
+        <v-expansion-panels multiple class="filter-panel">
           <v-expansion-panel>
-            <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
+            <v-expansion-panel-title>Characters</v-expansion-panel-title>
             <v-expansion-panel-text class="pa-1">
-              <v-row class="align-center mb-0">
-                <v-col class="d-flex pa-1" cols="12">
-                  <v-range-slider
-                    v-model="levelRange"
-                    min="0"
-                    max="90"
-                    step="1"
-                    thumb-label="always"
-                    label="Item Level Range"
-                    hide-details
-                    density="compact"
-                  ></v-range-slider>
-                </v-col>
-              </v-row>
-
               <v-row class="align-center mb-0">
                 <v-col class="filter-col d-flex pa-1" cols="12" md="6">
                   <v-select
@@ -100,13 +85,18 @@
                   <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable hide-details></v-select>
                 </v-col>
               </v-row>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
 
+          <v-expansion-panel>
+            <v-expansion-panel-title>Weighted search</v-expansion-panel-title>
+            <v-expansion-panel-text class="pa-1">
               <v-row class="align-center mb-0">
                 <v-col class="filter-col d-flex pa-1" cols="12" md="6">
                   <v-select
                     v-model="activeWeightConfigId"
                     :items="weightConfigSelectItems"
-                    label="Weighted search"
+                    label="Weight configuration"
                     density="compact"
                     clearable
                     hide-details
@@ -122,6 +112,26 @@
                   >
                     Manage weights
                   </v-btn>
+                </v-col>
+              </v-row>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <v-expansion-panel>
+            <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
+            <v-expansion-panel-text class="pa-1">
+              <v-row class="align-center mb-0">
+                <v-col class="d-flex pa-1" cols="12">
+                  <v-range-slider
+                    v-model="levelRange"
+                    min="0"
+                    max="90"
+                    step="1"
+                    thumb-label="always"
+                    label="Item Level Range"
+                    hide-details
+                    density="compact"
+                  ></v-range-slider>
                 </v-col>
               </v-row>
 
@@ -287,7 +297,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useDisplay } from 'vuetify'
 import CharacterProfilesDialog from './components/CharacterProfilesDialog.vue'
 import WeightConfigsDialog from './components/WeightConfigsDialog.vue'
@@ -395,7 +405,22 @@ const headers = computed(() => {
 const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
 
 /** Stable sort-by so filter re-renders do not reset column sort. */
-const sortBy = ref([{ key: 'datetime', order: 'desc' as const }])
+const sortBy = ref<{ key: string; order: 'asc' | 'desc' }[]>([
+  { key: 'datetime', order: 'desc' },
+])
+
+/** When weighted search or a single item property is chosen, sort that column desc. */
+const sortByScoreOrPropertyDesc = () => {
+  if (activeWeightConfig.value) {
+    sortBy.value = [{ key: 'weightedScore', order: 'desc' }]
+  } else if (itemProperty.value) {
+    sortBy.value = [{ key: 'propertyAmount', order: 'desc' }]
+  }
+}
+
+watch([activeWeightConfigId, itemProperty], () => {
+  sortByScoreOrPropertyDesc()
+})
 
 const itemSlots = ref([
   "arms",
@@ -601,6 +626,7 @@ const onWeightConfigSelected = (id: string | null) => {
   if (id) {
     itemProperty.value = null
   }
+  sortByScoreOrPropertyDesc()
 }
 
 const applyCharacterProfile = (id: string | null) => {
@@ -730,6 +756,7 @@ onMounted(() => {
   if (activeWeightConfigId.value) {
     itemProperty.value = null
   }
+  sortByScoreOrPropertyDesc()
 })
 </script>
 
