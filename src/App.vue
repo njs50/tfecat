@@ -209,8 +209,13 @@
           </v-data-table>
         </v-card>
 
-        <v-dialog v-model="showSelectedItem" max-width="80vw" max-height="90vh">
-          <v-card class="modal-card" style="max-height: 90vh;">
+        <v-dialog
+          v-model="showSelectedItem"
+          :fullscreen="!mdAndUp"
+          :max-width="mdAndUp ? '80vw' : undefined"
+          :max-height="mdAndUp ? '90vh' : undefined"
+        >
+          <v-card class="modal-card" :style="mdAndUp ? 'max-height: 90vh;' : undefined">
             <v-card-title class="d-flex justify-space-between align-center pb-1 modal-title">
               <span style="text-transform: capitalize; font-size: 1.2rem; font-weight: 500;">{{ selectedItem?.name }}</span>
               <v-btn icon variant="text" @click.stop="showSelectedItem = false">
@@ -218,11 +223,8 @@
               </v-btn>
             </v-card-title>
             <v-divider></v-divider>
-            <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" class="modal-subtitle py-1" style="text-transform: capitalize; font-size: 1rem; color: #888;">
-              {{ selectedItem["Unidentified Name"] }}
-            </v-card-subtitle>
             <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px;">
-              <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto; flex: 1; min-height: 0;">{{ selectedItemDisplayBuffer }}</pre>
+              <pre class="item-ident-pre">{{ selectedItemDisplayBuffer }}</pre>
               <!-- <pre>{{ selectedItem  ? JSON.stringify(selectedItem, null, 2) : '' }}</pre> -->
               <div v-if="selectedItem && selectedItem.custom && Object.keys(selectedItem.custom).length > 0" class="mt-4">
                         
@@ -646,6 +648,16 @@ onMounted(() => {
 }
 .bg-grey-darken-4 {
   background: #232323 !important;
+}
+
+.item-ident-pre {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 0.875rem; /* match body text scale */
+  white-space: pre;
+  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 /* 2-across from ~450px; 1-across only below (skip Vuetify sm ~600). */
