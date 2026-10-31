@@ -10,7 +10,6 @@
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "deploy": "npm run build && gh-pages -d dist",
     "update": "npm run update-trainers; npm run update-customs; npm run update-catalog; npm run update-summary",
     "update-trainers": "curl http://vault-thirteen.net:49160/trainers > ./public/trainers.json",
@@ -21,9 +20,7 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
-    "@mdi/js": "^7.4.47",
     "axios": "^1.10.0",
-    "body-parser": "^2.2.0",
     "express": "^5.1.0",
     "got": "^14.4.7",
     "vue": "^3.5.17",
@@ -31,36 +28,10 @@
     "vuex": "^4.1.0"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.35.0",
-    "@typescript-eslint/parser": "^8.35.0",
     "@vitejs/plugin-vue": "^5.0.0",
-    "@vue/eslint-config-typescript": "^14.5.1",
-    "@vue/tsconfig": "^0.5.1",
-    "eslint": "^9.29.0",
-    "eslint-plugin-vue": "^10.2.0",
     "gh-pages": "^6.3.0",
-    "sass": "^1.89.2",
     "typescript": "~5.8.3",
     "vite": "^5.0.0",
     "vue-tsc": "^2.2.10"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/vue3-essential",
-      "@vue/typescript/recommended"
-    ],
-    "parserOptions": {
-      "ecmaVersion": 2020
-    },
-    "rules": {}
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead"
-  ]
+  }
 }
