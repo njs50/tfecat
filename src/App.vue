@@ -100,19 +100,19 @@
               </v-row>
 
               <v-row class="align-center mb-0">
-                <v-col class="d-flex pa-1" cols="12" md="3">
+                <v-col class="d-flex pa-1" cols="12" sm="6" md="3">
                   <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="12" md="3">
+                <v-col class="d-flex pa-1" cols="12" sm="6" md="3">
                   <v-select v-model="charRace" :items="charRaces" label="Race" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="12" md="3">
+                <v-col class="d-flex pa-1" cols="12" sm="6" md="3">
                   <v-select v-model="charClass" :items="charClasses" label="Class" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="12" md="3">
+                <v-col class="d-flex pa-1" cols="12" sm="6" md="3">
                   <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable hide-details></v-select>
                 </v-col>
               </v-row>
