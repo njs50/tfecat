@@ -242,6 +242,12 @@
         </v-dialog>
       </v-container>
     </v-main>
+
+    <div
+      v-if="previewWatermark"
+      class="preview-watermark"
+      aria-hidden="true"
+    >{{ previewWatermark }}</div>
   </v-app>
 </template>
 
@@ -252,6 +258,14 @@ import { useCatalogStore } from './store'
 
 const store = useCatalogStore()
 const { mdAndUp } = useDisplay()
+
+/** Branch + short SHA; only when preview-deploy sets VITE_PREVIEW_*. */
+const previewWatermark = computed(() => {
+  const refName = import.meta.env.VITE_PREVIEW_REF
+  const sha = import.meta.env.VITE_PREVIEW_SHA
+  if (!refName || !sha) return ''
+  return `${refName} · ${String(sha).slice(0, 7)}`
+})
 
 // Reactive data
 const isInstallModalVisible = ref(false)
@@ -666,6 +680,17 @@ onMounted(() => {
     flex: 0 0 100% !important;
     max-width: 100% !important;
   }
+}
+
+.preview-watermark {
+  position: fixed;
+  left: 8px;
+  bottom: 6px;
+  z-index: 9999;
+  pointer-events: none;
+  font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: rgba(255, 255, 255, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
 }
 </style>
 
