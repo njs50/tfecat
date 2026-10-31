@@ -181,6 +181,9 @@
                   <template v-if="header.key === 'Weight'">
                     <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
                   </template>
+                  <template v-else-if="header.key === 'propertyAmount'">
+                    <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
+                  </template>
                   <template v-else-if="header.key === 'averageDamage'">
                     <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }}</span>
                   </template>
@@ -257,7 +260,7 @@ const itemLayer = ref(null)
 const selectedItem = ref<any>(null)
 const showSelectedItem = ref(false)
 
-const headers = ref([
+const baseHeaders = [
   {
     title: 'Item',
     align: 'start' as const,
@@ -267,9 +270,26 @@ const headers = ref([
   { title: 'Layer', key: 'Layer', align: 'start' as const },
   { title: 'Level', key: 'Level', align: 'end' as const },
   { title: 'Weight', key: 'Weight', align: 'end' as const },
-  { title: 'Av. Damage', key: 'averageDamage', align: 'end' as const},
+  { title: 'Av. Damage', key: 'averageDamage', align: 'end' as const },
   { title: 'Armor Class', key: 'Armor Class', align: 'end' as const },
-])
+]
+
+/** Swap Weight for the selected item property so the table can sort by its amount. */
+const headers = computed(() => {
+  if (!itemProperty.value) {
+    return baseHeaders
+  }
+  return baseHeaders.map((header) => {
+    if (header.key !== 'Weight') {
+      return header
+    }
+    return {
+      title: String(itemProperty.value),
+      key: 'propertyAmount',
+      align: 'end' as const,
+    }
+  })
+})
 
 const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
 
@@ -379,7 +399,7 @@ const catalog = computed<any[]>(() => {
     return []
   }
 
-  return catalog.filter((item: any) => {
+  const filtered = catalog.filter((item: any) => {
     // if search text is provided search on that first
     if (searchText.value) {
       if (
@@ -455,6 +475,21 @@ const catalog = computed<any[]>(() => {
     }
 
     return true
+  })
+
+  if (!itemProperty.value) {
+    return filtered
+  }
+
+  // Attach sortable amount for the Weight→property column swap.
+  return filtered.map((item: any) => {
+    const prop = item.affects?.find(
+      (aff: any) => aff.type === 'property' && aff.name === itemProperty.value,
+    )
+    return {
+      ...item,
+      propertyAmount: prop?.amount ?? null,
+    }
   })
 })
 
