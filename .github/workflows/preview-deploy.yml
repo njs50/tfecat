@@ -1,0 +1,66 @@
+# Build any non-main branch and force-publish ./dist to the sibling
+# preview repo njs50/tcat-preview (branch gh-pages). Last non-main
+# branch push wins — intentional for agent-check previews.
+#
+# Requires repo secret TCAT_PREVIEW_PAT: fine-grained PAT with Contents
+# Read/Write on njs50/tcat-preview only (never commit the token).
+name: Preview deploy
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - gh-pages
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 12.16.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Project Pages URL is https://njs50.github.io/tcat-preview/
+      # so Vite base must be /tcat-preview/ (prod on tfecat stays /tfecat/).
+      - name: Build site for tcat-preview
+        run: pnpm exec vue-tsc && pnpm exec vite build --base=/tcat-preview/
+
+      - name: Deploy dist to njs50/tcat-preview gh-pages
+        env:
+          TCAT_PREVIEW_PAT: ${{ secrets.TCAT_PREVIEW_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TCAT_PREVIEW_PAT}" ]; then
+            echo 'Missing secret TCAT_PREVIEW_PAT (fine-grained PAT with Contents R/W on njs50/tcat-preview).' >&2
+            exit 1
+          fi
+          touch dist/.nojekyll
+          cd dist
+          git init
+          git checkout -B gh-pages
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "Preview ${GITHUB_SHA} from ${GITHUB_REPOSITORY}@${GITHUB_REF_NAME}"
+          git push --force "https://x-access-token:${TCAT_PREVIEW_PAT}@github.com/njs50/tcat-preview.git" HEAD:gh-pages
