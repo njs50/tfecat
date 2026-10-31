@@ -374,7 +374,7 @@ const itemProperties = computed(() => {
   return itemProperties
 })
 
-const catalog = computed(() => {
+const catalog = computed<any[]>(() => {
   const catalog = store.getters.CATALOG
 
   if (!catalog) {
