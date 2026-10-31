@@ -183,8 +183,9 @@
                   <template v-else-if="header.key === 'propertyAmount'">
                     <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
                   </template>
-                  <template v-else-if="header.key === 'averageDamage'">
+                  <template v-else-if="header.key === 'damageOrAc'">
                     <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }}</span>
+                    <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }}</span>
                   </template>
                   <template v-else-if="header.key === 'Wear Loc.'">
                     <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
@@ -237,9 +238,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useDisplay } from 'vuetify'
 import { useCatalogStore } from './store'
 
 const store = useCatalogStore()
+const { mdAndUp } = useDisplay()
 
 // Reactive data
 const isInstallModalVisible = ref(false)
@@ -259,35 +262,33 @@ const itemLayer = ref(null)
 const selectedItem = ref<any>(null)
 const showSelectedItem = ref(false)
 
-const baseHeaders = [
-  {
-    title: 'Item',
-    align: 'start' as const,
-    key: 'name',
-  },
-  { title: 'Wear Loc.', key: 'Wear Loc.', align: 'start' as const },
-  { title: 'Layer', key: 'Layer', align: 'start' as const },
-  { title: 'Level', key: 'Level', align: 'end' as const },
-  { title: 'Weight', key: 'Weight', align: 'end' as const },
-  { title: 'Av. Damage', key: 'averageDamage', align: 'end' as const },
-  { title: 'Armor Class', key: 'Armor Class', align: 'end' as const },
-]
-
-/** Swap Weight for the selected item property so the table can sort by its amount. */
+/** Level first; hide Wear Loc./Layer below md; merge damage/AC into one blank header. */
 const headers = computed(() => {
-  if (!itemProperty.value) {
-    return baseHeaders
+  const cols: { title: string; key: string; align: 'start' | 'end' }[] = [
+    { title: 'Level', key: 'Level', align: 'end' },
+    { title: 'Item', key: 'name', align: 'start' },
+  ]
+
+  if (mdAndUp.value) {
+    cols.push(
+      { title: 'Wear Loc.', key: 'Wear Loc.', align: 'start' },
+      { title: 'Layer', key: 'Layer', align: 'start' },
+    )
   }
-  return baseHeaders.map((header) => {
-    if (header.key !== 'Weight') {
-      return header
-    }
-    return {
+
+  // Swap Weight for the selected item property so the table can sort by its amount.
+  if (itemProperty.value) {
+    cols.push({
       title: String(itemProperty.value),
       key: 'propertyAmount',
-      align: 'end' as const,
-    }
-  })
+      align: 'end',
+    })
+  } else {
+    cols.push({ title: 'Weight', key: 'Weight', align: 'end' })
+  }
+
+  cols.push({ title: '', key: 'damageOrAc', align: 'end' })
+  return cols
 })
 
 const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
@@ -479,18 +480,17 @@ const catalog = computed<any[]>(() => {
     return true
   })
 
-  if (!itemProperty.value) {
-    return filtered
-  }
-
-  // Attach sortable amount for the Weight→property column swap.
+  // Attach sortable damage/AC merge value, and property amount when Weight is swapped.
   return filtered.map((item: any) => {
-    const prop = item.affects?.find(
-      (aff: any) => aff.type === 'property' && aff.name === itemProperty.value,
-    )
+    const prop = itemProperty.value
+      ? item.affects?.find(
+          (aff: any) => aff.type === 'property' && aff.name === itemProperty.value,
+        )
+      : null
     return {
       ...item,
       propertyAmount: prop?.amount ?? null,
+      damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
     }
   })
 })
