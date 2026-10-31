@@ -297,7 +297,13 @@ const headers = computed(() => {
 
   // Below md with a property selected, drop merged damage/AC to free space.
   if (mdAndUp.value || !itemProperty.value) {
-    cols.push({ title: '', key: 'damageOrAc', align: 'end' })
+    let damageOrAcTitle = ''
+    if (itemType.value === 'armor') {
+      damageOrAcTitle = 'Armor Class'
+    } else if (itemType.value === 'weapon') {
+      damageOrAcTitle = 'Av. Damage'
+    }
+    cols.push({ title: damageOrAcTitle, key: 'damageOrAc', align: 'end' })
   }
   return cols
 })
