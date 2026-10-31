@@ -1,0 +1,71 @@
+# Data half of ./update.sh: fetch catalog/trainers/customs/summary and
+# commit to main only when files change. Does not build or deploy.
+#
+# GITHUB_TOKEN pushes do not trigger other workflows, so after a real data
+# push this job explicitly starts "Build and deploy" via `gh workflow run`.
+name: Catalog refresh
+
+on:
+  schedule:
+    # Daily 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: catalog-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Fetch catalog data
+        run: |
+          set -euo pipefail
+          BASE='http://vault-thirteen.net:49160'
+          fetch() {
+            local url="$1" dest="$2"
+            local tmp="${dest}.tmp"
+            curl -fsS --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 300 \
+              -o "$tmp" "$url"
+            mv "$tmp" "$dest"
+          }
+          fetch "$BASE/trainers" public/trainers.json
+          fetch "$BASE/customs" public/customs.json
+          fetch "$BASE/catalog" public/catalog.json
+          fetch "$BASE/catalog/summary" public/summary.json
+
+      - name: Commit and push if changed
+        id: commit
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/catalog.json public/customs.json public/summary.json public/trainers.json
+          if git diff --staged --quiet; then
+            echo 'No catalog file changes; skipping commit and deploy trigger.'
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m 'catalog update'
+          git push origin HEAD:main
+          echo 'changed=true' >> "$GITHUB_OUTPUT"
+
+      # Default GITHUB_TOKEN commits do not cascade into on:push workflows.
+      - name: Trigger Build and deploy
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh workflow run build-deploy.yml --ref main

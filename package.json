@@ -14,11 +14,11 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "deploy": "pnpm run build && gh-pages -d dist",
-    "update": "pnpm run update-trainers; pnpm run update-customs; pnpm run update-catalog; pnpm run update-summary",
-    "update-trainers": "curl http://vault-thirteen.net:49160/trainers > ./public/trainers.json",
-    "update-customs": "curl http://vault-thirteen.net:49160/customs > ./public/customs.json",
-    "update-catalog": "curl http://vault-thirteen.net:49160/catalog > ./public/catalog.json",
-    "update-summary": "curl http://vault-thirteen.net:49160/catalog/summary > ./public/summary.json",
+    "update": "pnpm run update-trainers && pnpm run update-customs && pnpm run update-catalog && pnpm run update-summary",
+    "update-trainers": "curl -fsS http://vault-thirteen.net:49160/trainers -o ./public/trainers.json",
+    "update-customs": "curl -fsS http://vault-thirteen.net:49160/customs -o ./public/customs.json",
+    "update-catalog": "curl -fsS http://vault-thirteen.net:49160/catalog -o ./public/catalog.json",
+    "update-summary": "curl -fsS http://vault-thirteen.net:49160/catalog/summary -o ./public/summary.json",
     "server": "node ./server/app.js"
   },
   "dependencies": {
