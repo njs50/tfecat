@@ -1,5 +1,4 @@
 import express from "express";
-import bodyParser from 'body-parser';
 import got from 'got';
 import NPuzzleSolver from './solver.js';
 
@@ -51,7 +50,7 @@ const updateSummary = () => {
 
 
 // parse application/json
-app.use(bodyParser.json({ limit: '5mb' }))
+app.use(express.json({ limit: '5mb' }))
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
