@@ -1,5 +1,6 @@
 import Axios from 'axios'
 import { defineStore } from 'pinia'
+import { EXTRA_ITEM_PROPERTIES } from '../itemProperties'
 
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
@@ -155,7 +156,13 @@ export const useCatalogStore = defineStore('catalog', {
 
       this.itemTypes = Object.keys(itemTypes).sort()
       this.itemAffects = Object.keys(itemAffects).sort()
-      this.itemProperties = Object.keys(itemProps).sort()
+      // Native fields + computed totals (regen/resist/smart) alongside catalog properties.
+      for (const name of EXTRA_ITEM_PROPERTIES) {
+        itemProps[name] = true
+      }
+      this.itemProperties = Object.keys(itemProps).sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: 'base' }),
+      )
       this.itemClasses = Object.keys(itemClasses).sort()
 
       // sort by level then name

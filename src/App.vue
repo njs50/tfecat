@@ -254,6 +254,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useDisplay } from 'vuetify'
+import { getItemPropertyAmount } from './itemProperties'
 import { useCatalogStore } from './store'
 
 const store = useCatalogStore()
@@ -469,7 +470,7 @@ const catalog = computed<any[]>(() => {
       }
     }
     if (itemProperty.value) {
-      if (!item.affects || !item.affects.find((aff: any) => aff.name === itemProperty.value)) {
+      if (getItemPropertyAmount(item, itemProperty.value) === null) {
         return false
       }
     }
@@ -515,14 +516,11 @@ const catalog = computed<any[]>(() => {
 
   // Attach sortable damage/AC merge value, and property amount when Weight is swapped.
   return filtered.map((item: any) => {
-    const prop = itemProperty.value
-      ? item.affects?.find(
-          (aff: any) => aff.type === 'property' && aff.name === itemProperty.value,
-        )
-      : null
     return {
       ...item,
-      propertyAmount: prop?.amount ?? null,
+      propertyAmount: itemProperty.value
+        ? getItemPropertyAmount(item, itemProperty.value)
+        : null,
       damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
     }
   })
