@@ -129,9 +129,7 @@
                 <v-col class="d-flex pa-1" cols="12" sm="6" md="4">
                   <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
                 </v-col>
-              </v-row>
 
-              <v-row class="align-center mb-0">
                 <v-col class="d-flex pa-1" cols="12" sm="6" md="4">
                   <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
                 </v-col>
