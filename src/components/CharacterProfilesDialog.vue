@@ -104,6 +104,26 @@
               ></v-select>
             </v-col>
           </v-row>
+
+          <div class="text-subtitle-2 mt-3 mb-1">Stats (softcaps)</div>
+          <p class="text-body-2 text-medium-emphasis mb-2">
+            Used like Mudlet <code>tcat</code>: positive Str/Int/Wis/Dex/Con props are ignored once that stat is ≥ 30.
+            Leave blank to treat as 0.
+          </p>
+          <v-row dense>
+            <v-col v-for="key in statKeys" :key="key" cols="6" sm="4" md="2">
+              <v-text-field
+                v-model.number="draft.stats[key]"
+                :label="key"
+                type="number"
+                min="0"
+                max="100"
+                density="compact"
+                clearable
+                hide-details
+              ></v-text-field>
+            </v-col>
+          </v-row>
         </template>
       </v-card-text>
       <v-divider></v-divider>
@@ -128,7 +148,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { newId } from '../presets/storage'
-import type { CharacterProfile } from '../presets/types'
+import { EMPTY_CHARACTER_STATS } from '../presets/types'
+import type { CharacterProfile, CharacterStats } from '../presets/types'
+
+const statKeys: (keyof CharacterStats)[] = ['Str', 'Int', 'Wis', 'Dex', 'Con']
 
 const props = defineProps<{
   profiles: CharacterProfile[]
@@ -158,7 +181,10 @@ const profileItems = computed(() =>
 )
 
 const loadDraft = (profile: CharacterProfile) => {
-  draft.value = { ...profile }
+  draft.value = {
+    ...profile,
+    stats: { ...EMPTY_CHARACTER_STATS, ...(profile.stats ?? {}) },
+  }
 }
 
 const startNew = () => {
@@ -172,6 +198,7 @@ const startNew = () => {
     race: null,
     class: null,
     gender: null,
+    stats: { ...EMPTY_CHARACTER_STATS },
   })
 }
 
@@ -216,10 +243,25 @@ const save = () => {
     return
   }
   const level = Math.min(90, Math.max(1, Math.round(Number(draft.value.level) || 1)))
+  const sanitizeStat = (v: number | null | undefined): number | null => {
+    if (v === null || v === undefined || (typeof v === 'number' && Number.isNaN(v))) {
+      return null
+    }
+    const n = Number(v)
+    if (!Number.isFinite(n)) return null
+    return Math.min(100, Math.max(0, Math.round(n)))
+  }
   const saved: CharacterProfile = {
     ...draft.value,
     name: draft.value.name.trim() || 'Untitled',
     level,
+    stats: {
+      Str: sanitizeStat(draft.value.stats?.Str),
+      Int: sanitizeStat(draft.value.stats?.Int),
+      Wis: sanitizeStat(draft.value.stats?.Wis),
+      Dex: sanitizeStat(draft.value.stats?.Dex),
+      Con: sanitizeStat(draft.value.stats?.Con),
+    },
   }
   emit('save', saved)
   isNew.value = false

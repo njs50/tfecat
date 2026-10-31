@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { loadPresetsState, newId, savePresetsState } from './storage'
+import { EMPTY_CHARACTER_STATS } from './types'
 import type { CharacterProfile, WeightConfig } from './types'
 
 const state = loadPresetsState()
@@ -99,6 +100,7 @@ export function usePresets() {
     race: null,
     class: null,
     gender: null,
+    stats: { ...EMPTY_CHARACTER_STATS },
   })
 
   return {

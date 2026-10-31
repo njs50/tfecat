@@ -245,10 +245,14 @@ const {
   activeWeightConfigId,
   activeCharacterProfileId,
   activeWeightConfig,
+  activeCharacterProfile,
   weightConfigSelectItems,
   characterProfileSelectItems,
   characterProfiles,
 } = usePresets()
+
+/** Softcap stats from the active profile; unset / no profile → treated as 0 in scoring. */
+const activeCharacterStats = computed(() => activeCharacterProfile.value?.stats ?? null)
 
 const searchText = ref('')
 const levelRange = ref<[number, number]>([0, 90])
@@ -483,7 +487,9 @@ const catalog = computed<any[]>(() => {
       }
     }
     if (!activeWeightConfig.value && itemProperty.value) {
-      if (getItemPropertyAmount(item, itemProperty.value) === null) return false
+      if (getItemPropertyAmount(item, itemProperty.value, activeCharacterStats.value) === null) {
+        return false
+      }
     }
     if (itemSlot.value) {
       if (!item['Wear Loc.'] || item['Wear Loc.'].indexOf(itemSlot.value) < 0) return false
@@ -500,13 +506,14 @@ const catalog = computed<any[]>(() => {
   })
 
   const weights = activeWeightConfig.value?.weights ?? null
+  const stats = activeCharacterStats.value
   return filtered.map((item: any) => ({
     ...item,
     propertyAmount:
       !weights && itemProperty.value
-        ? getItemPropertyAmount(item, itemProperty.value)
+        ? getItemPropertyAmount(item, itemProperty.value, stats)
         : null,
-    weightedScore: weights ? getWeightedScore(item, weights) : null,
+    weightedScore: weights ? getWeightedScore(item, weights, stats) : null,
     damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
   }))
 })

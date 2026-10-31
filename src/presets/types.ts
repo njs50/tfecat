@@ -6,6 +6,23 @@ export type WeightConfig = {
   weights: Record<string, number>
 }
 
+/** Primary stats used by Mudlet `tcat` softcaps (Str/Int/Wis/Dex/Con). */
+export type CharacterStats = {
+  Str: number | null
+  Int: number | null
+  Wis: number | null
+  Dex: number | null
+  Con: number | null
+}
+
+export const EMPTY_CHARACTER_STATS: CharacterStats = {
+  Str: null,
+  Int: null,
+  Wis: null,
+  Dex: null,
+  Con: null,
+}
+
 /** Named character filter preset. */
 export type CharacterProfile = {
   id: string
@@ -16,6 +33,8 @@ export type CharacterProfile = {
   race: string | null
   class: string | null
   gender: string | null
+  /** Unset stats are treated as 0 for softcaps (same as no profile selected). */
+  stats: CharacterStats
 }
 
 export type PresetsState = {

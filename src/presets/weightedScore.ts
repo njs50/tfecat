@@ -1,12 +1,15 @@
 import { getItemPropertyAmount } from '../itemProperties'
+import type { CharacterStats } from './types'
 
 /**
  * Sum of (property amount × weight) for each configured property.
  * Missing properties contribute 0 (same idea as Mudlet tcat weighted search).
+ * Softcaps use the active character profile stats when provided.
  */
 export function getWeightedScore(
   item: unknown,
   weights: Record<string, number> | null | undefined,
+  characterStats?: CharacterStats | null,
 ): number {
   if (!weights) {
     return 0
@@ -16,7 +19,7 @@ export function getWeightedScore(
     if (!property || !Number.isFinite(weight) || weight === 0) {
       continue
     }
-    const amount = getItemPropertyAmount(item, property)
+    const amount = getItemPropertyAmount(item, property, characterStats)
     if (amount != null) {
       score += amount * weight
     }

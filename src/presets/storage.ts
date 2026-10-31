@@ -1,4 +1,10 @@
-import type { CharacterProfile, PresetsState, WeightConfig } from './types'
+import type {
+  CharacterProfile,
+  CharacterStats,
+  PresetsState,
+  WeightConfig,
+} from './types'
+import { EMPTY_CHARACTER_STATS } from './types'
 
 export const PRESETS_STORAGE_KEY = 'tfecat.presets.v1'
 
@@ -59,6 +65,30 @@ function sanitizeWeightConfig(raw: unknown): WeightConfig | null {
   }
 }
 
+function sanitizeStat(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(n)) {
+    return null
+  }
+  return Math.min(100, Math.max(0, Math.round(n)))
+}
+
+function sanitizeCharacterStats(raw: unknown): CharacterStats {
+  if (!isRecord(raw)) {
+    return { ...EMPTY_CHARACTER_STATS }
+  }
+  return {
+    Str: sanitizeStat(raw.Str),
+    Int: sanitizeStat(raw.Int),
+    Wis: sanitizeStat(raw.Wis),
+    Dex: sanitizeStat(raw.Dex),
+    Con: sanitizeStat(raw.Con),
+  }
+}
+
 function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
   if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.name !== 'string') {
     return null
@@ -77,6 +107,7 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
     race: nullableString(raw.race),
     class: nullableString(raw.class),
     gender: nullableString(raw.gender),
+    stats: sanitizeCharacterStats(raw.stats),
   }
 }
 
