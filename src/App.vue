@@ -474,28 +474,49 @@ const allowedRestrictionValues = (map: Record<string, boolean> | undefined): str
   return allowed
 }
 
+/** Match raw-ident field colon column (`         Layer: …` → colon at index 14). */
+const IDENT_COLON_COLUMN = 14
+
+const formatRequirementLine = (label: string, values: string[]): string =>
+  `${label.padStart(IDENT_COLON_COLUMN)}: ${values.join(', ')}`
+
+const ALIGNMENT_CODES: Record<string, string> = {
+  'Lawful Good': 'LG',
+  'Lawful Neutral': 'LN',
+  'Lawful Evil': 'LE',
+  'Neutral Good': 'NG',
+  'True Neutral': 'PN',
+  'Neutral Evil': 'NE',
+  'Chaotic Good': 'CG',
+  'Chaotic Neutral': 'CN',
+  'Chaotic Evil': 'CE',
+}
+
 const buildRequiresBlock = (item: any): string | null => {
   const lines: string[] = []
   const gender = allowedRestrictionValues(item.charGenders)
   if (gender) {
-    lines.push(`    Gender: ${gender.join(', ')}`)
+    lines.push(formatRequirementLine('Gender', gender))
   }
   const race = allowedRestrictionValues(item.charRaces)
   if (race) {
-    lines.push(`    Race: ${race.join(', ')}`)
+    lines.push(formatRequirementLine('Race', race))
   }
   const klass = allowedRestrictionValues(item.charClasses)
   if (klass) {
-    lines.push(`    Class: ${klass.join(', ')}`)
+    lines.push(formatRequirementLine('Class', klass))
   }
   const alignment = allowedRestrictionValues(item.charAlignments)
   if (alignment) {
-    lines.push(`    Alignment: ${alignment.join(', ')}`)
+    lines.push(formatRequirementLine(
+      'Alignment',
+      alignment.map((name) => ALIGNMENT_CODES[name] ?? name),
+    ))
   }
   if (!lines.length) {
     return null
   }
-  return ['Requires:', ...lines].join('\n')
+  return lines.join('\n')
 }
 
 /** Raw ident with Anti-Flags replaced by a Requires block from parsed maps. */
