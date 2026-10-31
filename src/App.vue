@@ -168,7 +168,7 @@
             :headers="headers"
             :items="catalog"
             :items-per-page-options="itemsPerPageOptions"
-            :sort-by="[{ key: 'datetime', order: 'desc' }]"
+            v-model:sort-by="sortBy"
             class="elevation-0"
             hover
           >
@@ -293,6 +293,9 @@ const headers = computed(() => {
 })
 
 const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
+
+/** Stable sort-by so filter re-renders do not reset column sort. */
+const sortBy = ref([{ key: 'datetime', order: 'desc' as const }])
 
 const itemSlots = ref([
   "arms",
