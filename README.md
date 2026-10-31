@@ -23,16 +23,18 @@ and your items aren't in the catalog!
 
 
 ## developer info
-feel free to fork this project. will prob need a recent node.js installed
+feel free to fork this project. will prob need a recent node.js installed (Node 26 LTS).
+
+This repo is **pnpm-only**. Enable it with Corepack (`corepack enable`), then use `pnpm` — `npm install` / `npm ci` are blocked by a `preinstall` `only-allow pnpm` guard.
 
 ### Running the web app locally:
 ```
-npm install
+pnpm install
 ```
 
 ### Compiles and hot-reloads for development
 ```
-npm run dev
+pnpm run dev
 ```
 
 
@@ -42,17 +44,17 @@ npm run dev
 
 ### Update catalog.json from vault-thirteen.net server
 ```
-npm run update-catalog
-npm run update-summary
+pnpm run update-catalog
+pnpm run update-summary
 ```
 
 ### Compile and minifies for production
 ```
-npm run build
+pnpm run build
 ```
 #### Deploying to github pages
 ```
-npm run deploy
+pnpm run deploy
 ```
 
 #### building docker image

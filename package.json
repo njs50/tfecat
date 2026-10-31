@@ -3,15 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@12.16.1",
   "engines": {
-    "node": ">=26 <27"
+    "node": ">=26 <27",
+    "pnpm": ">=12"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "dev": "vite",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && gh-pages -d dist",
-    "update": "npm run update-trainers; npm run update-customs; npm run update-catalog; npm run update-summary",
+    "deploy": "pnpm run build && gh-pages -d dist",
+    "update": "pnpm run update-trainers; pnpm run update-customs; pnpm run update-catalog; pnpm run update-summary",
     "update-trainers": "curl http://vault-thirteen.net:49160/trainers > ./public/trainers.json",
     "update-customs": "curl http://vault-thirteen.net:49160/customs > ./public/customs.json",
     "update-catalog": "curl http://vault-thirteen.net:49160/catalog > ./public/catalog.json",
@@ -30,8 +33,14 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.10",
     "gh-pages": "^6.3.0",
+    "only-allow": "^1.2.2",
     "typescript": "~6.0.3",
     "vite": "^8.3.5",
     "vue-tsc": "^3.3.14"
+  },
+  "pnpm": {
+    "minimumReleaseAgeExclude": [
+      "got@16.2.0"
+    ]
   }
 }
