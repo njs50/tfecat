@@ -176,7 +176,14 @@
                 style="cursor:pointer;"
                 :class="[index % 2 === 0 ? 'bg-grey-darken-4' : '', 'hover-row']"
               >
-                <td v-for="header in headers" :key="header.key" :style="{ 'text-align': header.align || 'start' }">
+                <td
+                  v-for="header in headers"
+                  :key="header.key"
+                  :style="{
+                    'text-align': header.align || 'start',
+                    ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
+                  }"
+                >
                   <template v-if="header.key === 'Weight'">
                     <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
                   </template>
@@ -184,8 +191,8 @@
                     <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
                   </template>
                   <template v-else-if="header.key === 'damageOrAc'">
-                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }}</span>
-                    <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }}</span>
+                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av. Dam</span>
+                    <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
                   </template>
                   <template v-else-if="header.key === 'Wear Loc.'">
                     <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
@@ -264,8 +271,8 @@ const showSelectedItem = ref(false)
 
 /** Level first; hide Wear Loc./Layer below md; merge damage/AC into one blank header. */
 const headers = computed(() => {
-  const cols: { title: string; key: string; align: 'start' | 'end' }[] = [
-    { title: 'Level', key: 'Level', align: 'end' },
+  const cols: { title: string; key: string; align: 'start' | 'end'; width?: string }[] = [
+    { title: 'Level', key: 'Level', align: 'end', width: '4.5rem' },
     { title: 'Item', key: 'name', align: 'start' },
   ]
 
