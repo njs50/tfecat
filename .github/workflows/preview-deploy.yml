@@ -2,8 +2,15 @@
 # preview repo njs50/tcat-preview (branch gh-pages). Last non-main
 # branch push wins — intentional for agent-check previews.
 #
-# Requires repo secret TCAT_PREVIEW_PAT: fine-grained PAT with Contents
-# Read/Write on njs50/tcat-preview only (never commit the token).
+# After the push, wait for tcat-preview's "pages build and deployment"
+# workflow and surface it on the tfecat pull request: a commit status
+# (tcat-preview/pages-build-deployment) plus a comment with that
+# workflow's status badge.
+#
+# Requires repo secret TCAT_PREVIEW_PAT: fine-grained PAT on
+# njs50/tcat-preview with Contents read/write (push), plus Actions and
+# Pages read so the job can tell when that preview is deployed.
+# Polling tries the PAT first, then the public Actions API.
 name: Preview deploy
 
 on:
@@ -15,6 +22,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
+  statuses: write
 
 concurrency:
   group: preview-deploy
@@ -51,6 +60,7 @@ jobs:
         run: pnpm exec vue-tsc && pnpm exec vite build --base=/tcat-preview/
 
       - name: Deploy dist to njs50/tcat-preview gh-pages
+        id: deploy
         env:
           TCAT_PREVIEW_PAT: ${{ secrets.TCAT_PREVIEW_PAT }}
         run: |
@@ -68,3 +78,12 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m "Preview ${GITHUB_SHA} from ${GITHUB_REPOSITORY}@${GITHUB_REF_NAME}"
           git push --force "https://x-access-token:${TCAT_PREVIEW_PAT}@github.com/njs50/tcat-preview.git" HEAD:gh-pages
+          echo "preview_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Report Pages build status on the pull request
+        timeout-minutes: 8
+        env:
+          PREVIEW_SHA: ${{ steps.deploy.outputs.preview_sha }}
+          TCAT_PREVIEW_PAT: ${{ secrets.TCAT_PREVIEW_PAT }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash .github/scripts/report-preview-pages-status.sh
