@@ -90,6 +90,7 @@
                     v-model="levelRange"
                     min="0"
                     max="90"
+                    step="1"
                     thumb-label="always"
                     label="Item Level Range"
                     hide-details
@@ -99,47 +100,45 @@
               </v-row>
 
               <v-row class="align-center mb-0">
-                <v-col class="d-flex pa-1" cols="3">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
                   <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="3">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
                   <v-select v-model="charRace" :items="charRaces" label="Race" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="3">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
                   <v-select v-model="charClass" :items="charClasses" label="Class" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="3">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
                   <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable hide-details></v-select>
                 </v-col>
               </v-row>
 
               <v-row class="align-center mb-0">
-                <v-col class="d-flex pa-1" cols="4">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
                   <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="4">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
                   <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="4">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
                   <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
                 </v-col>
-              </v-row>
 
-              <v-row class="align-center mb-0">
-                <v-col class="d-flex pa-1" cols="4">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
                   <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="4">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
                   <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
                 </v-col>
 
-                <v-col class="d-flex pa-1" cols="4">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
                   <v-autocomplete v-model="itemProperty" :items="itemProperties" label="Item Property" density="compact" clearable hide-details></v-autocomplete>
                 </v-col>
               </v-row>
@@ -167,7 +166,7 @@
             :headers="headers"
             :items="catalog"
             :items-per-page-options="itemsPerPageOptions"
-            :sort-by="[{ key: 'datetime', order: 'desc' }]"
+            v-model:sort-by="sortBy"
             class="elevation-0"
             hover
           >
@@ -177,12 +176,23 @@
                 style="cursor:pointer;"
                 :class="[index % 2 === 0 ? 'bg-grey-darken-4' : '', 'hover-row']"
               >
-                <td v-for="header in headers" :key="header.key" :style="{ 'text-align': header.align || 'start' }">
+                <td
+                  v-for="header in headers"
+                  :key="header.key"
+                  :style="{
+                    'text-align': header.align || 'start',
+                    ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
+                  }"
+                >
                   <template v-if="header.key === 'Weight'">
                     <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
                   </template>
-                  <template v-else-if="header.key === 'averageDamage'">
-                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }}</span>
+                  <template v-else-if="header.key === 'propertyAmount'">
+                    <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
+                  </template>
+                  <template v-else-if="header.key === 'damageOrAc'">
+                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
+                    <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
                   </template>
                   <template v-else-if="header.key === 'Wear Loc.'">
                     <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
@@ -199,8 +209,13 @@
           </v-data-table>
         </v-card>
 
-        <v-dialog v-model="showSelectedItem" max-width="80vw" max-height="90vh">
-          <v-card class="modal-card" style="max-height: 90vh;">
+        <v-dialog
+          v-model="showSelectedItem"
+          :fullscreen="!mdAndUp"
+          :max-width="mdAndUp ? '80vw' : undefined"
+          :max-height="mdAndUp ? '90vh' : undefined"
+        >
+          <v-card class="modal-card" :style="mdAndUp ? 'max-height: 90vh;' : undefined">
             <v-card-title class="d-flex justify-space-between align-center pb-1 modal-title">
               <span style="text-transform: capitalize; font-size: 1.2rem; font-weight: 500;">{{ selectedItem?.name }}</span>
               <v-btn icon variant="text" @click.stop="showSelectedItem = false">
@@ -208,11 +223,8 @@
               </v-btn>
             </v-card-title>
             <v-divider></v-divider>
-            <v-card-subtitle v-if="selectedItem && selectedItem['Unidentified Name'] && selectedItem['Unidentified Name'].toLowerCase() != selectedItem.name.toLowerCase()" class="modal-subtitle py-1" style="text-transform: capitalize; font-size: 1rem; color: #888;">
-              {{ selectedItem["Unidentified Name"] }}
-            </v-card-subtitle>
             <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px;">
-              <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto; flex: 1; min-height: 0;">{{ selectedItem ? selectedItem.buffer : '' }}</pre>
+              <pre class="item-ident-pre">{{ selectedItemDisplayBuffer }}</pre>
               <!-- <pre>{{ selectedItem  ? JSON.stringify(selectedItem, null, 2) : '' }}</pre> -->
               <div v-if="selectedItem && selectedItem.custom && Object.keys(selectedItem.custom).length > 0" class="mt-4">
                         
@@ -235,9 +247,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useDisplay } from 'vuetify'
 import { useCatalogStore } from './store'
 
 const store = useCatalogStore()
+const { mdAndUp } = useDisplay()
 
 // Reactive data
 const isInstallModalVisible = ref(false)
@@ -257,21 +271,49 @@ const itemLayer = ref(null)
 const selectedItem = ref<any>(null)
 const showSelectedItem = ref(false)
 
-const headers = ref([
-  {
-    title: 'Item',
-    align: 'start' as const,
-    key: 'name',
-  },
-  { title: 'Wear Loc.', key: 'Wear Loc.', align: 'start' as const },
-  { title: 'Layer', key: 'Layer', align: 'start' as const },
-  { title: 'Level', key: 'Level', align: 'end' as const },
-  { title: 'Weight', key: 'Weight', align: 'end' as const },
-  { title: 'Av. Damage', key: 'averageDamage', align: 'end' as const},
-  { title: 'Armor Class', key: 'Armor Class', align: 'end' as const },
-])
+/** Level first; below md hide Wear Loc./Layer; drop Weight or merged combat col depending on property filter. */
+const headers = computed(() => {
+  const cols: { title: string; key: string; align: 'start' | 'end'; width?: string }[] = [
+    { title: 'Level', key: 'Level', align: 'end', width: '4.5rem' },
+    { title: 'Item', key: 'name', align: 'start' },
+  ]
+
+  if (mdAndUp.value) {
+    cols.push(
+      { title: 'Wear Loc.', key: 'Wear Loc.', align: 'start' },
+      { title: 'Layer', key: 'Layer', align: 'start' },
+    )
+  }
+
+  // Swap Weight for the selected item property so the table can sort by its amount.
+  // Below md: omit Weight entirely; keep the property column when a property is selected.
+  if (itemProperty.value) {
+    cols.push({
+      title: String(itemProperty.value),
+      key: 'propertyAmount',
+      align: 'end',
+    })
+  } else if (mdAndUp.value) {
+    cols.push({ title: 'Weight', key: 'Weight', align: 'end' })
+  }
+
+  // Below md with a property selected, drop merged damage/AC to free space.
+  if (mdAndUp.value || !itemProperty.value) {
+    let damageOrAcTitle = ''
+    if (itemType.value === 'armor') {
+      damageOrAcTitle = 'Armor Class'
+    } else if (itemType.value === 'weapon') {
+      damageOrAcTitle = 'Av. Damage'
+    }
+    cols.push({ title: damageOrAcTitle, key: 'damageOrAc', align: 'end' })
+  }
+  return cols
+})
 
 const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
+
+/** Stable sort-by so filter re-renders do not reset column sort. */
+const sortBy = ref([{ key: 'datetime', order: 'desc' as const }])
 
 const itemSlots = ref([
   "arms",
@@ -379,7 +421,7 @@ const catalog = computed<any[]>(() => {
     return []
   }
 
-  return catalog.filter((item: any) => {
+  const filtered = catalog.filter((item: any) => {
     // if search text is provided search on that first
     if (searchText.value) {
       if (
@@ -456,6 +498,106 @@ const catalog = computed<any[]>(() => {
 
     return true
   })
+
+  // Attach sortable damage/AC merge value, and property amount when Weight is swapped.
+  return filtered.map((item: any) => {
+    const prop = itemProperty.value
+      ? item.affects?.find(
+          (aff: any) => aff.type === 'property' && aff.name === itemProperty.value,
+        )
+      : null
+    return {
+      ...item,
+      propertyAmount: prop?.amount ?? null,
+      damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
+    }
+  })
+})
+
+/** Allowed values for a restriction map; null if unrestricted (all true). */
+const allowedRestrictionValues = (map: Record<string, boolean> | undefined): string[] | null => {
+  if (!map) {
+    return null
+  }
+  const entries = Object.entries(map)
+  if (!entries.length) {
+    return null
+  }
+  const allowed = entries.filter(([, ok]) => ok).map(([key]) => key)
+  if (allowed.length === entries.length) {
+    return null
+  }
+  return allowed
+}
+
+/** Match raw-ident field colon column (`         Layer: …` → colon at index 14). */
+const IDENT_COLON_COLUMN = 14
+
+const formatRequirementLine = (label: string, values: string[]): string =>
+  `${label.padStart(IDENT_COLON_COLUMN)}: ${values.join(', ')}`
+
+const ALIGNMENT_CODES: Record<string, string> = {
+  'Lawful Good': 'LG',
+  'Lawful Neutral': 'LN',
+  'Lawful Evil': 'LE',
+  'Neutral Good': 'NG',
+  'True Neutral': 'PN',
+  'Neutral Evil': 'NE',
+  'Chaotic Good': 'CG',
+  'Chaotic Neutral': 'CN',
+  'Chaotic Evil': 'CE',
+}
+
+const buildRequiresBlock = (item: any): string | null => {
+  const lines: string[] = []
+  const gender = allowedRestrictionValues(item.charGenders)
+  if (gender) {
+    lines.push(formatRequirementLine('Gender', gender))
+  }
+  const race = allowedRestrictionValues(item.charRaces)
+  if (race) {
+    lines.push(formatRequirementLine('Race', race))
+  }
+  const klass = allowedRestrictionValues(item.charClasses)
+  if (klass) {
+    lines.push(formatRequirementLine('Class', klass))
+  }
+  const alignment = allowedRestrictionValues(item.charAlignments)
+  if (alignment) {
+    lines.push(formatRequirementLine(
+      'Alignment',
+      alignment.map((name) => ALIGNMENT_CODES[name] ?? name),
+    ))
+  }
+  if (!lines.length) {
+    return null
+  }
+  return lines.join('\n')
+}
+
+/** Raw ident with Anti-Flags replaced by a Requires block from parsed maps. */
+const formatItemDisplayBuffer = (item: any): string => {
+  const buffer: string = item?.buffer ?? ''
+  const requires = buildRequiresBlock(item)
+  const antiFlagsLine = /^[ \t]*Anti-Flags:.*$/m
+
+  if (!requires) {
+    return buffer
+  }
+  if (antiFlagsLine.test(buffer)) {
+    return buffer.replace(antiFlagsLine, requires)
+  }
+  if (/^[ \t]*Restrictions:.*$/m.test(buffer)) {
+    return buffer.replace(/^[ \t]*Restrictions:.*$/m, (line) => `${requires}\n\n${line}`)
+  }
+  return `${buffer.replace(/\s*$/, '')}\n\n${requires}\n`
+}
+
+const selectedItemDisplayBuffer = computed(() => {
+  if (!selectedItem.value) {
+    return ''
+  }
+  return formatItemDisplayBuffer(selectedItem.value)
 })
 
 // Methods
@@ -506,6 +648,24 @@ onMounted(() => {
 }
 .bg-grey-darken-4 {
   background: #232323 !important;
+}
+
+.item-ident-pre {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 0.875rem; /* match body text scale */
+  white-space: pre;
+  overflow-x: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 2-across from ~450px; 1-across only below (skip Vuetify sm ~600). */
+@media (max-width: 449px) {
+  .filter-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
 }
 </style>
 
