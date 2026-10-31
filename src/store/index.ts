@@ -1,75 +1,40 @@
 import Axios from 'axios'
-import { createStore } from 'vuex'
+import { defineStore } from 'pinia'
 
-export default createStore({
-  state: {
-    catalog: null,
-    itemTypes: null,
-    itemAffects: null,
-    itemProperties: null,
-    itemClasses: null,
-  },
-  getters: {
-    CATALOG: state => {
-      return state.catalog
-    },
-    ITEM_TYPES: state => {
-      return state.itemTypes
-    },
-    ITEM_CLASSES: state => {
-      return state.itemClasses
-    },
-    ITEM_AFFECTS: state => {
-      return state.itemAffects
-    },
-    ITEM_PROPERTIES: state => {
-      return state.itemProperties
-    },
-  },
-  mutations: {
-    SET_CATALOG : (state, payload) => {
-      state.catalog = payload
-    },
-    SET_ITEM_TYPES : (state, payload) => {
-      state.itemTypes = payload
-    },
-    SET_ITEM_CLASSES : (state, payload) => {
-      state.itemClasses = payload
-    },
-    SET_ITEM_AFFECTS : (state, payload) => {
-      state.itemAffects = payload
-    },
-    SET_ITEM_PROPERTIES : (state, payload) => {
-      state.itemProperties = payload
-    },
-
-  },
+export const useCatalogStore = defineStore('catalog', {
+  state: () => ({
+    catalog: null as any[] | null,
+    itemTypes: null as string[] | null,
+    itemAffects: null as string[] | null,
+    itemProperties: null as string[] | null,
+    itemClasses: null as string[] | null,
+  }),
   actions: {
-    GET_CATALOG : async (context) => {
-      const { data } = await Axios.get('./catalog.json?_='+ (new Date().getTime()).toString() )
+    async fetchCatalog() {
+      const { data } = await Axios.get('./catalog.json?_=' + (new Date().getTime()).toString())
 
-      const catalog: any[] = [];
-      const itemTypes: any = {};
-      const itemAffects: any = {};
-      const itemProps: any = {}
-      const itemClasses: any = {}
-      // const
+      const catalog: any[] = []
+      const itemTypes: Record<string, boolean> = {}
+      const itemAffects: Record<string, boolean> = {}
+      const itemProps: Record<string, boolean> = {}
+      const itemClasses: Record<string, boolean> = {}
+
       Object.keys(data).forEach(key => {
-        const item = data[key];
+        const item = data[key]
 
         item.name = item.name.replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
         item['Unidentified Name'] = item['Unidentified Name'].replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
 
-        itemTypes[item.itemType] = true;
+        itemTypes[item.itemType] = true
         if (item.Class) {
-          itemClasses[item.Class] = true;
+          itemClasses[item.Class] = true
         }
         if (item.affects) {
           for (const affect of item.affects) {
             if (affect.type === 'affect') {
-              itemAffects[affect.name] = true;
+              itemAffects[affect.name] = true
             } else if (affect.type === 'property') {
-              itemProps[affect.name] = true;
+              itemProps[affect.name] = true
             } else {
               console.error('unknown affect type', affect)
             }
@@ -77,14 +42,14 @@ export default createStore({
         }
 
         item.charAlignments = {
-          "Lawful Good":  true,
-          "Lawful Neutral":  true,
-          "Lawful Evil":  true,
-          "Neutral Good":  true,
-          "True Neutral":  true,
-          "Neutral Evil":  true,
-          "Chaotic Good":  true,
-          "Chaotic Neutral":  true,
+          "Lawful Good": true,
+          "Lawful Neutral": true,
+          "Lawful Evil": true,
+          "Neutral Good": true,
+          "True Neutral": true,
+          "Neutral Evil": true,
+          "Chaotic Good": true,
+          "Chaotic Neutral": true,
           "Chaotic Evil": true,
         }
 
@@ -128,8 +93,8 @@ export default createStore({
         // process anti flags
         if (item["Anti-Flags"]) {
           for (let flag of item["Anti-Flags"]) {
-            flag = flag.replace(/^anti-/, '');
-            flag = flag.replace(/^lizardman/, 'lizardfolk');
+            flag = flag.replace(/^anti-/, '')
+            flag = flag.replace(/^lizardman/, 'lizardfolk')
             if (item.charRaces[flag]) {
               item.charRaces[flag] = false
             } else if (item.charClasses[flag]) {
@@ -137,37 +102,37 @@ export default createStore({
             } else if (item.charGenders[flag]) {
               item.charGenders[flag] = false
             } else {
-              switch(flag) {
+              switch (flag) {
                 case 'good':
-                  item.charAlignments['Lawful Good'] = false;
-                  item.charAlignments['Neutral Good'] = false;
-                  item.charAlignments['Chaotic Good'] = false;
-                  break;
+                  item.charAlignments['Lawful Good'] = false
+                  item.charAlignments['Neutral Good'] = false
+                  item.charAlignments['Chaotic Good'] = false
+                  break
                 case 'evil':
-                  item.charAlignments['Lawful Evil'] = false;
-                  item.charAlignments['Neutral Evil'] = false;
-                  item.charAlignments['Chaotic Evil'] = false;
-                  break;
+                  item.charAlignments['Lawful Evil'] = false
+                  item.charAlignments['Neutral Evil'] = false
+                  item.charAlignments['Chaotic Evil'] = false
+                  break
                 case 'lawful':
-                  item.charAlignments['Lawful Good'] = false;
-                  item.charAlignments['Lawful Neutral'] = false;
-                  item.charAlignments['Lawful Evil'] = false;
-                  break;
+                  item.charAlignments['Lawful Good'] = false
+                  item.charAlignments['Lawful Neutral'] = false
+                  item.charAlignments['Lawful Evil'] = false
+                  break
                 case 'chaotic':
-                  item.charAlignments['Chaotic Good'] = false;
-                  item.charAlignments['Chaotic Neutral'] = false;
-                  item.charAlignments['Chaotic Evil'] = false;
-                  break;
+                  item.charAlignments['Chaotic Good'] = false
+                  item.charAlignments['Chaotic Neutral'] = false
+                  item.charAlignments['Chaotic Evil'] = false
+                  break
                 case 'only-good-evil':
-                  item.charAlignments['Lawful Neutral'] = false;
-                  item.charAlignments['True Neutral'] = false;
-                  item.charAlignments['Chaotic Neutral'] = false;
-                  break;
+                  item.charAlignments['Lawful Neutral'] = false
+                  item.charAlignments['True Neutral'] = false
+                  item.charAlignments['Chaotic Neutral'] = false
+                  break
                 case 'only-law-chaos':
-                  item.charAlignments['Neutral Good'] = false;
-                  item.charAlignments['True Neutral'] = false;
-                  item.charAlignments['Neutral Evil'] = false;
-                  break;
+                  item.charAlignments['Neutral Good'] = false
+                  item.charAlignments['True Neutral'] = false
+                  item.charAlignments['Neutral Evil'] = false
+                  break
                 default:
                   console.error('Unknown anti flag! - ' + flag)
               }
@@ -177,34 +142,31 @@ export default createStore({
 
         // process restrictions
         if (item.Restrictions && item.Restrictions.indexOf('bladed') > -1) {
-          item.charClasses.cleric = false;
-          item.charClasses.druid = false;
+          item.charClasses.cleric = false
+          item.charClasses.druid = false
         }
 
         if (item.Restrictions && item.Restrictions.indexOf('dishonorable') > -1) {
-          item.charClasses.paladin = false;
+          item.charClasses.paladin = false
         }
 
-        catalog.push(item);
+        catalog.push(item)
+      })
 
-      });
-
-      context.commit('SET_ITEM_TYPES', Object.keys(itemTypes).sort())
-      context.commit('SET_ITEM_AFFECTS', Object.keys(itemAffects).sort())
-      context.commit('SET_ITEM_PROPERTIES', Object.keys(itemProps).sort())
-      context.commit('SET_ITEM_CLASSES', Object.keys(itemClasses).sort())
+      this.itemTypes = Object.keys(itemTypes).sort()
+      this.itemAffects = Object.keys(itemAffects).sort()
+      this.itemProperties = Object.keys(itemProps).sort()
+      this.itemClasses = Object.keys(itemClasses).sort()
 
       // sort by level then name
       catalog.sort((a, b) => {
         if (a.level !== b.level) {
-          return a.level - b.level;
+          return a.level - b.level
         }
-        return a.name.localeCompare(b.name);
-      });
+        return a.name.localeCompare(b.name)
+      })
 
-      context.commit('SET_CATALOG', catalog)
-   },
+      this.catalog = catalog
+    },
   },
-  modules: {
-  }
 })
