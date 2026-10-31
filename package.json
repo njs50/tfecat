@@ -24,7 +24,7 @@
     "express": "^5.1.0",
     "got": "^14.4.7",
     "vue": "^3.5.44",
-    "vuetify": "^3.8.11",
+    "vuetify": "^4.3.1",
     "vuex": "^4.1.0"
   },
   "devDependencies": {

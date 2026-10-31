@@ -33,6 +33,17 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000
   },
   optimizeDeps: {
-    include: ['vue', 'vuex', 'vuetify', 'axios']
+    // Vuetify 4 overlay stacking in Vite dev needs consistent pre-bundling
+    include: [
+      'vue',
+      'vuex',
+      'vuetify',
+      'axios',
+      'vuetify/components/VOverlay',
+      'vuetify/components/VDialog',
+      'vuetify/components/VMenu',
+      'vuetify/components/VSelect',
+      'vuetify/components/VTooltip',
+    ]
   }
 })

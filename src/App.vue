@@ -28,7 +28,7 @@
 
           <v-card-text class="modal-content pa-4">
             <div class="mb-4">
-              <p class="text-body-1 mb-3">
+              <p class="text-body-large mb-3">
                 To install the tfecat package for the first time, copy and paste the following command into your Mudlet input bar:
               </p>
 
@@ -47,7 +47,7 @@
               auto-grow
             ></v-textarea>
 
-            <div class="mt-3 text-caption text-grey-lighten-1">
+            <div class="mt-3 text-body-small text-grey-lighten-1">
               <v-icon size="small" class="mr-1">mdi-lightbulb</v-icon>
               Click the copy button to copy the command to your clipboard
             </div>
@@ -84,7 +84,7 @@
           <v-expansion-panel>
             <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
             <v-expansion-panel-text class="pa-1">
-              <v-row align="center" class="mb-0">
+              <v-row class="align-center mb-0">
                 <v-col class="d-flex pa-1" cols="12">
                   <v-range-slider
                     v-model="levelRange"
@@ -98,7 +98,7 @@
                 </v-col>
               </v-row>
 
-              <v-row align="center" class="mb-0">
+              <v-row class="align-center mb-0">
                 <v-col class="d-flex pa-1" cols="3">
                   <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable hide-details></v-select>
                 </v-col>
@@ -116,7 +116,7 @@
                 </v-col>
               </v-row>
 
-              <v-row align="center" class="mb-0">
+              <v-row class="align-center mb-0">
                 <v-col class="d-flex pa-1" cols="4">
                   <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
                 </v-col>
@@ -130,7 +130,7 @@
                 </v-col>
               </v-row>
 
-              <v-row align="center" class="mb-0">
+              <v-row class="align-center mb-0">
                 <v-col class="d-flex pa-1" cols="4">
                   <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
                 </v-col>
@@ -152,7 +152,7 @@
             <v-spacer></v-spacer>
             <v-text-field
               v-model="searchText"
-              append-icon="mdi-magnify"
+              append-inner-icon="mdi-magnify"
               label="Search"
               single-line
               hide-details
@@ -166,7 +166,7 @@
           <v-data-table
             :headers="headers"
             :items="catalog"
-            :footer-props="footerProps"
+            :items-per-page-options="itemsPerPageOptions"
             :sort-by="[{ key: 'datetime', order: 'desc' }]"
             class="elevation-0"
             hover
@@ -271,9 +271,7 @@ const headers = ref([
   { title: 'Armor Class', key: 'Armor Class', align: 'end' as const },
 ])
 
-const footerProps = ref({
-  "items-per-page-options": [5,10,15,20,25,30,-1]
-})
+const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
 
 const itemSlots = ref([
   "arms",
