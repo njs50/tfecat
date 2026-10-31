@@ -630,6 +630,14 @@ onMounted(() => {
 .bg-grey-darken-4 {
   background: #232323 !important;
 }
+
+/* 2-across from ~300px; 1-across only below (skip Vuetify sm ~600). */
+@media (max-width: 299px) {
+  .filter-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
 </style>
 
 <style>
