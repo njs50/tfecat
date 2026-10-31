@@ -41,10 +41,20 @@ jobs:
       - name: Build site
         run: pnpm run build
 
-      - name: Deploy to gh-pages
-        # v4.1.0+ runs on node24 (floating @v4 is fine once >=4.1.0; pin for clarity)
-        uses: peaceiris/actions-gh-pages@v4.1.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
+      # Publish ./dist to the existing gh-pages branch with GITHUB_TOKEN.
+      # Keeps Pages + Mudlet (which reads catalog.json from branch gh-pages).
+      # Prefer this over actions/deploy-pages so we don't abandon the branch source.
+      - name: Deploy dist to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          touch dist/.nojekyll
+          cd dist
+          git init
+          git checkout -B gh-pages
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "Deploy ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:gh-pages
