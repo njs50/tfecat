@@ -9,7 +9,16 @@ export default createVuetify({
   components,
   directives,
   theme: {
-    defaultTheme: 'dark'
+    defaultTheme: 'tfecatDark',
+    themes: {
+      tfecatDark: {
+        dark: true,
+        colors: {
+          background: '#101513', surface: '#121816', 'surface-variant': '#18211d',
+          primary: '#b8f36b', 'on-primary': '#101513', secondary: '#92a099', 'on-surface': '#e9f0ec',
+        },
+      },
+    },
   },
   icons: {
     defaultSet: 'mdi'
