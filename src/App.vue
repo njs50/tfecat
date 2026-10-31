@@ -212,7 +212,7 @@
               {{ selectedItem["Unidentified Name"] }}
             </v-card-subtitle>
             <v-card-text class="mt-2 modal-content pa-4" style="border-radius: 8px;">
-              <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto; flex: 1; min-height: 0;">{{ selectedItem ? selectedItem.buffer : '' }}</pre>
+              <pre style="margin: 0; color: #e0e0e0; font-size: 1rem; white-space: pre; overflow-x: auto; flex: 1; min-height: 0;">{{ selectedItemDisplayBuffer }}</pre>
               <!-- <pre>{{ selectedItem  ? JSON.stringify(selectedItem, null, 2) : '' }}</pre> -->
               <div v-if="selectedItem && selectedItem.custom && Object.keys(selectedItem.custom).length > 0" class="mt-4">
                         
@@ -456,6 +456,71 @@ const catalog = computed<any[]>(() => {
 
     return true
   })
+})
+
+/** Allowed values for a restriction map; null if unrestricted (all true). */
+const allowedRestrictionValues = (map: Record<string, boolean> | undefined): string[] | null => {
+  if (!map) {
+    return null
+  }
+  const entries = Object.entries(map)
+  if (!entries.length) {
+    return null
+  }
+  const allowed = entries.filter(([, ok]) => ok).map(([key]) => key)
+  if (allowed.length === entries.length) {
+    return null
+  }
+  return allowed
+}
+
+const buildRequiresBlock = (item: any): string | null => {
+  const lines: string[] = []
+  const gender = allowedRestrictionValues(item.charGenders)
+  if (gender) {
+    lines.push(`    Gender: ${gender.join(', ')}`)
+  }
+  const race = allowedRestrictionValues(item.charRaces)
+  if (race) {
+    lines.push(`    Race: ${race.join(', ')}`)
+  }
+  const klass = allowedRestrictionValues(item.charClasses)
+  if (klass) {
+    lines.push(`    Class: ${klass.join(', ')}`)
+  }
+  const alignment = allowedRestrictionValues(item.charAlignments)
+  if (alignment) {
+    lines.push(`    Alignment: ${alignment.join(', ')}`)
+  }
+  if (!lines.length) {
+    return null
+  }
+  return ['Requires:', ...lines].join('\n')
+}
+
+/** Raw ident with Anti-Flags replaced by a Requires block from parsed maps. */
+const formatItemDisplayBuffer = (item: any): string => {
+  const buffer: string = item?.buffer ?? ''
+  const requires = buildRequiresBlock(item)
+  const antiFlagsLine = /^[ \t]*Anti-Flags:.*$/m
+
+  if (!requires) {
+    return buffer
+  }
+  if (antiFlagsLine.test(buffer)) {
+    return buffer.replace(antiFlagsLine, requires)
+  }
+  if (/^[ \t]*Restrictions:.*$/m.test(buffer)) {
+    return buffer.replace(/^[ \t]*Restrictions:.*$/m, (line) => `${requires}\n\n${line}`)
+  }
+  return `${buffer.replace(/\s*$/, '')}\n\n${requires}\n`
+}
+
+const selectedItemDisplayBuffer = computed(() => {
+  if (!selectedItem.value) {
+    return ''
+  }
+  return formatItemDisplayBuffer(selectedItem.value)
 })
 
 // Methods
