@@ -6,32 +6,30 @@ const app = express();
 
 let catalog, summary, trainers, customs
 
-// load catalog from github
+// load catalog from github (got 16: prefer .json() over manual JSON.parse)
 const catSrc = 'https://raw.githubusercontent.com/njs50/tfecat/master/public/catalog.json'
-got(catSrc)
-  .then(response => {
-   catalog = JSON.parse(response.body);
+got(catSrc).json()
+  .then(data => {
+   catalog = data;
    updateSummary()
-
-  //  console.log(summary)
   }).catch(error => {
     console.log(error);
   })
 ;
 
 const trainerSrc = 'https://raw.githubusercontent.com/njs50/tfecat/master/public/trainers.json'
-got(trainerSrc)
-  .then(response => {
-    trainers = JSON.parse(response.body);
+got(trainerSrc).json()
+  .then(data => {
+    trainers = data;
   }).catch(error => {
     console.log(error);
   })
 ;
 
 const customsSrc = 'https://raw.githubusercontent.com/njs50/tfecat/master/public/customs.json'
-got(customsSrc)
-  .then(response => {
-    customs = JSON.parse(response.body);
+got(customsSrc).json()
+  .then(data => {
+    customs = data;
   }).catch(error => {
     console.log(error);
   })
