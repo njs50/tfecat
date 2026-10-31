@@ -1,0 +1,551 @@
+<template>
+  <v-container fluid class="pa-2">
+        <v-expansion-panels multiple>
+          <v-expansion-panel>
+            <v-expansion-panel-title>Characters</v-expansion-panel-title>
+            <v-expansion-panel-text class="pa-1">
+              <v-row class="align-center mb-0">
+                <v-col class="filter-col d-flex pa-1" cols="12" md="6">
+                  <v-select
+                    v-model="activeCharacterProfileId"
+                    :items="characterProfileSelectItems"
+                    label="Character profile"
+                    density="compact"
+                    clearable
+                    hide-details
+                    @update:model-value="applyCharacterProfile"
+                  ></v-select>
+                </v-col>
+                <v-col class="filter-col d-flex pa-1 align-center" cols="12" md="6">
+                  <v-btn
+                    variant="tonal"
+                    density="compact"
+                    prepend-icon="mdi-account-cog"
+                    @click="openCharactersManager"
+                  >
+                    Manage characters
+                  </v-btn>
+                </v-col>
+              </v-row>
+
+              <v-row class="align-center mb-0">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select v-model="charRace" :items="charRaces" label="Race" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select v-model="charClass" :items="charClasses" label="Class" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+                  <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable hide-details></v-select>
+                </v-col>
+              </v-row>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <v-expansion-panel>
+            <v-expansion-panel-title>Weighted search</v-expansion-panel-title>
+            <v-expansion-panel-text class="pa-1">
+              <v-row class="align-center mb-0">
+                <v-col class="filter-col d-flex pa-1" cols="12" md="6">
+                  <v-select
+                    v-model="activeWeightConfigId"
+                    :items="weightConfigSelectItems"
+                    label="Weight configuration"
+                    density="compact"
+                    clearable
+                    hide-details
+                    @update:model-value="onWeightConfigSelected"
+                  ></v-select>
+                </v-col>
+                <v-col class="filter-col d-flex pa-1 align-center" cols="12" md="6">
+                  <v-btn
+                    variant="tonal"
+                    density="compact"
+                    prepend-icon="mdi-scale-balance"
+                    @click="openWeightsManager"
+                  >
+                    Manage weights
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+
+          <v-expansion-panel>
+            <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
+            <v-expansion-panel-text class="pa-1">
+              <v-row class="align-center mb-0">
+                <v-col class="d-flex pa-1" cols="12">
+                  <v-range-slider
+                    v-model="levelRange"
+                    min="0"
+                    max="90"
+                    step="1"
+                    thumb-label="always"
+                    label="Item Level Range"
+                    hide-details
+                    density="compact"
+                  ></v-range-slider>
+                </v-col>
+              </v-row>
+
+              <v-row class="align-center mb-0">
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+                  <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+                  <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+                  <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+                  <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+                  <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
+                </v-col>
+
+                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+                  <v-autocomplete
+                    v-model="itemProperty"
+                    :items="itemProperties"
+                    label="Item Property"
+                    density="compact"
+                    clearable
+                    hide-details
+                    :disabled="!!activeWeightConfig"
+                  ></v-autocomplete>
+                </v-col>
+              </v-row>
+            </v-expansion-panel-text>
+          </v-expansion-panel>
+        </v-expansion-panels>
+
+        <v-card class="mt-2 elevation-2 rounded-lg">
+          <v-card-title class="d-flex align-center py-1">
+            <v-spacer></v-spacer>
+            <v-text-field
+              v-model="searchText"
+              append-inner-icon="mdi-magnify"
+              label="Search"
+              single-line
+              hide-details
+              clearable
+              density="compact"
+              class="ma-1"
+              style="max-width: 400px;"
+            ></v-text-field>
+          </v-card-title>
+          <v-divider></v-divider>
+          <v-data-table
+            :headers="headers"
+            :items="catalog"
+            :items-per-page-options="itemsPerPageOptions"
+            v-model:sort-by="sortBy"
+            class="elevation-0"
+            hover
+          >
+            <template #item="{ item, index }">
+              <tr
+                @click="rowClicked(item)"
+                style="cursor:pointer;"
+                :class="[index % 2 === 0 ? 'bg-grey-darken-4' : '', 'hover-row']"
+              >
+                <td
+                  v-for="header in headers"
+                  :key="header.key"
+                  :style="{
+                    'text-align': header.align || 'start',
+                    ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
+                  }"
+                >
+                  <template v-if="header.key === 'Weight'">
+                    <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
+                  </template>
+                  <template v-else-if="header.key === 'propertyAmount'">
+                    <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
+                  </template>
+                  <template v-else-if="header.key === 'weightedScore'">
+                    <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
+                  </template>
+                  <template v-else-if="header.key === 'damageOrAc'">
+                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
+                    <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
+                  </template>
+                  <template v-else-if="header.key === 'Wear Loc.'">
+                    <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
+                  </template>
+                  <template v-else-if="header.key === 'Layer'">
+                    <span v-if="item.Layer">{{ Array.isArray(item.Layer) ? item.Layer.join(', ') : item.Layer }}</span>
+                  </template>
+                  <template v-else>
+                    {{ item[header.key] }}
+                  </template>
+                </td>
+              </tr>
+            </template>
+          </v-data-table>
+        </v-card>
+  </v-container>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
+import {
+  catalogQueryToState,
+  catalogStateToQuery,
+  sameCatalogQuery,
+} from '../composables/useCatalogQuery'
+import { getItemPropertyAmount } from '../itemProperties'
+import { usePresets } from '../presets/usePresets'
+import { formatWeightedScore, getWeightedScore } from '../presets/weightedScore'
+import { useCatalogStore } from '../store'
+
+const store = useCatalogStore()
+const route = useRoute()
+const router = useRouter()
+const { mdAndUp } = useDisplay()
+
+const {
+  activeWeightConfigId,
+  activeCharacterProfileId,
+  activeWeightConfig,
+  weightConfigSelectItems,
+  characterProfileSelectItems,
+  characterProfiles,
+} = usePresets()
+
+const searchText = ref('')
+const levelRange = ref<[number, number]>([0, 90])
+const charAlignment = ref<string | null>(null)
+const charClass = ref<string | null>(null)
+const charRace = ref<string | null>(null)
+const charGender = ref<string | null>(null)
+const itemType = ref<string | null>(null)
+const itemClass = ref<string | null>(null)
+const itemAffect = ref<string | null>(null)
+const itemProperty = ref<string | null>(null)
+const itemSlot = ref<string | null>(null)
+const itemLayer = ref<string | null>(null)
+
+const applyingRoute = ref(false)
+
+const applyQueryToState = () => {
+  applyingRoute.value = true
+  const partial = catalogQueryToState(route.query)
+  searchText.value = partial.searchText ?? ''
+  levelRange.value = partial.levelRange ?? [0, 90]
+  charAlignment.value = partial.charAlignment ?? null
+  charClass.value = partial.charClass ?? null
+  charRace.value = partial.charRace ?? null
+  charGender.value = partial.charGender ?? null
+  itemType.value = partial.itemType ?? null
+  itemClass.value = partial.itemClass ?? null
+  itemAffect.value = partial.itemAffect ?? null
+  itemProperty.value = partial.itemProperty ?? null
+  itemSlot.value = partial.itemSlot ?? null
+  itemLayer.value = partial.itemLayer ?? null
+  activeWeightConfigId.value = partial.activeWeightConfigId ?? null
+  activeCharacterProfileId.value = partial.activeCharacterProfileId ?? null
+  sortByScoreOrPropertyDesc()
+  queueMicrotask(() => {
+    applyingRoute.value = false
+  })
+}
+
+const currentFilterState = () => ({
+  searchText: searchText.value,
+  levelRange: levelRange.value,
+  charAlignment: charAlignment.value,
+  charClass: charClass.value,
+  charRace: charRace.value,
+  charGender: charGender.value,
+  itemType: itemType.value,
+  itemClass: itemClass.value,
+  itemAffect: itemAffect.value,
+  itemProperty: itemProperty.value,
+  itemSlot: itemSlot.value,
+  itemLayer: itemLayer.value,
+  activeWeightConfigId: activeWeightConfigId.value,
+  activeCharacterProfileId: activeCharacterProfileId.value,
+})
+
+const pushFilterQuery = () => {
+  if (applyingRoute.value) return
+  const query = catalogStateToQuery(currentFilterState())
+  if (sameCatalogQuery(query, route.query)) return
+  router.replace({ name: 'catalog', query })
+}
+
+watch(
+  [
+    searchText,
+    levelRange,
+    charAlignment,
+    charClass,
+    charRace,
+    charGender,
+    itemType,
+    itemClass,
+    itemAffect,
+    itemProperty,
+    itemSlot,
+    itemLayer,
+    activeWeightConfigId,
+    activeCharacterProfileId,
+  ],
+  () => {
+    pushFilterQuery()
+  },
+  { deep: true },
+)
+
+watch(
+  () => route.query,
+  () => {
+    if (route.name !== 'catalog') return
+    const query = catalogStateToQuery(currentFilterState())
+    if (sameCatalogQuery(query, route.query)) return
+    applyQueryToState()
+  },
+)
+
+const headers = computed(() => {
+  const cols: { title: string; key: string; align: 'start' | 'end'; width?: string }[] = [
+    { title: 'Level', key: 'Level', align: 'end', width: '4.5rem' },
+    { title: 'Item', key: 'name', align: 'start' },
+  ]
+
+  if (mdAndUp.value) {
+    cols.push(
+      { title: 'Wear Loc.', key: 'Wear Loc.', align: 'start' },
+      { title: 'Layer', key: 'Layer', align: 'start' },
+    )
+  }
+
+  const weightedActive = !!activeWeightConfig.value
+  if (weightedActive) {
+    cols.push({
+      title: activeWeightConfig.value?.name
+        ? `Score (${activeWeightConfig.value.name})`
+        : 'Score',
+      key: 'weightedScore',
+      align: 'end',
+    })
+  } else if (itemProperty.value) {
+    cols.push({
+      title: String(itemProperty.value),
+      key: 'propertyAmount',
+      align: 'end',
+    })
+  } else if (mdAndUp.value) {
+    cols.push({ title: 'Weight', key: 'Weight', align: 'end' })
+  }
+
+  if (mdAndUp.value || (!itemProperty.value && !weightedActive)) {
+    let damageOrAcTitle = ''
+    if (itemType.value === 'armor') {
+      damageOrAcTitle = 'Armor Class'
+    } else if (itemType.value === 'weapon') {
+      damageOrAcTitle = 'Av. Damage'
+    }
+    cols.push({ title: damageOrAcTitle, key: 'damageOrAc', align: 'end' })
+  }
+  return cols
+})
+
+const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
+
+const sortBy = ref<{ key: string; order: 'asc' | 'desc' }[]>([
+  { key: 'datetime', order: 'desc' },
+])
+
+const sortByScoreOrPropertyDesc = () => {
+  if (activeWeightConfig.value) {
+    sortBy.value = [{ key: 'weightedScore', order: 'desc' }]
+  } else if (itemProperty.value) {
+    sortBy.value = [{ key: 'propertyAmount', order: 'desc' }]
+  }
+}
+
+watch([activeWeightConfigId, itemProperty], () => {
+  sortByScoreOrPropertyDesc()
+})
+
+const itemSlots = ref([
+  'arms', 'body', 'feet', 'finger', 'hands', 'head', 'left_hand', 'legs',
+  'float_nearby', 'neck', 'right_hand', 'waist', 'wrist',
+])
+
+const itemLayers = ref(['bottom', 'under', 'base', 'over', 'top'])
+
+const charClasses = [
+  'Bard', 'Bulwark', 'Cleric', 'Druid', 'Harbinger', 'Legate', 'Mage', 'Monk',
+  'Paladin', 'Ranger', 'Reaver', 'Thief', 'Warrior',
+].sort()
+
+const charRaces = [
+  'Ogre', 'Troll', 'Orc', 'Vyan', 'Goblin', 'Human', 'Lizardfolk', 'Dwarf',
+  'Halfling', 'Gnome', 'Ent', 'Elf',
+].sort()
+
+const charAlignments = [
+  'Lawful Good', 'Lawful Neutral', 'Lawful Evil', 'Neutral Good', 'True Neutral',
+  'Neutral Evil', 'Chaotic Good', 'Chaotic Neutral', 'Chaotic Evil',
+].sort()
+
+const charGenders = ['Female', 'Male'].sort()
+
+const itemTypes = computed(() => store.itemTypes ?? [])
+const itemClasses = computed(() => store.itemClasses ?? [])
+const itemAffects = computed(() => store.itemAffects ?? [])
+const itemProperties = computed(() => store.itemProperties ?? [])
+
+const catalog = computed<any[]>(() => {
+  const catalog = store.catalog
+  if (!catalog) return []
+
+  const filtered = catalog.filter((item: any) => {
+    if (searchText.value) {
+      const q = searchText.value.toLowerCase()
+      if (
+        item['Unidentified Name'].toLowerCase().indexOf(q) === -1 &&
+        item.buffer.toLowerCase().indexOf(q) === -1 &&
+        item.name.toLowerCase().indexOf(q) === -1
+      ) {
+        return false
+      }
+    }
+    if (itemType.value && item.itemType !== itemType.value) return false
+    if (itemClass.value && (!item.Class || item.Class !== itemClass.value)) return false
+    if (itemAffect.value) {
+      if (!item.affects || !item.affects.find((aff: any) => aff.name === itemAffect.value)) {
+        return false
+      }
+    }
+    if (!activeWeightConfig.value && itemProperty.value) {
+      if (getItemPropertyAmount(item, itemProperty.value) === null) return false
+    }
+    if (itemSlot.value) {
+      if (!item['Wear Loc.'] || item['Wear Loc.'].indexOf(itemSlot.value) < 0) return false
+    }
+    if (itemLayer.value) {
+      if (!item.Layer || item.Layer.indexOf(itemLayer.value) < 0) return false
+    }
+    if (charAlignment.value && !item.charAlignments[charAlignment.value]) return false
+    if (charRace.value && !item.charRaces[charRace.value.toLowerCase()]) return false
+    if (charClass.value && !item.charClasses[charClass.value.toLowerCase()]) return false
+    if (charGender.value && !item.charGenders[charGender.value.toLowerCase()]) return false
+    if (item.Level < levelRange.value[0] || item.Level > levelRange.value[1]) return false
+    return true
+  })
+
+  const weights = activeWeightConfig.value?.weights ?? null
+  return filtered.map((item: any) => ({
+    ...item,
+    propertyAmount:
+      !weights && itemProperty.value
+        ? getItemPropertyAmount(item, itemProperty.value)
+        : null,
+    weightedScore: weights ? getWeightedScore(item, weights) : null,
+    damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
+  }))
+})
+
+const onWeightConfigSelected = (id: string | null) => {
+  if (id) itemProperty.value = null
+  sortByScoreOrPropertyDesc()
+}
+
+const applyCharacterProfile = (id: string | null) => {
+  if (!id) return
+  const profile = characterProfiles.value.find((p) => p.id === id)
+  if (!profile) return
+  levelRange.value = [1, profile.level]
+  charAlignment.value = profile.alignment
+  charRace.value = profile.race
+  charClass.value = profile.class
+  charGender.value = profile.gender
+}
+
+const openWeightsManager = () => {
+  router.push({
+    name: 'weights',
+    params: activeWeightConfigId.value ? { id: activeWeightConfigId.value } : {},
+    query: route.query,
+  })
+}
+
+const openCharactersManager = () => {
+  router.push({
+    name: 'characters',
+    params: activeCharacterProfileId.value ? { id: activeCharacterProfileId.value } : {},
+    query: route.query,
+  })
+}
+
+const rowClicked = (item: any) => {
+  router.push({
+    name: 'item',
+    params: { itemKey: item.catalogKey ?? item.name },
+    query: route.query,
+  })
+}
+
+const CATALOG_QUERY_KEYS = new Set([
+  'q', 'level', 'align', 'race', 'class', 'gender', 'type', 'itemClass',
+  'affect', 'slot', 'layer', 'property', 'weights', 'character',
+])
+
+const routeHasCatalogQuery = () =>
+  Object.keys(route.query).some((k) => CATALOG_QUERY_KEYS.has(k))
+
+onMounted(() => {
+  if (routeHasCatalogQuery()) {
+    // Shared / refreshed URL wins over localStorage actives.
+    applyQueryToState()
+  } else {
+    // Seed the address bar from current UI + localStorage preset selection.
+    pushFilterQuery()
+  }
+  store.fetchCatalog()
+  sortByScoreOrPropertyDesc()
+})
+</script>
+
+<style scoped>
+.v-icon {
+  color: inherit;
+}
+.v-btn .v-icon {
+  color: inherit;
+}
+.v-text-field .v-icon {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+.hover-row:hover {
+  background: #333 !important;
+}
+.bg-grey-darken-4 {
+  background: #232323 !important;
+}
+@media (max-width: 449px) {
+  .filter-col {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+}
+</style>

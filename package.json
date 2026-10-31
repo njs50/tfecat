@@ -30,6 +30,7 @@
     "got": "^16.2.0",
     "pinia": "^4.1.0",
     "vue": "^3.5.44",
+    "vue-router": "^4.6.4",
     "vuetify": "^4.3.1"
   },
   "devDependencies": {

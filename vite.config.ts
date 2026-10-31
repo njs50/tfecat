@@ -25,7 +25,7 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return
           if (id.includes('vuetify') || id.includes('@mdi')) return 'vuetify-vendor'
-          if (id.includes('vue') || id.includes('pinia')) return 'vue-vendor'
+          if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) return 'vue-vendor'
           if (id.includes('axios')) return 'utils-vendor'
         }
       }
@@ -36,6 +36,7 @@ export default defineConfig({
     // Vuetify 4 overlay stacking in Vite dev needs consistent pre-bundling
     include: [
       'vue',
+      'vue-router',
       'pinia',
       'vuetify',
       'axios',

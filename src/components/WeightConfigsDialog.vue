@@ -1,9 +1,8 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="720" @update:model-value="emit('update:modelValue', $event)">
-    <v-card class="modal-card">
+  <v-card class="modal-card">
       <v-card-title class="modal-title d-flex align-center justify-space-between">
         <span>Weight configurations</span>
-        <v-btn icon variant="text" @click="emit('update:modelValue', false)">
+        <v-btn icon variant="text" @click="emit('close')">
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
@@ -94,28 +93,28 @@
           Delete
         </v-btn>
         <v-spacer></v-spacer>
-        <v-btn variant="text" @click="emit('update:modelValue', false)">Close</v-btn>
+        <v-btn variant="text" @click="emit('close')">Close</v-btn>
         <v-btn color="primary" variant="elevated" :disabled="!draft" @click="save">
           Save
         </v-btn>
       </v-card-actions>
     </v-card>
-  </v-dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { newId } from '../presets/storage'
 import type { WeightConfig } from '../presets/types'
 
 const props = defineProps<{
-  modelValue: boolean
   configs: WeightConfig[]
   propertyOptions: string[]
+  /** Optional config id to open for editing (from /weights/:id). */
+  startId?: string | null
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
+  close: []
   save: [config: WeightConfig]
   remove: [id: string]
 }>()
@@ -159,19 +158,28 @@ const startNew = () => {
   })
 }
 
+const openEditor = () => {
+  isNew.value = false
+  const start = props.startId
+    ? props.configs.find((c) => c.id === props.startId)
+    : null
+  if (start) {
+    editingId.value = start.id
+    loadDraft(start)
+  } else if (props.configs.length) {
+    editingId.value = props.configs[0].id
+    loadDraft(props.configs[0])
+  } else {
+    startNew()
+  }
+}
+
+onMounted(openEditor)
+
 watch(
-  () => props.modelValue,
-  (open) => {
-    if (!open) {
-      return
-    }
-    isNew.value = false
-    if (props.configs.length) {
-      editingId.value = props.configs[0].id
-      loadDraft(props.configs[0])
-    } else {
-      startNew()
-    }
+  () => props.startId,
+  () => {
+    openEditor()
   },
 )
 
