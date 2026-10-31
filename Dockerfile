@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 RUN apk add --update tini
 
 # Tini is now available at /sbin/tini
@@ -8,7 +8,7 @@ ENTRYPOINT ["/sbin/tini", "--"]
 COPY package.json package-lock.json ./
 COPY server ./server/
 
-RUN npm ci --only=prod
+RUN npm ci --omit=dev
 
 EXPOSE 3000
 
