@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Wait for njs50/tcat-preview's GitHub Pages workflow (pages-build-deployment)
-# after a preview push, then record the result on the tfecat commit that
-# produced it:
+# Wait until the njs50/tcat-preview preview for this push is deployed, then
+# record that on the tfecat commit:
 #   - commit status context tcat-preview/pages-build-deployment
 #   - one sticky PR comment containing that workflow's status badge
 #
-# Reads use TCAT_PREVIEW_PAT when it can call the Actions API, then the
-# public API (tcat-preview is public). DRY_RUN=1 prints the status and
-# comment instead of calling gh.
+# Deployed means the Pages build for PREVIEW_SHA is "built" (Pages API).
+# If the PAT cannot read Pages, a successful pages-build-deployment run for
+# that same SHA is enough. TCAT_PREVIEW_PAT is tried first (it needs Actions
+# and Pages read); public Actions is the fallback. DRY_RUN=1 prints the
+# status and comment instead of calling gh.
 set -euo pipefail
 
 PREVIEW_REPO="${PREVIEW_REPO:-njs50/tcat-preview}"
@@ -121,11 +122,18 @@ post_status() {
 write_comment() {
   local state="$1"
   local target_url="$2"
+  local description="$3"
   local label short src_short
   short="${PREVIEW_SHA:0:7}"
   src_short="${GITHUB_SHA:0:7}"
   case "$state" in
-    success) label="succeeded" ;;
+    success)
+      if [ "$description" = "Preview deployed" ]; then
+        label="deployed"
+      else
+        label="succeeded"
+      fi
+      ;;
     failure) label="failed" ;;
     *) label="did not finish" ;;
   esac
@@ -190,7 +198,7 @@ finish() {
   local description="$2"
   local target_url="$3"
   post_status "$state" "$description" "$target_url"
-  write_comment "$state" "$target_url"
+  write_comment "$state" "$target_url" "$description"
   upsert_comment
   echo "tcat-preview pages-build-deployment: ${state} (${description})"
   if [ "$state" != "success" ]; then
@@ -209,68 +217,126 @@ description_for() {
   esac
 }
 
+# Pages API status for PREVIEW_SHA: built, building, queued, errored, missing, unavailable.
+read_pages() {
+  PAGES_STATUS="unavailable"
+  PAGES_ERROR=""
+  if ! github_get "${API_ROOT}/pages/builds?per_page=20" "$RESP_FILE"; then
+    return 0
+  fi
+  PAGES_STATUS=$(jq -r --arg sha "$PREVIEW_SHA" '
+    (if type == "array" then . else [] end)
+    | map(select((.commit // "" | ascii_downcase) == $sha))[0].status // "missing"
+  ' "$RESP_FILE" 2>/dev/null) || PAGES_STATUS="unavailable"
+  PAGES_ERROR=$(jq -r --arg sha "$PREVIEW_SHA" '
+    (if type == "array" then . else [] end)
+    | map(select((.commit // "" | ascii_downcase) == $sha))[0].error.message // ""
+  ' "$RESP_FILE" 2>/dev/null || true)
+  if [ "$PAGES_ERROR" = "null" ]; then
+    PAGES_ERROR=""
+  fi
+}
+
+# Workflow run for PREVIEW_SHA. RUN_STATUS is completed, in_progress, queued,
+# missing, or unavailable.
+read_run() {
+  RUN_STATUS=""
+  RUN_CONCLUSION=""
+  RUN_URL=""
+  if [ -z "${workflow_id:-}" ]; then
+    return 0
+  fi
+  if ! github_get "$runs_url" "$RESP_FILE"; then
+    RUN_STATUS="unavailable"
+    return 0
+  fi
+  local run
+  run=$(jq -c --arg sha "$PREVIEW_SHA" \
+    '[.workflow_runs // [] | .[] | select((.head_sha // "" | ascii_downcase) == $sha)][0] // empty' \
+    "$RESP_FILE" 2>/dev/null) || {
+    RUN_STATUS="unavailable"
+    return 0
+  }
+  if [ -z "$run" ]; then
+    RUN_STATUS="missing"
+    return 0
+  fi
+  RUN_STATUS=$(printf '%s' "$run" | jq -r '.status // empty')
+  RUN_CONCLUSION=$(printf '%s' "$run" | jq -r '.conclusion // empty')
+  RUN_URL=$(printf '%s' "$run" | jq -r '.html_url // empty')
+}
+
+resolve_workflow_id() {
+  if [ -n "${workflow_id:-}" ]; then
+    return 0
+  fi
+  if ! github_get "${API_ROOT}/actions/workflows?per_page=100" "$RESP_FILE"; then
+    return 0
+  fi
+  workflow_id=$(jq -r \
+    '[.workflows[]? | select(.name == "pages-build-deployment" and .state == "active")][0].id // empty' \
+    "$RESP_FILE" 2>/dev/null || true)
+  if [ -n "$workflow_id" ]; then
+    runs_url="${API_ROOT}/actions/workflows/${workflow_id}/runs?branch=gh-pages&per_page=20"
+  fi
+}
+
 post_status "pending" "Waiting for tcat-preview Pages build" "$WORKFLOW_URL"
 pending_target="$WORKFLOW_URL"
-
-list_attempt=1
-while [ "$list_attempt" -le "$MAX_ATTEMPTS" ]; do
-  if github_get "${API_ROOT}/actions/workflows?per_page=100" "$RESP_FILE"; then
-    break
-  fi
-  echo "pages workflow list failed (attempt ${list_attempt}/${MAX_ATTEMPTS})"
-  if [ "$list_attempt" -eq "$MAX_ATTEMPTS" ]; then
-    finish "error" "Could not read tcat-preview Pages workflow" "$WORKFLOW_URL"
-  fi
-  list_attempt=$((list_attempt + 1))
-  sleep "$SLEEP_SECONDS"
-done
-
-workflow_id=$(jq -r '[.workflows[]? | select(.name=="pages-build-deployment" and .state=="active")][0].id // empty' "$RESP_FILE") || finish "error" "Could not read tcat-preview Pages workflow" "$WORKFLOW_URL"
-if [ -z "$workflow_id" ]; then
-  finish "error" "pages-build-deployment workflow not found" "$WORKFLOW_URL"
-fi
-
-runs_url="${API_ROOT}/actions/workflows/${workflow_id}/runs?branch=gh-pages&per_page=20"
-attempt=1
+workflow_id=""
+runs_url=""
 last_run_url=""
+attempt=1
+
 while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-  if ! github_get "$runs_url" "$RESP_FILE"; then
-    echo "pages build read failed (attempt ${attempt}/${MAX_ATTEMPTS})"
-    if [ "$attempt" -eq "$MAX_ATTEMPTS" ]; then
-      finish "error" "Could not read tcat-preview Pages workflow" "${last_run_url:-$WORKFLOW_URL}"
-    fi
-    attempt=$((attempt + 1))
-    sleep "$SLEEP_SECONDS"
-    continue
-  fi
-  run=$(jq -c --arg sha "$PREVIEW_SHA" \
-    '[.workflow_runs // [] | .[] | select((.head_sha // "" | ascii_downcase)==$sha)][0] // empty' \
-    "$RESP_FILE") || finish "error" "Could not read tcat-preview Pages workflow" "${last_run_url:-$WORKFLOW_URL}"
-  if [ -z "$run" ]; then
-    echo "pages build not started (attempt ${attempt}/${MAX_ATTEMPTS})"
-  else
-    run_status=$(printf '%s' "$run" | jq -r '.status // empty')
-    run_url=$(printf '%s' "$run" | jq -r '.html_url // empty')
-    if [ -n "$run_url" ]; then
-      last_run_url="$run_url"
-      if [ "$run_status" != "completed" ] && [ "$run_url" != "$pending_target" ]; then
-        pending_target="$run_url"
-        post_status "pending" "Waiting for tcat-preview Pages build" "$run_url"
-      fi
-    fi
-    echo "pages build status=${run_status} (attempt ${attempt}/${MAX_ATTEMPTS})"
-    if [ "$run_status" = "completed" ]; then
-      conclusion=$(printf '%s' "$run" | jq -r '.conclusion // empty')
-      target="${last_run_url:-$WORKFLOW_URL}"
-      if [ "$conclusion" = "success" ]; then
-        finish "success" "Pages build succeeded" "$target"
-      fi
-      finish "failure" "$(description_for "$conclusion")" "$target"
+  resolve_workflow_id
+  read_pages
+  read_run
+
+  if [ -n "$RUN_URL" ]; then
+    last_run_url="$RUN_URL"
+    if [ "$RUN_STATUS" != "completed" ] && [ "$RUN_URL" != "$pending_target" ]; then
+      pending_target="$RUN_URL"
+      post_status "pending" "Waiting for tcat-preview Pages build" "$RUN_URL"
     fi
   fi
+  target="${last_run_url:-$WORKFLOW_URL}"
+  echo "pages=${PAGES_STATUS} workflow=${RUN_STATUS:-none}${RUN_CONCLUSION:+/}${RUN_CONCLUSION} (attempt ${attempt}/${MAX_ATTEMPTS})"
+
+  if [ "$PAGES_STATUS" = "errored" ]; then
+    desc="Preview deploy failed"
+    if [ -n "$PAGES_ERROR" ]; then
+      desc="Preview deploy failed: ${PAGES_ERROR}"
+      desc="${desc:0:140}"
+    fi
+    finish "failure" "$desc" "$target"
+  fi
+  if [ "$RUN_STATUS" = "completed" ] && [ "$RUN_CONCLUSION" != "success" ] && [ "$PAGES_STATUS" != "built" ]; then
+    finish "failure" "$(description_for "$RUN_CONCLUSION")" "$target"
+  fi
+  if [ "$PAGES_STATUS" = "built" ]; then
+    finish "success" "Preview deployed" "$target"
+  fi
+  # Pages API is private; a successful workflow run is enough when we cannot read it.
+  if [ "$PAGES_STATUS" = "unavailable" ] && [ "$RUN_STATUS" = "completed" ] && [ "$RUN_CONCLUSION" = "success" ]; then
+    finish "success" "Pages build succeeded" "$target"
+  fi
+
+  pages_down=0
+  runs_down=0
+  if [ "$PAGES_STATUS" = "unavailable" ]; then pages_down=1; fi
+  if [ -z "${workflow_id:-}" ] || [ "$RUN_STATUS" = "unavailable" ]; then runs_down=1; fi
   if [ "$attempt" -eq "$MAX_ATTEMPTS" ]; then
-    finish "error" "Timed out waiting for Pages build" "${last_run_url:-$WORKFLOW_URL}"
+    if [ "$pages_down" = "1" ] && [ "$runs_down" = "1" ]; then
+      finish "error" "Could not read tcat-preview Pages status" "$target"
+    fi
+    if [ "$RUN_STATUS" = "completed" ] && [ "$RUN_CONCLUSION" = "success" ]; then
+      finish "success" "Pages build succeeded" "$target"
+    fi
+    finish "error" "Timed out waiting for preview deploy" "$target"
   fi
   attempt=$((attempt + 1))
   sleep "$SLEEP_SECONDS"
 done
+
+finish "error" "Timed out waiting for preview deploy" "${last_run_url:-$WORKFLOW_URL}"

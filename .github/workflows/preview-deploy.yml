@@ -7,11 +7,10 @@
 # (tcat-preview/pages-build-deployment) plus a comment with that
 # workflow's status badge.
 #
-# Requires repo secret TCAT_PREVIEW_PAT: fine-grained PAT with Contents
-# Read/Write on njs50/tcat-preview only (never commit the token).
-# Status polling uses that PAT when it can read Actions, otherwise the
-# public API. If polling is rate-limited, add Actions: Read on
-# tcat-preview to the same PAT.
+# Requires repo secret TCAT_PREVIEW_PAT: fine-grained PAT on
+# njs50/tcat-preview with Contents read/write (push), plus Actions and
+# Pages read so the job can tell when that preview is deployed.
+# Polling tries the PAT first, then the public Actions API.
 name: Preview deploy
 
 on:

@@ -7,7 +7,7 @@ SCRIPT="$ROOT/.github/scripts/report-preview-pages-status.sh"
 PREVIEW_SHA=$(printf 'a%.0s' {1..40})
 GITHUB_SHA=$(printf 'b%.0s' {1..40})
 PASS=0
-unset TCAT_PREVIEW_PAT MOCK_PAT_HTTP MAX_ATTEMPTS || true
+unset TCAT_PREVIEW_PAT MOCK_PAT_HTTP MOCK_PAGES MOCK_RUNS MOCK_WORKFLOWS MAX_ATTEMPTS || true
 
 fail() {
   echo "FAIL: $*" >&2
@@ -24,10 +24,19 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local haystack="$1"
+  local needle="$2"
+  local label="$3"
+  if grep -F -q -- "$needle" <<<"$haystack"; then
+    printf '%s\n' "$haystack" >&2
+    fail "${label}: unexpectedly found [${needle}]"
+  fi
+}
+
 run_case() {
   local name="$1"
-  local mode="$2"
-  local expect_rc="$3"
+  local expect_rc="$2"
   local tmp bin err out rc pat_env
   tmp=$(mktemp -d)
   bin="$tmp/bin"
@@ -60,41 +69,56 @@ for arg in "$@"; do
 done
 printf 'auth=%s %s\n' "$auth" "$url" >> "${MOCK_LOG:?}"
 code=200
-if [ "${MOCK_MODE:-}" = "httpfail" ]; then
-  code=500
-elif [ "$auth" = "1" ] && [ -n "${MOCK_PAT_HTTP:-}" ]; then
+if [ "$auth" = "1" ] && [ -n "${MOCK_PAT_HTTP:-}" ]; then
   code="$MOCK_PAT_HTTP"
+elif [[ "$url" == *"/pages/builds?"* ]] && [ "${MOCK_PAGES:-}" = "httpfail" ]; then
+  code=500
+elif [[ "$url" == *"/runs?"* ]] && [ "${MOCK_RUNS:-}" = "httpfail" ]; then
+  code=500
+elif [[ "$url" == *"/actions/workflows?"* ]] && [ "${MOCK_WORKFLOWS:-}" = "httpfail" ]; then
+  code=500
 fi
 if [ "$code" != "200" ]; then
   printf '%s\n' '{"message":"nope"}' > "$out"
   printf '%s' "$code"
   exit 0
 fi
-if [[ "$url" == *"/runs?"* ]]; then
-  status="completed"
-  conclusion="success"
-  sha="${PREVIEW_SHA:?}"
-  case "${MOCK_MODE:-success}" in
-    failure) conclusion="failure" ;;
-    cancelled) conclusion="cancelled" ;;
-    timed_out) conclusion="timed_out" ;;
-    timeout) status="queued"; conclusion="null" ;;
-    othersha) sha="cccccccccccccccccccccccccccccccccccccccc" ;;
+sha="${PREVIEW_SHA:?}"
+if [[ "$url" == *"/pages/builds?"* ]]; then
+  page_sha="$sha"
+  page_status="built"
+  page_error=""
+  case "${MOCK_PAGES:-built}" in
+    building|queued) page_status="$MOCK_PAGES" ;;
+    errored) page_status="errored"; page_error="Page build failed." ;;
+    missing) page_sha="dddddddddddddddddddddddddddddddddddddddd"; page_status="built" ;;
     delay)
       hits=0
       if [ -s "${MOCK_HITS:?}" ]; then hits=$(cat "$MOCK_HITS"); fi
       printf '%s' "$((hits + 1))" > "$MOCK_HITS"
-      if [ "$hits" -lt 2 ]; then
-        status="in_progress"
-        conclusion="null"
-      fi
+      if [ "$hits" -lt 2 ]; then page_status="building"; else page_status="built"; fi
       ;;
+    other) page_sha="cccccccccccccccccccccccccccccccccccccccc"; page_status="built" ;;
   esac
-  jq -n --arg sha "$sha" --arg status "$status" --arg conclusion "$conclusion" \
+  jq -n --arg sha "$page_sha" --arg status "$page_status" --arg error "$page_error" \
+    '[{commit:$sha,status:$status,error:{message:(if $error=="" then null else $error end)}}]' > "$out"
+elif [[ "$url" == *"/runs?"* ]]; then
+  run_sha="$sha"
+  status="completed"
+  conclusion="success"
+  case "${MOCK_RUNS:-success}" in
+    failure) conclusion="failure" ;;
+    cancelled) conclusion="cancelled" ;;
+    timed_out) conclusion="timed_out" ;;
+    queued) status="queued"; conclusion="null" ;;
+    missing) run_sha="dddddddddddddddddddddddddddddddddddddddd" ;;
+    other) run_sha="cccccccccccccccccccccccccccccccccccccccc" ;;
+  esac
+  jq -n --arg sha "$run_sha" --arg status "$status" --arg conclusion "$conclusion" \
     '{workflow_runs:[{head_sha:$sha,status:$status,conclusion:(if $conclusion=="null" then null else $conclusion end),html_url:"https://github.com/njs50/tcat-preview/actions/runs/999"}]}' \
     > "$out"
 elif [[ "$url" == *"/actions/workflows?"* ]]; then
-  if [ "${MOCK_MODE:-}" = "noworkflow" ]; then
+  if [ "${MOCK_WORKFLOWS:-}" = "empty" ]; then
     printf '%s\n' '{"workflows":[]}' > "$out"
   else
     printf '%s\n' '{"workflows":[{"id":402696036,"name":"pages-build-deployment","state":"active"}]}' > "$out"
@@ -122,7 +146,9 @@ EOF
   out=$(
     env "${pat_env[@]}" \
       DRY_RUN=1 \
-      MOCK_MODE="$mode" \
+      MOCK_PAGES="${MOCK_PAGES:-built}" \
+      MOCK_RUNS="${MOCK_RUNS:-success}" \
+      MOCK_WORKFLOWS="${MOCK_WORKFLOWS:-}" \
       MOCK_LOG="$tmp/log" \
       MOCK_HITS="$tmp/hits" \
       MOCK_PAT_HTTP="${MOCK_PAT_HTTP:-}" \
@@ -151,68 +177,83 @@ EOF
   echo "ok ${name}"
 }
 
-run_case "success" "success" 0
-assert_contains "$CASE_OUT" "status state=pending description=Waiting for tcat-preview Pages build" "success pending"
-assert_contains "$CASE_OUT" "status state=success description=Pages build succeeded target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "success final"
-assert_contains "$CASE_OUT" "<!-- tcat-preview-pages-status -->" "success marker"
-assert_contains "$CASE_OUT" "https://github.com/njs50/tcat-preview/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages" "success badge"
-assert_contains "$CASE_OUT" "https://njs50.github.io/tcat-preview/" "success preview url"
-assert_contains "$CASE_OUT" "this push **succeeded**" "success label"
-assert_contains "$CASE_OUT" "Source \`cursor/example-e482\` @ \`bbbbbbb\`" "success source"
-pending_line=$(grep -n 'state=pending' <<<"$CASE_OUT" | head -1 | cut -d: -f1)
-success_line=$(grep -n 'state=success' <<<"$CASE_OUT" | head -1 | cut -d: -f1)
-if [ "$pending_line" -ge "$success_line" ]; then
-  fail "pending status should be posted before success"
-fi
+MOCK_PAGES=built MOCK_RUNS=success run_case "pages built" 0
+assert_contains "$CASE_OUT" "status state=pending description=Waiting for tcat-preview Pages build" "built pending"
+assert_contains "$CASE_OUT" "status state=success description=Preview deployed target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "built final"
+assert_contains "$CASE_OUT" "<!-- tcat-preview-pages-status -->" "built marker"
+assert_contains "$CASE_OUT" "https://github.com/njs50/tcat-preview/actions/workflows/pages/pages-build-deployment/badge.svg?branch=gh-pages" "built badge"
+assert_contains "$CASE_OUT" "https://njs50.github.io/tcat-preview/" "built preview url"
+assert_contains "$CASE_OUT" "this push **deployed**" "built label"
+assert_contains "$CASE_OUT" "Source \`cursor/example-e482\` @ \`bbbbbbb\`" "built source"
+unset MOCK_PAGES MOCK_RUNS
 
-run_case "failure" "failure" 1
-assert_contains "$CASE_OUT" "status state=failure description=Pages build failed target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "failure status"
-assert_contains "$CASE_OUT" "this push **failed**" "failure label"
+MOCK_PAGES=built MOCK_RUNS=missing run_case "pages built without workflow run" 0
+assert_contains "$CASE_OUT" "status state=success description=Preview deployed target_url=https://github.com/njs50/tcat-preview/actions/workflows/pages/pages-build-deployment" "built no run"
+unset MOCK_PAGES MOCK_RUNS
 
-run_case "cancelled" "cancelled" 1
-assert_contains "$CASE_OUT" "status state=failure description=Pages build cancelled" "cancelled status"
+MOCK_PAGES=built MOCK_RUNS=httpfail MOCK_WORKFLOWS=empty run_case "pages built when workflows are unreadable" 0
+assert_contains "$CASE_OUT" "description=Preview deployed" "pages only"
+unset MOCK_PAGES MOCK_RUNS MOCK_WORKFLOWS
 
-run_case "timed out conclusion" "timed_out" 1
-assert_contains "$CASE_OUT" "status state=failure description=Pages build timed out" "timed_out status"
+MOCK_PAGES=httpfail MOCK_RUNS=success run_case "workflow success when pages api is down" 0
+assert_contains "$CASE_OUT" "status state=success description=Pages build succeeded target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "workflow only"
+assert_contains "$CASE_OUT" "this push **succeeded**" "workflow only label"
+unset MOCK_PAGES MOCK_RUNS
 
-MAX_ATTEMPTS=2 run_case "still queued" "timeout" 1
-assert_contains "$CASE_OUT" "status state=error description=Timed out waiting for Pages build target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "timeout status"
-assert_contains "$CASE_OUT" "this push **did not finish**" "timeout label"
-unset MAX_ATTEMPTS
+MOCK_PAGES=building MOCK_RUNS=failure run_case "workflow failed" 1
+assert_contains "$CASE_OUT" "status state=failure description=Pages build failed" "workflow failed"
+assert_not_contains "$CASE_OUT" "attempt 2/3" "workflow failed waits"
+unset MOCK_PAGES MOCK_RUNS
 
-MAX_ATTEMPTS=2 run_case "ignores other commits" "othersha" 1
-assert_contains "$CASE_OUT" "pages build not started (attempt 1/2)" "other sha ignored"
-assert_contains "$CASE_OUT" "status state=error description=Timed out waiting for Pages build target_url=https://github.com/njs50/tcat-preview/actions/workflows/pages/pages-build-deployment" "other sha timeout url"
-unset MAX_ATTEMPTS
+MOCK_PAGES=building MOCK_RUNS=cancelled run_case "workflow cancelled" 1
+assert_contains "$CASE_OUT" "description=Pages build cancelled" "cancelled"
+unset MOCK_PAGES MOCK_RUNS
 
-run_case "delay" "delay" 0
-assert_contains "$CASE_OUT" "pages build status=in_progress (attempt 1/3)" "delay progress"
-assert_contains "$CASE_OUT" "status state=pending description=Waiting for tcat-preview Pages build target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "delay pending run"
-assert_contains "$CASE_OUT" "status state=success description=Pages build succeeded" "delay success"
+MOCK_PAGES=errored MOCK_RUNS=queued run_case "pages errored" 1
+assert_contains "$CASE_OUT" "status state=failure description=Preview deploy failed: Page build failed." "pages error"
+unset MOCK_PAGES MOCK_RUNS
 
-run_case "missing workflow" "noworkflow" 1
-assert_contains "$CASE_OUT" "status state=error description=pages-build-deployment workflow not found" "missing workflow"
-if grep -F -q '/runs?' <<<"$CASE_LOG"; then
-  fail "missing workflow should not poll runs"
-fi
+MOCK_PAGES=delay MOCK_RUNS=success run_case "waits until pages built" 0
+assert_contains "$CASE_OUT" "pages=building workflow=completed/success (attempt 1/3)" "still building"
+assert_contains "$CASE_OUT" "description=Preview deployed" "eventually deployed"
+assert_not_contains "$CASE_OUT" "description=Pages build succeeded" "does not stop at workflow success"
+unset MOCK_PAGES MOCK_RUNS
 
-run_case "api error" "httpfail" 1
-assert_contains "$CASE_OUT" "pages workflow list failed (attempt 1/3)" "api retry"
-assert_contains "$CASE_OUT" "status state=error description=Could not read tcat-preview Pages workflow" "api error"
+MAX_ATTEMPTS=2 MOCK_PAGES=building MOCK_RUNS=queued run_case "still building" 1
+assert_contains "$CASE_OUT" "status state=pending description=Waiting for tcat-preview Pages build target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "queued pending run"
+assert_contains "$CASE_OUT" "status state=error description=Timed out waiting for preview deploy target_url=https://github.com/njs50/tcat-preview/actions/runs/999" "building timeout"
+unset MAX_ATTEMPTS MOCK_PAGES MOCK_RUNS
 
-TCAT_PREVIEW_PAT=fake-token MOCK_PAT_HTTP=403 run_case "pat falls back to public api" "success" 0
+MAX_ATTEMPTS=2 MOCK_PAGES=other MOCK_RUNS=other run_case "ignores other commits" 1
+assert_contains "$CASE_OUT" "pages=missing workflow=missing (attempt 1/2)" "other sha"
+assert_contains "$CASE_OUT" "target_url=https://github.com/njs50/tcat-preview/actions/workflows/pages/pages-build-deployment" "other sha url"
+unset MAX_ATTEMPTS MOCK_PAGES MOCK_RUNS
+
+MOCK_PAGES=httpfail MOCK_RUNS=httpfail run_case "both apis down" 1
+assert_contains "$CASE_OUT" "status state=error description=Could not read tcat-preview Pages status" "both down"
+unset MOCK_PAGES MOCK_RUNS
+
+TCAT_PREVIEW_PAT=fake-token MOCK_PAT_HTTP=403 MOCK_PAGES=httpfail MOCK_RUNS=success run_case "pat falls back to public actions" 0
 assert_contains "$CASE_ERR" "tcat-preview API with PAT returned HTTP 403; trying public access" "pat warning"
 warns=$(grep -c 'trying public access' <<<"$CASE_ERR" || true)
 if [ "$warns" != "1" ]; then
   fail "expected one PAT fallback warning, got ${warns}"
 fi
+assert_contains "$CASE_OUT" "description=Pages build succeeded" "public actions success"
 if ! grep -F -q 'auth=1 ' <<<"$CASE_LOG"; then
   fail "expected an authenticated request"
 fi
 if ! grep -F -q 'auth=0 ' <<<"$CASE_LOG"; then
   fail "expected a public request after PAT 403"
 fi
-unset TCAT_PREVIEW_PAT MOCK_PAT_HTTP
+unset TCAT_PREVIEW_PAT MOCK_PAT_HTTP MOCK_PAGES MOCK_RUNS
+
+TCAT_PREVIEW_PAT=fake-token MOCK_PAGES=built MOCK_RUNS=success run_case "pat reads pages and workflows" 0
+assert_contains "$CASE_OUT" "description=Preview deployed" "pat deployed"
+if grep -F -q 'auth=0 ' <<<"$CASE_LOG"; then
+  fail "a working PAT should not fall back to public access"
+fi
+unset TCAT_PREVIEW_PAT MOCK_PAGES MOCK_RUNS
 
 set +e
 bad=$(
