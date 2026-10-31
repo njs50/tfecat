@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { resolve } from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src')
+      '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
   base: process.env.NODE_ENV === 'production' ? '/tfecat/' : '/',
@@ -19,12 +19,14 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
-    rollupOptions: {
+    // Vite 8 / Rolldown: manualChunks must be a function (object map form is rejected)
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'vue-vendor': ['vue', 'vuex'],
-          'vuetify-vendor': ['vuetify'],
-          'utils-vendor': ['axios']
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('vuetify') || id.includes('@mdi')) return 'vuetify-vendor'
+          if (id.includes('vue') || id.includes('vuex')) return 'vue-vendor'
+          if (id.includes('axios')) return 'utils-vendor'
         }
       }
     },
@@ -33,4 +35,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ['vue', 'vuex', 'vuetify', 'axios']
   }
-}) 
+})

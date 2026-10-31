@@ -20,13 +20,13 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path mapping */
-    "baseUrl": ".",
+    /* Path mapping (no baseUrl — deprecated in TypeScript 6) */
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": [
+    "env.d.ts",
     "src/**/*.ts",
     "src/**/*.d.ts",
     "src/**/*.tsx",
