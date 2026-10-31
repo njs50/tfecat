@@ -1,5 +1,5 @@
 {
   "name": "tfecat",
-  "install": "npm ci",
-  "start": "exec npm run dev -- --host 0.0.0.0 --port 3000"
+  "install": "corepack enable && pnpm install --frozen-lockfile",
+  "start": "exec pnpm run dev -- --host 0.0.0.0 --port 3000"
 }
