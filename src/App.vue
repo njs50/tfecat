@@ -60,6 +60,30 @@
               </v-row>
 
               <v-row class="align-center mb-0">
+                <v-col class="filter-col d-flex pa-1" cols="12" md="6">
+                  <v-select
+                    v-model="activeCharacterProfileId"
+                    :items="characterProfileSelectItems"
+                    label="Character profile"
+                    density="compact"
+                    clearable
+                    hide-details
+                    @update:model-value="applyCharacterProfile"
+                  ></v-select>
+                </v-col>
+                <v-col class="filter-col d-flex pa-1 align-center" cols="12" md="6">
+                  <v-btn
+                    variant="tonal"
+                    density="compact"
+                    prepend-icon="mdi-account-cog"
+                    @click="showCharacterProfilesDialog = true"
+                  >
+                    Manage characters
+                  </v-btn>
+                </v-col>
+              </v-row>
+
+              <v-row class="align-center mb-0">
                 <v-col class="filter-col d-flex pa-1" cols="6" md="3">
                   <v-select v-model="charAlignment" :items="charAlignments" label="Alignment" density="compact" clearable hide-details></v-select>
                 </v-col>
@@ -74,6 +98,30 @@
 
                 <v-col class="filter-col d-flex pa-1" cols="6" md="3">
                   <v-select v-model="charGender" :items="charGenders" label="Gender" density="compact" clearable hide-details></v-select>
+                </v-col>
+              </v-row>
+
+              <v-row class="align-center mb-0">
+                <v-col class="filter-col d-flex pa-1" cols="12" md="6">
+                  <v-select
+                    v-model="activeWeightConfigId"
+                    :items="weightConfigSelectItems"
+                    label="Weighted search"
+                    density="compact"
+                    clearable
+                    hide-details
+                    @update:model-value="onWeightConfigSelected"
+                  ></v-select>
+                </v-col>
+                <v-col class="filter-col d-flex pa-1 align-center" cols="12" md="6">
+                  <v-btn
+                    variant="tonal"
+                    density="compact"
+                    prepend-icon="mdi-scale-balance"
+                    @click="showWeightConfigsDialog = true"
+                  >
+                    Manage weights
+                  </v-btn>
                 </v-col>
               </v-row>
 
@@ -99,7 +147,15 @@
                 </v-col>
 
                 <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-autocomplete v-model="itemProperty" :items="itemProperties" label="Item Property" density="compact" clearable hide-details></v-autocomplete>
+                  <v-autocomplete
+                    v-model="itemProperty"
+                    :items="itemProperties"
+                    label="Item Property"
+                    density="compact"
+                    clearable
+                    hide-details
+                    :disabled="!!activeWeightConfig"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
             </v-expansion-panel-text>
@@ -148,6 +204,9 @@
                   <template v-else-if="header.key === 'propertyAmount'">
                     <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
                   </template>
+                  <template v-else-if="header.key === 'weightedScore'">
+                    <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
+                  </template>
                   <template v-else-if="header.key === 'damageOrAc'">
                     <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
                     <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
@@ -166,6 +225,24 @@
             </template>
           </v-data-table>
         </v-card>
+
+        <WeightConfigsDialog
+          v-model="showWeightConfigsDialog"
+          :configs="weightConfigs"
+          :property-options="itemProperties"
+          @save="upsertWeightConfig"
+          @remove="deleteWeightConfig"
+        />
+        <CharacterProfilesDialog
+          v-model="showCharacterProfilesDialog"
+          :profiles="characterProfiles"
+          :alignments="charAlignments"
+          :races="charRaces"
+          :classes="charClasses"
+          :genders="charGenders"
+          @save="upsertCharacterProfile"
+          @remove="deleteCharacterProfile"
+        />
 
         <v-dialog
           v-model="showSelectedItem"
@@ -212,13 +289,35 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useDisplay } from 'vuetify'
+import CharacterProfilesDialog from './components/CharacterProfilesDialog.vue'
+import WeightConfigsDialog from './components/WeightConfigsDialog.vue'
 import { getItemPropertyAmount } from './itemProperties'
+import { usePresets } from './presets/usePresets'
+import { formatWeightedScore, getWeightedScore } from './presets/weightedScore'
 import { useCatalogStore } from './store'
 import BrandMark from './components/BrandMark.vue'
 
 const store = useCatalogStore()
 const { mdAndUp } = useDisplay()
 const catalogHref = import.meta.env.BASE_URL
+
+const {
+  weightConfigs,
+  characterProfiles,
+  activeWeightConfigId,
+  activeCharacterProfileId,
+  activeWeightConfig,
+  activeCharacterProfile,
+  weightConfigSelectItems,
+  characterProfileSelectItems,
+  upsertWeightConfig,
+  deleteWeightConfig,
+  upsertCharacterProfile,
+  deleteCharacterProfile,
+} = usePresets()
+
+const showWeightConfigsDialog = ref(false)
+const showCharacterProfilesDialog = ref(false)
 
 /** Branch + short SHA; only when preview-deploy sets VITE_PREVIEW_*. */
 const previewWatermark = computed(() => {
@@ -246,7 +345,7 @@ const itemLayer = ref(null)
 const selectedItem = ref<any>(null)
 const showSelectedItem = ref(false)
 
-/** Level first; below md hide Wear Loc./Layer; drop Weight or merged combat col depending on property filter. */
+/** Level first; below md hide Wear Loc./Layer; swap Weight for property or weighted score. */
 const headers = computed(() => {
   const cols: { title: string; key: string; align: 'start' | 'end'; width?: string }[] = [
     { title: 'Level', key: 'Level', align: 'end', width: '4.5rem' },
@@ -260,9 +359,17 @@ const headers = computed(() => {
     )
   }
 
-  // Swap Weight for the selected item property so the table can sort by its amount.
-  // Below md: omit Weight entirely; keep the property column when a property is selected.
-  if (itemProperty.value) {
+  const weightedActive = !!activeWeightConfig.value
+  // Weighted score and single-property amount both replace the lbs Weight column.
+  if (weightedActive) {
+    cols.push({
+      title: activeWeightConfig.value?.name
+        ? `Score (${activeWeightConfig.value.name})`
+        : 'Score',
+      key: 'weightedScore',
+      align: 'end',
+    })
+  } else if (itemProperty.value) {
     cols.push({
       title: String(itemProperty.value),
       key: 'propertyAmount',
@@ -272,8 +379,8 @@ const headers = computed(() => {
     cols.push({ title: 'Weight', key: 'Weight', align: 'end' })
   }
 
-  // Below md with a property selected, drop merged damage/AC to free space.
-  if (mdAndUp.value || !itemProperty.value) {
+  // Below md with a property/weighted column, drop merged damage/AC to free space.
+  if (mdAndUp.value || (!itemProperty.value && !weightedActive)) {
     let damageOrAcTitle = ''
     if (itemType.value === 'armor') {
       damageOrAcTitle = 'Armor Class'
@@ -308,7 +415,7 @@ const itemSlots = ref([
 
 const itemLayers = ref([ 'bottom', 'under', 'base', 'over', 'top' ])
 
-const charClasses = ref([
+const charClasses = [
   "Bard",
   "Bulwark",
   "Cleric",
@@ -322,9 +429,9 @@ const charClasses = ref([
   "Reaver",
   "Thief",
   "Warrior"
-].sort())
+].sort()
 
-const charRaces = ref([
+const charRaces = [
   "Ogre",
   "Troll",
   "Orc",
@@ -337,9 +444,9 @@ const charRaces = ref([
   "Gnome",
   "Ent",
   "Elf"
-].sort())
+].sort()
 
-const charAlignments = ref([
+const charAlignments = [
   "Lawful Good",
   "Lawful Neutral",
   "Lawful Evil",
@@ -349,12 +456,12 @@ const charAlignments = ref([
   "Chaotic Good",
   "Chaotic Neutral",
   "Chaotic Evil"
-].sort())
+].sort()
 
-const charGenders = ref([
+const charGenders = [
   "Female",
   "Male",
-].sort())
+].sort()
 
 // Computed properties
 const itemTypes = computed(() => {
@@ -429,7 +536,8 @@ const catalog = computed<any[]>(() => {
         return false
       }
     }
-    if (itemProperty.value) {
+    // Item Property is disabled while a weighted config is active.
+    if (!activeWeightConfig.value && itemProperty.value) {
       if (getItemPropertyAmount(item, itemProperty.value) === null) {
         return false
       }
@@ -474,17 +582,41 @@ const catalog = computed<any[]>(() => {
     return true
   })
 
-  // Attach sortable damage/AC merge value, and property amount when Weight is swapped.
+  // Attach sortable damage/AC, single-property amount, or weighted score when Weight is swapped.
+  const weights = activeWeightConfig.value?.weights ?? null
   return filtered.map((item: any) => {
     return {
       ...item,
-      propertyAmount: itemProperty.value
-        ? getItemPropertyAmount(item, itemProperty.value)
-        : null,
+      propertyAmount:
+        !weights && itemProperty.value
+          ? getItemPropertyAmount(item, itemProperty.value)
+          : null,
+      weightedScore: weights ? getWeightedScore(item, weights) : null,
       damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
     }
   })
 })
+
+const onWeightConfigSelected = (id: string | null) => {
+  if (id) {
+    itemProperty.value = null
+  }
+}
+
+const applyCharacterProfile = (id: string | null) => {
+  if (!id) {
+    return
+  }
+  const profile = characterProfiles.value.find((p) => p.id === id) ?? activeCharacterProfile.value
+  if (!profile) {
+    return
+  }
+  levelRange.value = [1, profile.level]
+  charAlignment.value = profile.alignment
+  charRace.value = profile.race
+  charClass.value = profile.class
+  charGender.value = profile.gender
+}
 
 /** Allowed values for a restriction map; null if unrestricted (all true). */
 const allowedRestrictionValues = (map: Record<string, boolean> | undefined): string[] | null => {
@@ -591,6 +723,13 @@ const copyInstall = () => {
 // Lifecycle
 onMounted(() => {
   store.fetchCatalog()
+  // Re-apply persisted character preset filters after load.
+  if (activeCharacterProfileId.value) {
+    applyCharacterProfile(activeCharacterProfileId.value)
+  }
+  if (activeWeightConfigId.value) {
+    itemProperty.value = null
+  }
 })
 </script>
 
