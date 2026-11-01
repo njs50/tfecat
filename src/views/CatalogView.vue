@@ -1,54 +1,9 @@
 <template>
-  <!-- Fills viewport under sticky nav; brand above can still scroll away. -->
-  <v-container fluid class="content-shell catalog-shell px-6 px-sm-8 pt-4 pb-0">
+  <!-- Document scroll (no nested table scrollbar). Sticky chrome docks under sticky nav. -->
+  <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
     <v-card class="catalog-card" elevation="0">
-      <v-card-title class="catalog-toolbar pa-3 ga-2">
-        <div class="filter-chips">
-          <v-chip
-            v-for="chip in activeFilterChips"
-            :key="chip.id"
-            size="small"
-            variant="tonal"
-            closable
-            @click:close="chip.clear()"
-          >
-            {{ chip.label }}
-          </v-chip>
-        </div>
-        <v-spacer></v-spacer>
-        <v-btn
-          icon
-          variant="tonal"
-          density="comfortable"
-          :color="filtersOpen ? 'primary' : undefined"
-          :aria-pressed="filtersOpen"
-          aria-label="Toggle filters"
-          @click="filtersOpen = !filtersOpen"
-        >
-          <v-icon>mdi-filter-variant</v-icon>
-        </v-btn>
-        <v-text-field
-          v-model="searchText"
-          append-inner-icon="mdi-magnify"
-          label="Search items"
-          single-line
-          hide-details
-          clearable
-          density="compact"
-          variant="outlined"
-          class="search-field"
-        ></v-text-field>
-      </v-card-title>
-
-      <div
-        ref="catalogScrollBody"
-        class="catalog-scroll-body"
-      >
-        <div
-          v-show="filtersOpen"
-          v-intersect="filterPanelIntersect"
-          class="filter-panel pa-2"
-        >
+      <div ref="catalogChromeEl" class="catalog-sticky-chrome">
+        <div v-show="filtersOpen" class="filter-panel pa-2">
           <v-row class="align-center mb-0">
             <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
               <v-select
@@ -207,86 +162,118 @@
           </v-row>
         </div>
 
-        <v-divider></v-divider>
-        <!-- Server mode: sort full filter set, reveal more rows as the pane scrolls. -->
-        <v-data-table-server
-          :headers="headers"
-          :items="visibleCatalog"
-          :items-length="sortedCatalog.length"
-          :items-per-page="-1"
-          hide-default-footer
-          v-model:sort-by="sortBy"
-          class="catalog-table"
-          hover
-        >
-          <template #item="{ item, index }">
-            <tr
-              @click="rowClicked(item)"
-              :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
+        <v-card-title class="catalog-toolbar pa-3 ga-2">
+          <div class="filter-chips">
+            <v-chip
+              v-for="chip in activeFilterChips"
+              :key="chip.id"
+              size="small"
+              variant="tonal"
+              closable
+              @click:close="chip.clear()"
             >
-              <td
-                v-for="header in headers"
-                :key="header.key"
-                :style="{
-                  'text-align': header.align || 'start',
-                  ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
-                }"
-              >
-                <template v-if="header.key === 'Weight'">
-                  <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
-                </template>
-                <template v-else-if="header.key === 'propertyAmount'">
-                  <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
-                </template>
-                <template v-else-if="header.key === 'weightedScore'">
-                  <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
-                </template>
-                <template v-else-if="header.key === 'damageOrAc'">
-                  <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
-                  <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
-                </template>
-                <template v-else-if="header.key === 'Wear Loc.'">
-                  <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
-                </template>
-                <template v-else-if="header.key === 'Layer'">
-                  <span v-if="item.Layer">{{ Array.isArray(item.Layer) ? item.Layer.join(', ') : item.Layer }}</span>
-                </template>
-                <template v-else>
-                  {{ item[header.key] }}
-                </template>
-              </td>
-            </tr>
-          </template>
-          <template #bottom>
-            <div class="catalog-scroll-status text-caption text-medium-emphasis text-center pa-2">
-              <span v-if="sortedCatalog.length">
-                Showing {{ visibleCatalog.length }} of {{ sortedCatalog.length }}
-              </span>
-              <span v-else>No items match</span>
-            </div>
-            <div
-              v-if="visibleCatalog.length < sortedCatalog.length"
-              v-intersect="catalogScrollIntersect"
-              class="catalog-scroll-sentinel"
-              aria-hidden="true"
-            ></div>
-          </template>
-        </v-data-table-server>
+              {{ chip.label }}
+            </v-chip>
+          </div>
+          <v-spacer></v-spacer>
+          <v-btn
+            icon
+            variant="tonal"
+            density="comfortable"
+            :color="filtersOpen ? 'primary' : undefined"
+            :aria-pressed="filtersOpen"
+            aria-label="Toggle filters"
+            @click="filtersOpen = !filtersOpen"
+          >
+            <v-icon>mdi-filter-variant</v-icon>
+          </v-btn>
+          <v-text-field
+            v-model="searchText"
+            append-inner-icon="mdi-magnify"
+            label="Search items"
+            single-line
+            hide-details
+            clearable
+            density="compact"
+            variant="outlined"
+            class="search-field"
+          ></v-text-field>
+        </v-card-title>
       </div>
+
+      <v-divider></v-divider>
+      <!-- Page scroll + window IntersectionObserver loads more rows. -->
+      <v-data-table-server
+        :headers="headers"
+        :items="visibleCatalog"
+        :items-length="sortedCatalog.length"
+        :items-per-page="-1"
+        hide-default-footer
+        v-model:sort-by="sortBy"
+        class="catalog-table"
+        hover
+      >
+        <template #item="{ item, index }">
+          <tr
+            @click="rowClicked(item)"
+            :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
+          >
+            <td
+              v-for="header in headers"
+              :key="header.key"
+              :style="{
+                'text-align': header.align || 'start',
+                ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
+              }"
+            >
+              <template v-if="header.key === 'Weight'">
+                <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
+              </template>
+              <template v-else-if="header.key === 'propertyAmount'">
+                <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
+              </template>
+              <template v-else-if="header.key === 'weightedScore'">
+                <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
+              </template>
+              <template v-else-if="header.key === 'damageOrAc'">
+                <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
+                <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
+              </template>
+              <template v-else-if="header.key === 'Wear Loc.'">
+                <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
+              </template>
+              <template v-else-if="header.key === 'Layer'">
+                <span v-if="item.Layer">{{ Array.isArray(item.Layer) ? item.Layer.join(', ') : item.Layer }}</span>
+              </template>
+              <template v-else>
+                {{ item[header.key] }}
+              </template>
+            </td>
+          </tr>
+        </template>
+        <template #bottom>
+          <div class="catalog-scroll-status text-caption text-medium-emphasis text-center pa-2">
+            <span v-if="sortedCatalog.length">
+              Showing {{ visibleCatalog.length }} of {{ sortedCatalog.length }}
+            </span>
+            <span v-else>No items match</span>
+          </div>
+          <div
+            v-if="visibleCatalog.length < sortedCatalog.length"
+            v-intersect="onCatalogScrollSentinel"
+            class="catalog-scroll-sentinel"
+            aria-hidden="true"
+          ></div>
+        </template>
+      </v-data-table-server>
     </v-card>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
-
-/** keep-alive include name in App.vue — preserves filters/sort across item nav. */
-defineOptions({ name: 'CatalogView' })
-
-/** Scroll root for filters + infinite-load table body. */
-const catalogScrollBody = ref<HTMLElement | null>(null)
 import {
   catalogQueryToState,
   catalogStateToQuery,
@@ -298,36 +285,25 @@ import { usePresets } from '../presets/usePresets'
 import { formatWeightedScore, getWeightedScore } from '../presets/weightedScore'
 import { useCatalogStore } from '../store'
 
+/** keep-alive include name in App.vue — preserves filters/sort across item nav. */
+defineOptions({ name: 'CatalogView' })
+
 const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 
-/** Filters start collapsed; toolbar toggle + auto-collapse when scrolled away. */
+/** Filters start collapsed; toolbar icon toggles the panel above search. */
 const filtersOpen = ref(false)
 
-/** Collapse filters once the panel leaves the catalog scroll pane (same as toggle off). */
-const onFilterPanelIntersect = (isIntersecting: boolean) => {
-  if (!isIntersecting && filtersOpen.value) {
-    filtersOpen.value = false
-  }
+/** Sticky filter + search chrome; height feeds sticky thead offset. */
+const catalogChromeEl = ref<HTMLElement | null>(null)
+let chromeResizeObserver: ResizeObserver | null = null
+
+const syncChromeHeightVar = () => {
+  const h = catalogChromeEl.value?.offsetHeight ?? 0
+  document.documentElement.style.setProperty('--tfecat-chrome-height', `${h}px`)
 }
-
-const filterPanelIntersect = computed(() => ({
-  handler: onFilterPanelIntersect,
-  options: {
-    root: catalogScrollBody.value,
-    threshold: 0,
-    rootMargin: '0px',
-  },
-}))
-
-watch(filtersOpen, (open) => {
-  if (open) {
-    // Bring the panel into view under the sticky toolbar.
-    catalogScrollBody.value?.scrollTo({ top: 0 })
-  }
-})
 
 const {
   activeWeightConfigId,
@@ -729,19 +705,10 @@ const loadMoreCatalog = () => {
   )
 }
 
-/** v-intersect: reveal the next chunk when the sentinel enters the scroll pane. */
+/** Window IntersectionObserver: reveal the next chunk near the bottom of the page. */
 const onCatalogScrollSentinel = (isIntersecting: boolean) => {
   if (isIntersecting) loadMoreCatalog()
 }
-
-const catalogScrollIntersect = computed(() => ({
-  handler: onCatalogScrollSentinel,
-  options: {
-    root: catalogScrollBody.value,
-    threshold: 0,
-    rootMargin: '120px 0px',
-  },
-}))
 
 /** Clear weighted search and fields it owns (item property). */
 const clearWeightSelection = () => {
@@ -961,6 +928,22 @@ onMounted(() => {
   // Pinia keeps the catalog; only fetch once (keep-alive also skips remount).
   if (!store.catalog) store.fetchCatalog()
   sortByScoreOrPropertyDesc()
+
+  syncChromeHeightVar()
+  if (catalogChromeEl.value && typeof ResizeObserver !== 'undefined') {
+    chromeResizeObserver = new ResizeObserver(syncChromeHeightVar)
+    chromeResizeObserver.observe(catalogChromeEl.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  chromeResizeObserver?.disconnect()
+  chromeResizeObserver = null
+})
+
+watch(filtersOpen, () => {
+  // Filter panel height changes sticky thead offset.
+  queueMicrotask(syncChromeHeightVar)
 })
 </script>
 
@@ -969,42 +952,30 @@ onMounted(() => {
   max-width: 1280px;
 }
 
-/* Fill under sticky nav; brand above scrolls away independently. */
-.catalog-shell {
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-  height: calc(100dvh - var(--tfecat-nav-height, 57px));
-  max-height: calc(100dvh - var(--tfecat-nav-height, 57px));
-}
-
 .catalog-card {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgb(var(--v-theme-surface-variant));
   border-radius: 12px !important;
   background: rgb(var(--v-theme-surface));
 }
 
+/* Filters (when open) + search/chips dock under sticky nav while the page scrolls. */
+.catalog-sticky-chrome {
+  position: sticky;
+  top: var(--tfecat-nav-height, 57px);
+  z-index: 5;
+  background: rgb(var(--v-theme-surface));
+}
+
 .catalog-toolbar {
   display: flex;
-  flex: 0 0 auto;
   align-items: center;
   flex-wrap: wrap;
   background: rgb(var(--v-theme-surface));
 }
 
-.catalog-scroll-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-}
-
 .filter-panel {
-  border-top: 1px solid rgb(var(--v-theme-surface-variant));
+  border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
   background: rgb(var(--v-theme-surface));
 }
 
@@ -1024,8 +995,8 @@ onMounted(() => {
 
 .catalog-table :deep(thead th) {
   position: sticky;
-  top: 0;
-  z-index: 2;
+  top: calc(var(--tfecat-nav-height, 57px) + var(--tfecat-chrome-height, 0px));
+  z-index: 4;
   height: 52px;
   border-bottom-color: rgb(var(--v-theme-surface-variant)) !important;
   background: rgb(var(--v-theme-surface-variant));
