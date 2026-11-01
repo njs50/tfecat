@@ -6,8 +6,8 @@
       with a single table scrollbar.
     -->
     <div ref="chromeEl" class="app-chrome">
-      <!-- Large: brand row + nav row (current desktop layout, fixed). -->
-      <template v-if="mdAndUp">
+      <!-- Large (~1000px+): brand row + nav row. Below that, landscape phones keep compact. -->
+      <template v-if="fullChrome">
         <div class="brand-block">
           <v-container fluid class="header-shell px-6 px-sm-8">
             <div class="brand-row">
@@ -191,9 +191,13 @@ import { useAppUpdate } from './composables/useAppUpdate'
 import { useCatalogFilters } from './composables/useCatalogFilters'
 
 const route = useRoute()
-const { mdAndUp, smAndUp } = useDisplay()
+const { width, smAndUp } = useDisplay()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
 const { ensureFilterSync } = useCatalogFilters()
+
+/** Full two-row chrome only on wide viewports — md (960) still catches landscape phones. */
+const FULL_CHROME_MIN_WIDTH = 1000
+const fullChrome = computed(() => width.value >= FULL_CHROME_MIN_WIDTH)
 
 /** Listing + item detail share the catalog section in the main nav. */
 const catalogNavActive = computed(
@@ -233,7 +237,7 @@ onMounted(() => {
 })
 
 // Breakpoint swaps change chrome height without a resize of the same node tree.
-watch([mdAndUp, smAndUp], async () => {
+watch([fullChrome, smAndUp], async () => {
   await Promise.resolve()
   syncChromeHeightVar()
 })
