@@ -27,6 +27,11 @@ const router = createRouter({
       component: () => import('../views/CharactersView.vue'),
       props: true,
     },
+    {
+      path: '/filters',
+      name: 'filters',
+      component: () => import('../views/FiltersView.vue'),
+    },
   ],
   scrollBehavior(_to, _from, savedPosition) {
     // Browser Back/Forward restores prior scroll; in-app pushes start at top.

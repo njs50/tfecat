@@ -58,8 +58,10 @@ export function formatWeightedScore(score: number): string {
 }
 
 /**
- * Mudlet `tcat --debug-weight` / displayItem weight block:
- * right-aligned "Prop: " (width 31) + contribution, then "total weight:".
+ * Item-page weight block, aligned with catalog ident "Affects:":
+ *   "       Affects:" / "          Is chaotic."
+ * Header column matches Affects (7 spaces); detail lines use the same
+ * 10-space indent as affect rows.
  */
 export function formatWeightSummary(
   item: unknown,
@@ -67,15 +69,11 @@ export function formatWeightSummary(
   characterStats?: CharacterStats | null,
 ): string {
   const { lines, total } = getWeightedScoreBreakdown(item, weights, characterStats)
-  const labelWidth = 31
-  const body = lines
-    .map((line) => `${`${line.property}: `.padStart(labelWidth)}${formatWeightedScore(line.contribution)}`)
-    .join('\n')
-  const totalLine = `${'total weight: '.padStart(labelWidth)}${formatWeightedScore(total)}`
-  const parts = ['               Weight summary:', '']
-  if (body) {
-    parts.push(body, '')
-  }
-  parts.push(totalLine)
-  return parts.join('\n')
+  const headerIndent = '       ' // matches "       Affects:"
+  const lineIndent = '          ' // matches "          Is chaotic."
+  const body = lines.map(
+    (line) => `${lineIndent}${line.property}: ${formatWeightedScore(line.contribution)}`,
+  )
+  const totalLine = `${lineIndent}weighted score: ${formatWeightedScore(total)}`
+  return [`${headerIndent}Weight Score:`, ...body, totalLine].join('\n')
 }
