@@ -30,19 +30,16 @@
         </div>
         <nav aria-label="Primary" class="primary-nav">
           <a :href="catalogHref" aria-current="page" class="nav-link nav-link--active">Item catalog</a>
+          <!-- Coming soon — keep for upcoming trainers / item-audit pages
           <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
           <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
+          -->
         </nav>
       </v-container>
     </v-app-bar>
 
     <v-main>
       <v-container fluid class="content-shell px-6 px-sm-8 py-10">
-        <v-sheet color="transparent" class="page-heading mb-8">
-          <div class="page-eyebrow">The Forest&apos;s Edge</div>
-          <div class="page-title">Item catalog</div>
-        </v-sheet>
-
         <v-expansion-panels class="filter-panel">
           <v-expansion-panel>
             <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
