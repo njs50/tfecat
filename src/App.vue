@@ -1,112 +1,158 @@
 <template>
   <v-app id="tfecat">
-    <!-- Brand + nav are siblings (not one short header) so sticky nav can pin for the whole page. -->
-    <div class="brand-block">
-      <v-container fluid class="header-shell px-6 px-sm-8">
-        <div class="brand-row">
-          <v-btn
-            :to="{ name: 'catalog', query: route.query }"
-            :active="false"
-            aria-label="TFEcat item catalog home"
-            class="brand-link text-none px-0"
-            variant="text"
-            :ripple="false"
-            slim
-          >
-            <BrandMark class="brand-mark mr-3" />
-            <span class="brand-wordmark" aria-hidden="true">
-              <span class="brand-wordmark__tfe">TFE</span><span class="brand-wordmark__cat">cat</span>
-            </span>
-          </v-btn>
-          <v-spacer></v-spacer>
-          <v-dialog max-width="600" v-model="isInstallModalVisible">
-            <template #activator="{ props }">
+    <!--
+      Fixed chrome (option 4a): brand stays in the reserved header — no scroll-away.
+      Height is measured into --tfecat-chrome-height so the catalog fills the rest
+      with a single table scrollbar.
+    -->
+    <div ref="chromeEl" class="app-chrome">
+      <!-- Large: brand row + nav row (current desktop layout, fixed). -->
+      <template v-if="mdAndUp">
+        <div class="brand-block">
+          <v-container fluid class="header-shell px-6 px-sm-8">
+            <div class="brand-row">
+              <v-btn
+                :to="{ name: 'catalog', query: route.query }"
+                :active="false"
+                aria-label="TFEcat item catalog home"
+                class="brand-link text-none px-0"
+                variant="text"
+                :ripple="false"
+                slim
+              >
+                <BrandMark class="brand-mark brand-mark--lg mr-3" />
+                <span class="brand-wordmark" aria-hidden="true">
+                  <span class="brand-wordmark__tfe">TFE</span><span class="brand-wordmark__cat">cat</span>
+                </span>
+              </v-btn>
+              <v-spacer></v-spacer>
               <v-btn
                 class="install-button"
                 color="primary"
                 variant="elevated"
                 prepend-icon="mdi-console-line"
-                v-bind="props"
+                @click="isInstallModalVisible = true"
               >
                 Install CLI
               </v-btn>
-            </template>
-            <v-card class="modal-card">
-              <v-card-title class="modal-title d-flex align-center">
-                <v-icon class="mr-3" color="primary">mdi-package-variant</v-icon>
-                <span>Install the tfecat mudlet package</span>
-              </v-card-title>
-              <v-card-text class="modal-content pa-4">
-                <div class="mb-4">
-                  <p class="text-body-large mb-3">
-                    To install the tfecat package for the first time, copy and paste the following
-                    command into your Mudlet input bar:
-                  </p>
-                </div>
-                <v-textarea
-                  ref="installInput"
-                  readonly
-                  v-model="installCode"
-                  variant="outlined"
-                  density="compact"
-                  bg-color="grey-darken-4"
-                  class="font-mono"
-                  hide-details
-                  rows="3"
-                  auto-grow
-                ></v-textarea>
-                <div class="mt-3 text-body-small text-grey-lighten-1">
-                  <v-icon size="small" class="mr-1">mdi-lightbulb</v-icon>
-                  Click the copy button to copy the command to your clipboard
-                </div>
-              </v-card-text>
-              <v-divider></v-divider>
-              <v-card-actions class="modal-actions pa-4">
-                <v-spacer></v-spacer>
-                <v-btn
-                  color="secondary"
-                  variant="outlined"
-                  prepend-icon="mdi-content-copy"
-                  @click="copyInstall"
-                >
-                  Copy
-                </v-btn>
-                <v-btn
-                  color="primary"
-                  variant="elevated"
-                  prepend-icon="mdi-check"
-                  @click="isInstallModalVisible = false"
-                >
-                  Got it!
-                </v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-dialog>
+            </div>
+          </v-container>
         </div>
-      </v-container>
+
+        <div class="nav-block">
+          <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
+            <nav aria-label="Primary" class="primary-nav">
+              <router-link
+                :to="catalogNavTo"
+                class="nav-link"
+                :class="{ 'nav-link--active': catalogNavActive }"
+                :aria-current="catalogNavActive ? 'page' : undefined"
+              >
+                Item catalog
+              </router-link>
+            </nav>
+          </v-container>
+        </div>
+      </template>
+
+      <!-- Medium / small: brand icon + nav (+ install on sm–md only) on one row. -->
+      <template v-else>
+        <div class="nav-block nav-block--compact">
+          <v-container fluid class="header-shell px-4 px-sm-6 nav-shell nav-shell--compact">
+            <div class="compact-row">
+              <v-btn
+                :to="{ name: 'catalog', query: route.query }"
+                :active="false"
+                aria-label="TFEcat item catalog home"
+                class="brand-link brand-link--compact text-none px-0"
+                variant="text"
+                :ripple="false"
+                slim
+              >
+                <BrandMark class="brand-mark brand-mark--compact" />
+              </v-btn>
+              <nav aria-label="Primary" class="primary-nav primary-nav--compact">
+                <router-link
+                  :to="catalogNavTo"
+                  class="nav-link"
+                  :class="{ 'nav-link--active': catalogNavActive }"
+                  :aria-current="catalogNavActive ? 'page' : undefined"
+                >
+                  Item catalog
+                </router-link>
+              </nav>
+              <v-spacer></v-spacer>
+              <!-- Smallest (xs): drop Install CLI entirely. -->
+              <v-btn
+                v-if="smAndUp"
+                class="install-button install-button--compact"
+                color="primary"
+                variant="elevated"
+                prepend-icon="mdi-console-line"
+                @click="isInstallModalVisible = true"
+              >
+                Install CLI
+              </v-btn>
+            </div>
+          </v-container>
+        </div>
+      </template>
     </div>
 
-    <!-- Only this row sticks; brand scrolls away. Search/filters live in CatalogView. -->
-    <div ref="navStickyEl" class="nav-sticky">
-      <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
-        <nav aria-label="Primary" class="primary-nav">
-          <router-link
-            :to="catalogNavTo"
-            class="nav-link"
-            :class="{ 'nav-link--active': catalogNavActive }"
-            :aria-current="catalogNavActive ? 'page' : undefined"
+    <v-dialog max-width="600" v-model="isInstallModalVisible">
+      <v-card class="modal-card">
+        <v-card-title class="modal-title d-flex align-center">
+          <v-icon class="mr-3" color="primary">mdi-package-variant</v-icon>
+          <span>Install the tfecat mudlet package</span>
+        </v-card-title>
+        <v-card-text class="modal-content pa-4">
+          <div class="mb-4">
+            <p class="text-body-large mb-3">
+              To install the tfecat package for the first time, copy and paste the following
+              command into your Mudlet input bar:
+            </p>
+          </div>
+          <v-textarea
+            ref="installInput"
+            readonly
+            v-model="installCode"
+            variant="outlined"
+            density="compact"
+            bg-color="grey-darken-4"
+            class="font-mono"
+            hide-details
+            rows="3"
+            auto-grow
+          ></v-textarea>
+          <div class="mt-3 text-body-small text-grey-lighten-1">
+            <v-icon size="small" class="mr-1">mdi-lightbulb</v-icon>
+            Click the copy button to copy the command to your clipboard
+          </div>
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card-actions class="modal-actions pa-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="secondary"
+            variant="outlined"
+            prepend-icon="mdi-content-copy"
+            @click="copyInstall"
           >
-            Item catalog
-          </router-link>
-          <!-- Coming soon — keep for upcoming trainers / item-audit pages
-          <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
-          <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
-          -->
-        </nav>
-      </v-container>
-    </div>
+            Copy
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="elevated"
+            prepend-icon="mdi-check"
+            @click="isInstallModalVisible = false"
+          >
+            Got it!
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
-    <v-main>
+    <v-main class="app-main">
       <!-- Keep CatalogView mounted so item ↔ search keeps filters/sort/scroll. -->
       <router-view v-slot="{ Component }">
         <keep-alive :include="['CatalogView']">
@@ -137,13 +183,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import BrandMark from './components/BrandMark.vue'
 import { useAppUpdate } from './composables/useAppUpdate'
 import { useCatalogFilters } from './composables/useCatalogFilters'
 
 const route = useRoute()
+const { mdAndUp, smAndUp } = useDisplay()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
 const { ensureFilterSync } = useCatalogFilters()
 
@@ -163,28 +211,36 @@ const installCode = ref(
   `lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://raw.githubusercontent.com/njs50/njs50-package-manager/main/njs50-package-manager.xml')`,
 )
 
-/** Publish sticky-nav height for catalog viewport-fill layout. */
-const navStickyEl = ref<HTMLElement | null>(null)
-let navResizeObserver: ResizeObserver | null = null
+/** Full fixed-chrome height for catalog viewport-fill layout. */
+const chromeEl = ref<HTMLElement | null>(null)
+let chromeResizeObserver: ResizeObserver | null = null
 
-const syncNavHeightVar = () => {
-  const h = navStickyEl.value?.offsetHeight ?? 0
-  document.documentElement.style.setProperty('--tfecat-nav-height', `${h}px`)
+const syncChromeHeightVar = () => {
+  const h = chromeEl.value?.offsetHeight ?? 0
+  const px = `${h}px`
+  document.documentElement.style.setProperty('--tfecat-chrome-height', px)
+  // Alias used by catalog fill-height shell.
+  document.documentElement.style.setProperty('--tfecat-nav-height', px)
 }
 
 onMounted(() => {
-  syncNavHeightVar()
-  if (navStickyEl.value && typeof ResizeObserver !== 'undefined') {
-    navResizeObserver = new ResizeObserver(syncNavHeightVar)
-    navResizeObserver.observe(navStickyEl.value)
+  syncChromeHeightVar()
+  if (chromeEl.value && typeof ResizeObserver !== 'undefined') {
+    chromeResizeObserver = new ResizeObserver(syncChromeHeightVar)
+    chromeResizeObserver.observe(chromeEl.value)
   }
-  // Hydrate shared filter/search state even before CatalogView mounts.
   ensureFilterSync()
 })
 
+// Breakpoint swaps change chrome height without a resize of the same node tree.
+watch([mdAndUp, smAndUp], async () => {
+  await Promise.resolve()
+  syncChromeHeightVar()
+})
+
 onBeforeUnmount(() => {
-  navResizeObserver?.disconnect()
-  navResizeObserver = null
+  chromeResizeObserver?.disconnect()
+  chromeResizeObserver = null
 })
 
 /** Branch + short SHA; only when preview-deploy sets VITE_PREVIEW_*. */
@@ -210,6 +266,15 @@ const copyInstall = () => {
   max-width: 1280px;
 }
 
+.app-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex: 0 0 auto;
+  background: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
+}
+
 .brand-block {
   padding-top: 20px;
   background: rgb(var(--v-theme-surface));
@@ -224,10 +289,15 @@ const copyInstall = () => {
 .brand-link {
   min-width: 0;
   height: 56px !important;
-  /* Router :to marks this active on catalog; keep transparent like prod :href. */
   background: transparent !important;
   box-shadow: none !important;
   color: inherit !important;
+}
+
+.brand-link--compact {
+  height: 40px !important;
+  width: 40px !important;
+  min-width: 40px !important;
 }
 
 .brand-link :deep(.v-btn__overlay),
@@ -236,9 +306,17 @@ const copyInstall = () => {
 }
 
 .brand-mark {
+  flex: 0 0 auto;
+}
+
+.brand-mark--lg {
   width: 56px;
   height: 56px;
-  flex: 0 0 auto;
+}
+
+.brand-mark--compact {
+  width: 40px;
+  height: 40px;
 }
 
 .brand-wordmark {
@@ -267,21 +345,46 @@ const copyInstall = () => {
   text-transform: uppercase;
 }
 
-.nav-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  background: rgb(var(--v-theme-surface));
-  border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
+.install-button--compact {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding-inline: 10px !important;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
+
+.install-button--compact :deep(.v-btn__prepend) {
+  margin-inline-end: 6px;
+}
+
+.install-button--compact :deep(.v-icon) {
+  font-size: 1rem !important;
 }
 
 .nav-shell {
   padding-top: 20px;
 }
 
+.nav-shell--compact {
+  padding-top: 8px;
+  padding-bottom: 0;
+}
+
+.compact-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  min-height: 48px;
+}
+
 .primary-nav {
   display: flex;
   gap: 32px;
+}
+
+.primary-nav--compact {
+  gap: 20px;
+  align-self: flex-end;
 }
 
 .nav-link {
@@ -318,6 +421,11 @@ const copyInstall = () => {
   height: 4px;
   background: rgb(var(--v-theme-primary));
   content: '';
+}
+
+.app-main {
+  /* Catalog fill-height accounts for chrome; avoid v-main padding fighting the math. */
+  --v-layout-top: 0px;
 }
 
 .preview-watermark {

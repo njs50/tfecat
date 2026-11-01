@@ -1,8 +1,8 @@
 <template>
   <!--
-    Fill under sticky main nav (brand above can still scroll away).
-    Toolbar stays put; table body scrolls inside catalog-scroll-body with
-    thead sticky at top: 0 — no document scrollbar for the catalog itself.
+    Fill under fixed chrome (brand + nav). Toolbar stays put; table body
+    scrolls inside catalog-scroll-body with thead sticky at top: 0 — one
+    scrollbar for the catalog itself.
   -->
   <v-container fluid class="content-shell catalog-shell px-6 px-sm-8 pt-4 pb-0">
     <v-card class="catalog-card" elevation="0">
@@ -403,13 +403,13 @@ onMounted(() => {
   max-width: 1280px;
 }
 
-/* Fill under sticky nav; brand above scrolls away independently. */
+/* Fill under fixed chrome (brand+nav); only the table pane scrolls. */
 .catalog-shell {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  height: calc(100dvh - var(--tfecat-nav-height, 57px));
-  max-height: calc(100dvh - var(--tfecat-nav-height, 57px));
+  height: calc(100dvh - var(--tfecat-chrome-height, var(--tfecat-nav-height, 57px)));
+  max-height: calc(100dvh - var(--tfecat-chrome-height, var(--tfecat-nav-height, 57px)));
 }
 
 .catalog-card {
