@@ -86,8 +86,7 @@
 
       <div class="text-subtitle-2 mt-4 mb-1">Stats</div>
       <p class="text-body-2 text-medium-emphasis mb-2">
-        Softcaps like Mudlet <code>tcat</code>: positive Str/Int/Wis/Dex/Con props are ignored once that
-        stat is ≥ 30. Defaults are 15; allowed range {{ STAT_MIN }}–{{ STAT_MAX }}.
+        Configuring stats lets the weighted search know when you wont benefit from additional stats.
       </p>
       <v-row dense>
         <v-col v-for="key in statKeys" :key="key" cols="6" md="4">
