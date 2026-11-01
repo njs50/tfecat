@@ -42,7 +42,7 @@
         </div>
         <div class="catalog-count text-caption text-medium-emphasis">
           <span v-if="sortedCatalog.length">
-            Showing {{ visibleCatalog.length }} of {{ sortedCatalog.length }}
+            {{ sortedCatalog.length }} {{ sortedCatalog.length === 1 ? 'item' : 'items' }}
           </span>
           <span v-else>No items match</span>
         </div>
