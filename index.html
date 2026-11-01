@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+    <link rel="icon" type="image/svg+xml" href="/tfecat/icons/tfecat.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/tfecat/icons/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/tfecat/icons/apple-touch-icon.png">
+    <!-- Channel manifest emitted at build (vite/pwaChannelPlugin); icons from public/icons/. -->
+    <link rel="manifest" href="/tfecat/manifest.webmanifest">
+    <meta name="theme-color" content="#101513">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <title>TFEcat Item Catalog</title>
+    <!-- Start Single Page Apps for GitHub Pages -->
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // https://github.com/rafrex/spa-github-pages
+      // Copyright (c) 2016 Rafael Pedicini, licensed under the MIT License
+      // ----------------------------------------------------------------------
+      // This script checks to see if a redirect is present in the query string
+      // and converts it back into the correct url and adds it to the
+      // browser's history using window.history.replaceState(...),
+      // which won't cause the browser to attempt to load the new url.
+      // When the single page app is loaded further down in this file,
+      // the correct url will be waiting in the browser's history for
+      // the single page app to route accordingly.
+      (function(l) {
+        if (l.search) {
+          var q = {};
+          l.search.slice(1).split('&').forEach(function(v) {
+            var a = v.split('=');
+            q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
+          });
+          if (q.p !== undefined) {
+            window.history.replaceState(null, null,
+              l.pathname.slice(0, -1) + (q.p || '') +
+              (q.q ? ('?' + q.q) : '') +
+              l.hash
+            );
+          }
+        }
+      }(window.location))
+    </script>
+    <!-- End Single Page Apps for GitHub Pages -->
+    <script type="module" crossorigin src="/tfecat/assets/index-B6uk_XuS.js"></script>
+    <link rel="modulepreload" crossorigin href="/tfecat/assets/vue-vendor-EpRRI8cE.js">
+    <link rel="modulepreload" crossorigin href="/tfecat/assets/rolldown-runtime-DK3Fl9T5.js">
+    <link rel="modulepreload" crossorigin href="/tfecat/assets/vuetify-vendor-DaxKTZiR.js">
+    <link rel="modulepreload" crossorigin href="/tfecat/assets/usePresets-DA-8hpUT.js">
+    <link rel="modulepreload" crossorigin href="/tfecat/assets/utils-vendor-D02rwh1d.js">
+    <link rel="stylesheet" crossorigin href="/tfecat/assets/vuetify-vendor-CbtwUQ3j.css">
+    <link rel="stylesheet" crossorigin href="/tfecat/assets/index-pWRx_N_J.css">
+  </head>
+  <body>
+    <noscript>
+      <strong>We're sorry but the TFE Item Catalog doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
+    </noscript>
+    <div id="app"></div>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "id": "/tfecat/",
+  "name": "TFEcat Item Catalog",
+  "short_name": "TFEcat",
+  "description": "The Forgotten Elements item catalog",
+  "start_url": "/tfecat/",
+  "scope": "/tfecat/",
+  "display": "standalone",
+  "background_color": "#101513",
+  "theme_color": "#101513",
+  "icons": [
+    {
+      "src": "icons/tfecat-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/tfecat-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/tfecat-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/tfecat-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/tfecat-monochrome.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "monochrome"
+    }
+  ]
+}
