@@ -114,7 +114,7 @@
           Delete
         </v-btn>
         <v-spacer></v-spacer>
-        <v-btn variant="text" @click="emit('close')">Done</v-btn>
+        <v-btn variant="text" @click="emit('close')">Cancel</v-btn>
         <v-btn color="primary" variant="elevated" :disabled="!draft" @click="save">
           Save
         </v-btn>

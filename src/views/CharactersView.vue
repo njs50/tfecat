@@ -71,13 +71,7 @@ const goBack = () => {
 const onSave = (profile: CharacterProfile) => {
   const saved = upsertCharacterProfile(profile)
   activeCharacterProfileId.value = saved.id
-  if (props.id !== saved.id) {
-    router.replace({
-      name: 'characters',
-      params: { id: saved.id },
-      query: route.query,
-    })
-  }
+  goBack()
 }
 </script>
 

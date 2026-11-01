@@ -73,13 +73,7 @@ const goBack = () => {
 const onSave = (config: WeightConfig) => {
   const saved = upsertWeightConfig(config)
   activeWeightConfigId.value = saved.id
-  if (props.id !== saved.id) {
-    router.replace({
-      name: 'weights',
-      params: { id: saved.id },
-      query: route.query,
-    })
-  }
+  goBack()
 }
 
 const onShare = async () => {

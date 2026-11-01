@@ -3,6 +3,18 @@
   <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
         <v-card class="catalog-card" elevation="0">
           <v-card-title class="catalog-toolbar pa-3 ga-2">
+            <div class="filter-chips">
+              <v-chip
+                v-for="chip in activeFilterChips"
+                :key="chip.id"
+                size="small"
+                variant="tonal"
+                closable
+                @click:close="chip.clear()"
+              >
+                {{ chip.label }}
+              </v-chip>
+            </div>
             <v-spacer></v-spacer>
             <v-btn
               icon
@@ -274,6 +286,8 @@ const {
   characterProfiles,
   setUnsavedWeightConfig,
   setUnsavedCharacterProfile,
+  clearUnsavedWeightConfig,
+  clearUnsavedCharacterProfile,
 } = usePresets()
 
 /** Softcap stats from the active profile; no profile → defaults (15) in scoring. */
@@ -342,6 +356,9 @@ const onItemPropertyUpdate = (value: string | null) => {
 
 const applyingRoute = ref(false)
 
+const queryHas = (key: string) =>
+  Object.prototype.hasOwnProperty.call(route.query, key)
+
 const applyQueryToState = () => {
   applyingRoute.value = true
   const partial = catalogQueryToState(route.query)
@@ -354,20 +371,31 @@ const applyQueryToState = () => {
   itemType.value = partial.itemType ?? null
   itemClass.value = partial.itemClass ?? null
   itemAffect.value = partial.itemAffect ?? null
-  itemProperty.value = partial.itemProperty ?? null
   itemSlot.value = partial.itemSlot ?? null
   itemLayer.value = partial.itemLayer ?? null
 
+  // Weights: URL wins only when it explicitly picks weights / w / property.
+  // Otherwise keep sticky localStorage selection across reloads.
+  const hasWeightKeys = queryHas('weights') || queryHas('w')
+  const hasPropertyKey = queryHas('property')
   if (partial.sharedWeights) {
     setUnsavedWeightConfig(partial.sharedWeights)
     itemProperty.value = null
-  } else {
+  } else if (hasWeightKeys) {
+    clearUnsavedWeightConfig()
     activeWeightConfigId.value = partial.activeWeightConfigId ?? null
-    if (activeWeightConfigId.value) {
-      itemProperty.value = null
-    }
+    itemProperty.value = activeWeightConfigId.value ? null : (partial.itemProperty ?? null)
+  } else if (hasPropertyKey) {
+    clearUnsavedWeightConfig()
+    activeWeightConfigId.value = null
+    itemProperty.value = partial.itemProperty ?? null
+  } else if (activeWeightConfigId.value) {
+    itemProperty.value = null
+  } else {
+    itemProperty.value = null
   }
 
+  // Character: URL wins for character=/stats; else re-apply sticky profile fields.
   if (partial.wantsUnsavedCharacter) {
     const hi = partial.levelRange?.[1] ?? 50
     setUnsavedCharacterProfile({
@@ -379,16 +407,21 @@ const applyQueryToState = () => {
       stats: partial.sharedStats,
     })
     applyCharacterProfile(activeCharacterProfileId.value)
-  } else {
+  } else if (queryHas('character')) {
+    clearUnsavedCharacterProfile()
     activeCharacterProfileId.value = partial.activeCharacterProfileId ?? null
     if (activeCharacterProfileId.value) {
       applyCharacterProfile(activeCharacterProfileId.value)
     }
+  } else if (activeCharacterProfileId.value) {
+    applyCharacterProfile(activeCharacterProfileId.value)
   }
 
   sortByScoreOrPropertyDesc()
   queueMicrotask(() => {
     applyingRoute.value = false
+    // Seed sticky actives back into the address bar when the URL omitted them.
+    pushFilterQuery()
   })
 }
 
@@ -595,12 +628,16 @@ const catalog = computed<any[]>(() => {
 
 const onWeightConfigSelected = (id: string | null) => {
   if (id) itemProperty.value = null
+  if (!id) clearUnsavedWeightConfig()
   sortByScoreOrPropertyDesc()
 }
 
 const applyCharacterProfile = (id: string | null) => {
   // Clearing unlocks the fields but leaves current filter values in place.
-  if (!id) return
+  if (!id) {
+    clearUnsavedCharacterProfile()
+    return
+  }
   const profile = characterProfiles.value.find((p) => p.id === id)
   if (!profile) return
   levelRange.value = [1, profile.level]
@@ -609,6 +646,139 @@ const applyCharacterProfile = (id: string | null) => {
   charClass.value = profile.class
   charGender.value = profile.gender
 }
+
+type FilterChip = { id: string; label: string; clear: () => void }
+
+/** Active filters as clearable chips; skip fields locked by profile/weights. */
+const activeFilterChips = computed((): FilterChip[] => {
+  const chips: FilterChip[] = []
+
+  if (activeCharacterProfile.value) {
+    chips.push({
+      id: 'profile',
+      label: activeCharacterProfile.value.name,
+      clear: () => {
+        activeCharacterProfileId.value = null
+        clearUnsavedCharacterProfile()
+      },
+    })
+  }
+
+  if (activeWeightConfig.value) {
+    chips.push({
+      id: 'weights',
+      label: activeWeightConfig.value.name,
+      clear: () => {
+        activeWeightConfigId.value = null
+        clearUnsavedWeightConfig()
+      },
+    })
+  }
+
+  // Profile locks level + align/race/class/gender — no separate chips.
+  if (!characterFiltersLocked.value) {
+    const [lo, hi] = levelRange.value
+    if (lo !== 0 || hi !== 90) {
+      chips.push({
+        id: 'level',
+        label: `Lv ${lo}–${hi}`,
+        clear: () => {
+          levelRange.value = [0, 90]
+        },
+      })
+    }
+    if (charAlignment.value) {
+      chips.push({
+        id: 'align',
+        label: charAlignment.value,
+        clear: () => {
+          charAlignment.value = null
+        },
+      })
+    }
+    if (charRace.value) {
+      chips.push({
+        id: 'race',
+        label: charRace.value,
+        clear: () => {
+          charRace.value = null
+        },
+      })
+    }
+    if (charClass.value) {
+      chips.push({
+        id: 'class',
+        label: charClass.value,
+        clear: () => {
+          charClass.value = null
+        },
+      })
+    }
+    if (charGender.value) {
+      chips.push({
+        id: 'gender',
+        label: charGender.value,
+        clear: () => {
+          charGender.value = null
+        },
+      })
+    }
+  }
+
+  // Class chip replaces type when class is set.
+  if (itemClass.value) {
+    chips.push({
+      id: 'itemClass',
+      label: itemClass.value,
+      clear: () => {
+        itemClass.value = null
+      },
+    })
+  } else if (itemType.value) {
+    chips.push({
+      id: 'itemType',
+      label: itemType.value,
+      clear: () => {
+        itemType.value = null
+      },
+    })
+  }
+
+  if (itemAffect.value) {
+    chips.push({
+      id: 'affect',
+      label: itemAffect.value,
+      clear: () => {
+        itemAffect.value = null
+      },
+    })
+  }
+
+  if (itemSlot.value || itemLayer.value) {
+    const parts = [itemSlot.value, itemLayer.value].filter(Boolean)
+    chips.push({
+      id: 'wear',
+      label: parts.join('.'),
+      clear: () => {
+        itemSlot.value = null
+        itemLayer.value = null
+      },
+    })
+  }
+
+  // Weights disable the property filter — skip that chip while weighted.
+  if (!activeWeightConfig.value && itemProperty.value) {
+    chips.push({
+      id: 'property',
+      label: itemProperty.value,
+      clear: () => {
+        itemProperty.value = null
+      },
+    })
+  }
+
+  return chips
+})
 
 const openWeightsManager = () => {
   router.push({
@@ -676,11 +846,22 @@ onMounted(() => {
 .catalog-toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   background: rgb(var(--v-theme-surface));
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .search-field {
   max-width: 360px;
+  flex: 0 1 360px;
 }
 
 .catalog-table :deep(thead th) {

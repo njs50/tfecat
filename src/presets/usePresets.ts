@@ -16,13 +16,21 @@ const weightConfigs = ref<WeightConfig[]>(
 const characterProfiles = ref<CharacterProfile[]>(
   state.characterProfiles.filter((c) => c.id !== UNSAVED_PRESET_ID),
 )
+
+/** Drop missing / &lt;unsaved&gt; ids so sticky actives never point at ghosts. */
+const resolveStickyId = (
+  id: string | null,
+  configs: { id: string }[],
+): string | null => {
+  if (!id || id === UNSAVED_PRESET_ID) return null
+  return configs.some((c) => c.id === id) ? id : null
+}
+
 const activeWeightConfigId = ref<string | null>(
-  state.activeWeightConfigId === UNSAVED_PRESET_ID ? null : state.activeWeightConfigId,
+  resolveStickyId(state.activeWeightConfigId, weightConfigs.value),
 )
 const activeCharacterProfileId = ref<string | null>(
-  state.activeCharacterProfileId === UNSAVED_PRESET_ID
-    ? null
-    : state.activeCharacterProfileId,
+  resolveStickyId(state.activeCharacterProfileId, characterProfiles.value),
 )
 
 watch(
