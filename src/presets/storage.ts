@@ -1,12 +1,34 @@
+import {
+  DEFAULT_STAT_VALUE,
+  LEVEL_MAX,
+  LEVEL_MIN,
+  STAT_MAX,
+  STAT_MIN,
+  UNSAVED_PRESET_ID,
+} from './constants'
 import type {
   CharacterProfile,
   CharacterStats,
   PresetsState,
   WeightConfig,
 } from './types'
-import { EMPTY_CHARACTER_STATS } from './types'
+import { DEFAULT_CHARACTER_STATS } from './types'
 
-export const PRESETS_STORAGE_KEY = 'tfecat.presets.v1'
+/** Legacy unscoped key (pre channel-namespace); migrated once into prod `/tfecat/` key. */
+export const LEGACY_PRESETS_STORAGE_KEY = 'tfecat.presets.v1'
+
+/** Channel slug from Vite base (`/tfecat/` → `tfecat`, `/tcat-preview/` → `tcat-preview`). */
+export function presetsChannelSlug(baseUrl = import.meta.env.BASE_URL): string {
+  const trimmed = String(baseUrl || '/').replace(/^\/+|\/+$/g, '')
+  return trimmed || 'dev'
+}
+
+/** Per-channel key so prod + preview PWAs on njs50.github.io don’t share presets. */
+export function presetsStorageKey(baseUrl = import.meta.env.BASE_URL): string {
+  return `tfecat.presets.v1:${presetsChannelSlug(baseUrl)}`
+}
+
+export const PRESETS_STORAGE_KEY = presetsStorageKey()
 
 /** Example configs so a fresh browser has something to try. */
 export const DEFAULT_WEIGHT_CONFIGS: WeightConfig[] = [
@@ -58,6 +80,9 @@ function sanitizeWeightConfig(raw: unknown): WeightConfig | null {
   if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.name !== 'string') {
     return null
   }
+  if (raw.id === UNSAVED_PRESET_ID) {
+    return null
+  }
   return {
     id: raw.id,
     name: raw.name,
@@ -65,20 +90,20 @@ function sanitizeWeightConfig(raw: unknown): WeightConfig | null {
   }
 }
 
-function sanitizeStat(value: unknown): number | null {
+function sanitizeStat(value: unknown): number {
   if (value === null || value === undefined || value === '') {
-    return null
+    return DEFAULT_STAT_VALUE
   }
   const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isFinite(n)) {
-    return null
+    return DEFAULT_STAT_VALUE
   }
-  return Math.min(100, Math.max(0, Math.round(n)))
+  return Math.min(STAT_MAX, Math.max(STAT_MIN, Math.round(n)))
 }
 
 function sanitizeCharacterStats(raw: unknown): CharacterStats {
   if (!isRecord(raw)) {
-    return { ...EMPTY_CHARACTER_STATS }
+    return { ...DEFAULT_CHARACTER_STATS }
   }
   return {
     Str: sanitizeStat(raw.Str),
@@ -93,6 +118,9 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
   if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.name !== 'string') {
     return null
   }
+  if (raw.id === UNSAVED_PRESET_ID) {
+    return null
+  }
   const level = typeof raw.level === 'number' ? raw.level : Number(raw.level)
   if (!Number.isFinite(level)) {
     return null
@@ -102,7 +130,7 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
   return {
     id: raw.id,
     name: raw.name,
-    level: Math.min(90, Math.max(1, Math.round(level))),
+    level: Math.min(LEVEL_MAX, Math.max(LEVEL_MIN, Math.round(level))),
     alignment: nullableString(raw.alignment),
     race: nullableString(raw.race),
     class: nullableString(raw.class),
@@ -111,19 +139,11 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
   }
 }
 
-export function loadPresetsState(): PresetsState {
-  if (typeof localStorage === 'undefined') {
-    return emptyState()
-  }
+function parsePresetsRaw(raw: string | null): PresetsState | null {
+  if (!raw) return null
   try {
-    const raw = localStorage.getItem(PRESETS_STORAGE_KEY)
-    if (!raw) {
-      return emptyState()
-    }
     const parsed = JSON.parse(raw) as unknown
-    if (!isRecord(parsed)) {
-      return emptyState()
-    }
+    if (!isRecord(parsed)) return null
     const weightConfigs = Array.isArray(parsed.weightConfigs)
       ? parsed.weightConfigs.map(sanitizeWeightConfig).filter((c): c is WeightConfig => !!c)
       : []
@@ -143,15 +163,35 @@ export function loadPresetsState(): PresetsState {
           : null,
     }
   } catch {
+    return null
+  }
+}
+
+export function loadPresetsState(): PresetsState {
+  if (typeof localStorage === 'undefined') {
     return emptyState()
   }
+  const key = presetsStorageKey()
+  const scoped = parsePresetsRaw(localStorage.getItem(key))
+  if (scoped) return scoped
+
+  // One-time migrate unscoped prod data into `/tfecat/` only (not preview).
+  if (presetsChannelSlug() === 'tfecat') {
+    const legacy = parsePresetsRaw(localStorage.getItem(LEGACY_PRESETS_STORAGE_KEY))
+    if (legacy) {
+      localStorage.setItem(key, JSON.stringify(legacy))
+      return legacy
+    }
+  }
+
+  return emptyState()
 }
 
 export function savePresetsState(state: PresetsState): void {
   if (typeof localStorage === 'undefined') {
     return
   }
-  localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(state))
+  localStorage.setItem(presetsStorageKey(), JSON.stringify(state))
 }
 
 export function newId(): string {

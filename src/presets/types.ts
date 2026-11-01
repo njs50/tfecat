@@ -1,3 +1,5 @@
+import { DEFAULT_STAT_VALUE } from './constants'
+
 /** Named set of item-property → weight multipliers for weighted search. */
 export type WeightConfig = {
   id: string
@@ -15,13 +17,17 @@ export type CharacterStats = {
   Con: number | null
 }
 
-export const EMPTY_CHARACTER_STATS: CharacterStats = {
-  Str: null,
-  Int: null,
-  Wis: null,
-  Dex: null,
-  Con: null,
+/** Default filled stats for new profiles / softcap baseline. */
+export const DEFAULT_CHARACTER_STATS: CharacterStats = {
+  Str: DEFAULT_STAT_VALUE,
+  Int: DEFAULT_STAT_VALUE,
+  Wis: DEFAULT_STAT_VALUE,
+  Dex: DEFAULT_STAT_VALUE,
+  Con: DEFAULT_STAT_VALUE,
 }
+
+/** @deprecated use DEFAULT_CHARACTER_STATS */
+export const EMPTY_CHARACTER_STATS = DEFAULT_CHARACTER_STATS
 
 /** Named character filter preset. */
 export type CharacterProfile = {
@@ -33,7 +39,7 @@ export type CharacterProfile = {
   race: string | null
   class: string | null
   gender: string | null
-  /** Unset stats are treated as 0 for softcaps (same as no profile selected). */
+  /** Null entries resolve to DEFAULT_STAT_VALUE for softcaps. */
   stats: CharacterStats
 }
 

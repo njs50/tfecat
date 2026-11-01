@@ -54,7 +54,7 @@
                     v-model.number="levelMin"
                     type="number"
                     min="0"
-                    max="90"
+                    :max="LEVEL_MAX"
                     step="1"
                     label="Level min"
                     density="compact"
@@ -68,7 +68,7 @@
                     v-model.number="levelMax"
                     type="number"
                     min="0"
-                    max="90"
+                    :max="LEVEL_MAX"
                     step="1"
                     label="Level max"
                     density="compact"
@@ -167,7 +167,16 @@
         </v-expansion-panels>
 
         <v-card class="mt-2 elevation-2 rounded-lg">
-          <v-card-title class="d-flex align-center py-1">
+              <v-card-title class="d-flex align-center py-1 ga-1">
+            <v-btn
+              variant="tonal"
+              density="compact"
+              class="ma-1"
+              :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
+              @click="onShare"
+            >
+              {{ shareCopied ? 'Copied' : 'Share' }}
+            </v-btn>
             <v-spacer></v-spacer>
             <v-text-field
               v-model="searchText"
@@ -243,7 +252,9 @@ import {
   catalogStateToQuery,
   sameCatalogQuery,
 } from '../composables/useCatalogQuery'
+import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
 import { getItemPropertyAmount } from '../itemProperties'
+import { LEVEL_MAX } from '../presets/constants'
 import { usePresets } from '../presets/usePresets'
 import { formatWeightedScore, getWeightedScore } from '../presets/weightedScore'
 import { useCatalogStore } from '../store'
@@ -252,6 +263,7 @@ const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
+const { shareCopied, flashCopied } = useShareFeedback()
 
 const {
   activeWeightConfigId,
@@ -261,9 +273,11 @@ const {
   weightConfigSelectItems,
   characterProfileSelectItems,
   characterProfiles,
+  setUnsavedWeightConfig,
+  setUnsavedCharacterProfile,
 } = usePresets()
 
-/** Softcap stats from the active profile; unset / no profile → treated as 0 in scoring. */
+/** Softcap stats from the active profile; no profile → defaults (15) in scoring. */
 const activeCharacterStats = computed(() => activeCharacterProfile.value?.stats ?? null)
 
 const searchText = ref('')
@@ -272,7 +286,7 @@ const levelRange = ref<[number, number]>([0, 90])
 const clampLevel = (n: unknown, fallback: number) => {
   const v = typeof n === 'number' ? n : Number(n)
   if (!Number.isFinite(v)) return fallback
-  return Math.min(90, Math.max(0, Math.round(v)))
+  return Math.min(LEVEL_MAX, Math.max(0, Math.round(v)))
 }
 
 const levelMin = computed({
@@ -344,14 +358,35 @@ const applyQueryToState = () => {
   itemProperty.value = partial.itemProperty ?? null
   itemSlot.value = partial.itemSlot ?? null
   itemLayer.value = partial.itemLayer ?? null
-  activeWeightConfigId.value = partial.activeWeightConfigId ?? null
-  activeCharacterProfileId.value = partial.activeCharacterProfileId ?? null
-  if (activeCharacterProfileId.value) {
-    applyCharacterProfile(activeCharacterProfileId.value)
-  }
-  if (activeWeightConfigId.value) {
+
+  if (partial.sharedWeights) {
+    setUnsavedWeightConfig(partial.sharedWeights)
     itemProperty.value = null
+  } else {
+    activeWeightConfigId.value = partial.activeWeightConfigId ?? null
+    if (activeWeightConfigId.value) {
+      itemProperty.value = null
+    }
   }
+
+  if (partial.wantsUnsavedCharacter) {
+    const hi = partial.levelRange?.[1] ?? 50
+    setUnsavedCharacterProfile({
+      level: hi,
+      alignment: partial.charAlignment ?? null,
+      race: partial.charRace ?? null,
+      class: partial.charClass ?? null,
+      gender: partial.charGender ?? null,
+      stats: partial.sharedStats,
+    })
+    applyCharacterProfile(activeCharacterProfileId.value)
+  } else {
+    activeCharacterProfileId.value = partial.activeCharacterProfileId ?? null
+    if (activeCharacterProfileId.value) {
+      applyCharacterProfile(activeCharacterProfileId.value)
+    }
+  }
+
   sortByScoreOrPropertyDesc()
   queueMicrotask(() => {
     applyingRoute.value = false
@@ -377,9 +412,24 @@ const currentFilterState = () => ({
 
 const pushFilterQuery = () => {
   if (applyingRoute.value) return
-  const query = catalogStateToQuery(currentFilterState())
+  // Expand unsaved presets into w=/stats so a refresh keeps them (no saved ids).
+  const query = catalogStateToQuery(currentFilterState(), {
+    activeProfile: activeCharacterProfile.value,
+    activeWeights: activeWeightConfig.value,
+  })
   if (sameCatalogQuery(query, route.query)) return
   router.replace({ name: 'catalog', query })
+}
+
+const onShare = async () => {
+  const ok = await copyShareLink({
+    router,
+    route,
+    filterState: currentFilterState(),
+    activeProfile: activeCharacterProfile.value,
+    activeWeights: activeWeightConfig.value,
+  })
+  if (ok) flashCopied()
 }
 
 watch(
@@ -598,7 +648,8 @@ const rowClicked = (item: any) => {
 
 const CATALOG_QUERY_KEYS = new Set([
   'q', 'level', 'align', 'race', 'class', 'gender', 'type', 'itemClass',
-  'affect', 'slot', 'layer', 'property', 'weights', 'character',
+  'affect', 'slot', 'layer', 'property', 'weights', 'character', 'w',
+  'str', 'int', 'wis', 'dex', 'con',
 ])
 
 const routeHasCatalogQuery = () =>

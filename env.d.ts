@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_PREVIEW_REF?: string
   /** Full commit SHA from github.sha; UI shows a short prefix. */
   readonly VITE_PREVIEW_SHA?: string
+  /** Deploy SHA baked at build time; compared to version.json for updates. */
+  readonly VITE_BUILD_ID: string
 }
 
 interface ImportMeta {

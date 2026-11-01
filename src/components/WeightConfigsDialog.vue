@@ -1,115 +1,104 @@
 <template>
-  <v-card class="modal-card">
-      <v-card-title class="modal-title d-flex align-center justify-space-between">
-        <span>Weight configurations</span>
-        <v-btn icon variant="text" @click="emit('close')">
-          <v-icon>mdi-close</v-icon>
+  <div>
+    <v-row class="align-center mb-3" dense>
+      <v-col cols="12" sm="8" md="6">
+        <v-select
+          v-model="editingId"
+          :items="configItems"
+          label="Edit configuration"
+          density="compact"
+          hide-details
+        ></v-select>
+      </v-col>
+      <v-col cols="12" sm="4" md="6" class="d-flex justify-sm-end">
+        <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="startNew">
+          New
         </v-btn>
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-card-text class="modal-content pa-4">
-        <p class="text-body-2 text-medium-emphasis mb-3">
-          Each property amount × its weight is summed into a Score. Saved sets persist in this browser.
-        </p>
+      </v-col>
+    </v-row>
 
-        <v-row class="align-center mb-2" dense>
-          <v-col cols="12" sm="8">
-            <v-select
-              v-model="editingId"
-              :items="configItems"
-              label="Edit configuration"
-              density="compact"
-              hide-details
-            ></v-select>
-          </v-col>
-          <v-col cols="12" sm="4" class="d-flex justify-end">
-            <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="startNew">
-              New
-            </v-btn>
-          </v-col>
-        </v-row>
+    <template v-if="draft">
+      <v-text-field
+        v-model="draft.name"
+        label="Name"
+        density="compact"
+        class="mb-3"
+        hide-details="auto"
+        hint="Rename &lt;unsaved&gt; and Save to keep a shared weight set"
+        persistent-hint
+      ></v-text-field>
 
-        <template v-if="draft">
+      <div class="text-subtitle-2 mb-2">Property weights</div>
+      <v-row
+        v-for="(row, index) in draftRows"
+        :key="index"
+        class="align-center mb-1"
+        dense
+      >
+        <v-col cols="12" sm="7" md="6">
+          <v-autocomplete
+            v-model="row.property"
+            :items="propertyOptions"
+            label="Property"
+            density="compact"
+            hide-details
+          ></v-autocomplete>
+        </v-col>
+        <v-col cols="8" sm="3" md="4">
           <v-text-field
-            v-model="draft.name"
-            label="Name"
+            v-model.number="row.weight"
+            type="number"
+            step="any"
+            label="Weight"
             density="compact"
-            class="mb-2"
-            hide-details="auto"
+            hide-details
           ></v-text-field>
-
-          <div class="text-subtitle-2 mb-2">Property weights</div>
-          <v-row
-            v-for="(row, index) in draftRows"
-            :key="index"
-            class="align-center mb-1"
-            dense
-          >
-            <v-col cols="12" sm="7">
-              <v-autocomplete
-                v-model="row.property"
-                :items="propertyOptions"
-                label="Property"
-                density="compact"
-                hide-details
-              ></v-autocomplete>
-            </v-col>
-            <v-col cols="8" sm="3">
-              <v-text-field
-                v-model.number="row.weight"
-                type="number"
-                step="any"
-                label="Weight"
-                density="compact"
-                hide-details
-              ></v-text-field>
-            </v-col>
-            <v-col cols="4" sm="2" class="d-flex justify-end">
-              <v-btn icon variant="text" @click="draftRows.splice(index, 1)">
-                <v-icon>mdi-delete</v-icon>
-              </v-btn>
-            </v-col>
-          </v-row>
-
-          <v-btn
-            class="mt-1"
-            variant="outlined"
-            density="compact"
-            prepend-icon="mdi-plus"
-            @click="draftRows.push({ property: null, weight: 1 })"
-          >
-            Add property
+        </v-col>
+        <v-col cols="4" sm="2" md="2" class="d-flex justify-end">
+          <v-btn icon variant="text" @click="draftRows.splice(index, 1)">
+            <v-icon>mdi-delete</v-icon>
           </v-btn>
-        </template>
-      </v-card-text>
-      <v-divider></v-divider>
-      <v-card-actions class="modal-actions pa-4">
+        </v-col>
+      </v-row>
+
+      <v-btn
+        class="mt-2"
+        variant="outlined"
+        density="compact"
+        prepend-icon="mdi-plus"
+        @click="draftRows.push({ property: null, weight: 1 })"
+      >
+        Add property
+      </v-btn>
+
+      <div class="d-flex flex-wrap ga-2 mt-4">
         <v-btn
           color="error"
           variant="text"
-          :disabled="!editingId || isNew"
+          :disabled="!canDelete"
           @click="remove"
         >
           Delete
         </v-btn>
         <v-spacer></v-spacer>
-        <v-btn variant="text" @click="emit('close')">Close</v-btn>
+        <v-btn variant="text" @click="emit('close')">Done</v-btn>
         <v-btn color="primary" variant="elevated" :disabled="!draft" @click="save">
           Save
         </v-btn>
-      </v-card-actions>
-    </v-card>
+      </div>
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { newId } from '../presets/storage'
+import { UNSAVED_PRESET_ID, UNSAVED_PRESET_LABEL } from '../presets/constants'
 import type { WeightConfig } from '../presets/types'
 
 const props = defineProps<{
   configs: WeightConfig[]
   propertyOptions: string[]
-  /** Optional config id to open for editing (from /weights/:id). */
   startId?: string | null
 }>()
 
@@ -129,8 +118,16 @@ const draftRows = ref<DraftRow[]>([])
 const configItems = computed(() =>
   props.configs
     .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .sort((a, b) => {
+      if (a.id === UNSAVED_PRESET_ID) return -1
+      if (b.id === UNSAVED_PRESET_ID) return 1
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    })
     .map((c) => ({ title: c.name, value: c.id })),
+)
+
+const canDelete = computed(
+  () => !!editingId.value && !isNew.value && editingId.value !== UNSAVED_PRESET_ID,
 )
 
 const loadDraft = (config: WeightConfig) => {
@@ -175,18 +172,17 @@ const openEditor = () => {
 }
 
 onMounted(openEditor)
-
+watch(() => props.startId, openEditor)
 watch(
-  () => props.startId,
+  () => props.configs,
   () => {
-    openEditor()
+    if (props.startId === UNSAVED_PRESET_ID) openEditor()
   },
+  { deep: true },
 )
 
 watch(editingId, (id) => {
-  if (!id || isNew.value) {
-    return
-  }
+  if (!id || isNew.value) return
   const config = props.configs.find((c) => c.id === id)
   if (config) {
     isNew.value = false
@@ -195,17 +191,14 @@ watch(editingId, (id) => {
 })
 
 const save = () => {
-  if (!draft.value) {
-    return
-  }
+  if (!draft.value) return
   const weights: Record<string, number> = {}
   for (const row of draftRows.value) {
-    if (!row.property || !Number.isFinite(row.weight)) {
-      continue
-    }
+    if (!row.property || !Number.isFinite(row.weight)) continue
     weights[row.property] = row.weight
   }
-  const name = draft.value.name.trim() || 'Untitled'
+  let name = draft.value.name.trim() || 'Untitled'
+  if (name === UNSAVED_PRESET_LABEL) name = 'Untitled'
   const saved: WeightConfig = {
     id: draft.value.id,
     name,
@@ -218,9 +211,7 @@ const save = () => {
 }
 
 const remove = () => {
-  if (!editingId.value || isNew.value) {
-    return
-  }
+  if (!editingId.value || isNew.value || editingId.value === UNSAVED_PRESET_ID) return
   const id = editingId.value
   emit('remove', id)
   const remaining = props.configs.filter((c) => c.id !== id)

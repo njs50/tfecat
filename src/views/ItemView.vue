@@ -1,37 +1,42 @@
 <template>
   <v-container fluid class="pa-2">
-    <v-btn
-      class="mb-2"
-      variant="tonal"
-      density="compact"
-      prepend-icon="mdi-arrow-left"
-      @click="goBack"
-    >
-      Back to search
-    </v-btn>
+    <div class="d-flex flex-wrap align-center ga-2 mb-3">
+      <nav class="text-body-2" aria-label="Breadcrumb">
+        <router-link :to="{ name: 'catalog', query: route.query }" class="crumb-link">
+          Item Search
+        </router-link>
+        <span class="mx-1 text-medium-emphasis">›</span>
+        <span class="text-high-emphasis" style="text-transform: capitalize;">
+          {{ item?.name || 'Item' }}
+        </span>
+      </nav>
+      <v-spacer></v-spacer>
+      <v-btn
+        variant="tonal"
+        density="compact"
+        :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
+        @click="onShare"
+      >
+        {{ shareCopied ? 'Copied' : 'Share' }}
+      </v-btn>
+    </div>
 
-    <v-card v-if="item" class="modal-card">
-      <v-card-title class="d-flex justify-space-between align-center pb-1 modal-title">
-        <span style="text-transform: capitalize; font-size: 1.2rem; font-weight: 500;">{{ item.name }}</span>
-      </v-card-title>
-      <v-divider></v-divider>
-      <v-card-text class="mt-2 modal-content pa-4">
-        <pre class="item-ident-pre">{{ displayBuffer }}</pre>
-        <div v-if="item.custom && Object.keys(item.custom).length > 0" class="mt-4">
-          <div v-for="(custom, roomKey) in item.custom" :key="roomKey" class="mb-3">
-            <div class="text-subtitle-1 mb-1" style="color: #888;">Custom in Room #{{ roomKey }}:</div>
-            <pre style="margin: 0; color: #e0e0e0; font-size: 0.9rem; white-space: pre; overflow-x: auto; background: #2a2a2a; padding: 8px; border-radius: 4px;">Item                        Price  Weight  Lvl  Ingredients
+    <template v-if="item">
+      <pre class="item-ident-pre">{{ displayBuffer }}</pre>
+      <div v-if="item.custom && Object.keys(item.custom).length > 0" class="mt-4">
+        <div v-for="(custom, roomKey) in item.custom" :key="roomKey" class="mb-3">
+          <div class="text-subtitle-1 mb-1 text-medium-emphasis">Custom in Room #{{ roomKey }}:</div>
+          <pre class="item-ident-pre">Item                        Price  Weight  Lvl  Ingredients
 ----                        -----  ------  ---  -----------
 {{ custom.raw }}</pre>
-          </div>
         </div>
-      </v-card-text>
-    </v-card>
+      </div>
+    </template>
 
     <v-alert v-else-if="catalogLoaded" type="warning" variant="tonal" class="mt-2">
       Item not found.
       <template #append>
-        <v-btn variant="text" @click="goBack">Back</v-btn>
+        <v-btn variant="text" :to="{ name: 'catalog', query: route.query }">Back</v-btn>
       </template>
     </v-alert>
   </v-container>
@@ -40,6 +45,9 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { catalogQueryToState } from '../composables/useCatalogQuery'
+import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
+import { usePresets } from '../presets/usePresets'
 import { useCatalogStore } from '../store'
 
 const props = defineProps<{ itemKey: string }>()
@@ -47,17 +55,16 @@ const props = defineProps<{ itemKey: string }>()
 const store = useCatalogStore()
 const router = useRouter()
 const route = useRoute()
+const { activeCharacterProfile, activeWeightConfig } = usePresets()
+const { shareCopied, flashCopied } = useShareFeedback()
 
 onMounted(() => {
-  if (!store.catalog) {
-    store.fetchCatalog()
-  }
+  if (!store.catalog) store.fetchCatalog()
 })
 
 const catalogLoaded = computed(() => !!store.catalog)
 
 const item = computed(() => {
-  // vue-router provides decoded params; tolerate a once-encoded key too.
   const raw = props.itemKey
   let decoded = raw
   try {
@@ -70,19 +77,12 @@ const item = computed(() => {
   )
 })
 
-/** Allowed values for a restriction map; null if unrestricted (all true). */
 const allowedRestrictionValues = (map: Record<string, boolean> | undefined): string[] | null => {
-  if (!map) {
-    return null
-  }
+  if (!map) return null
   const entries = Object.entries(map)
-  if (!entries.length) {
-    return null
-  }
+  if (!entries.length) return null
   const allowed = entries.filter(([, ok]) => ok).map(([k]) => k)
-  if (allowed.length === entries.length) {
-    return null
-  }
+  if (allowed.length === entries.length) return null
   return allowed
 }
 
@@ -134,17 +134,48 @@ const formatItemDisplayBuffer = (it: any): string => {
 
 const displayBuffer = computed(() => (item.value ? formatItemDisplayBuffer(item.value) : ''))
 
-const goBack = () => {
-  router.push({ name: 'catalog', query: route.query })
+const onShare = async () => {
+  const parsed = catalogQueryToState(route.query)
+  const ok = await copyShareLink({
+    router,
+    route,
+    filterState: {
+      searchText: parsed.searchText ?? '',
+      levelRange: parsed.levelRange ?? [0, 90],
+      charAlignment: parsed.charAlignment ?? null,
+      charClass: parsed.charClass ?? null,
+      charRace: parsed.charRace ?? null,
+      charGender: parsed.charGender ?? null,
+      itemType: parsed.itemType ?? null,
+      itemClass: parsed.itemClass ?? null,
+      itemAffect: parsed.itemAffect ?? null,
+      itemProperty: parsed.itemProperty ?? null,
+      itemSlot: parsed.itemSlot ?? null,
+      itemLayer: parsed.itemLayer ?? null,
+      activeWeightConfigId: parsed.activeWeightConfigId ?? null,
+      activeCharacterProfileId: parsed.activeCharacterProfileId ?? null,
+    },
+    activeProfile: activeCharacterProfile.value,
+    activeWeights: activeWeightConfig.value,
+  })
+  if (ok) flashCopied()
 }
 </script>
 
 <style scoped>
+.crumb-link {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: none;
+}
+.crumb-link:hover {
+  text-decoration: underline;
+}
 .item-ident-pre {
   margin: 0;
-  color: #e0e0e0;
+  color: inherit;
   font-size: 0.875rem;
   white-space: pre;
   overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 </style>

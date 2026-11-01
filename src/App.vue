@@ -106,12 +106,28 @@
       class="preview-watermark"
       aria-hidden="true"
     >{{ previewWatermark }}</div>
+
+    <v-snackbar
+      v-model="updateAvailable"
+      :timeout="-1"
+      color="primary"
+      location="bottom"
+      multi-line
+    >
+      A new version is available.
+      <template #actions>
+        <v-btn variant="text" @click="reloadToUpdate">Reload</v-btn>
+      </template>
+    </v-snackbar>
   </v-app>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import BrandMark from './components/BrandMark.vue'
+import { useAppUpdate } from './composables/useAppUpdate'
+
+const { updateAvailable, reloadToUpdate } = useAppUpdate()
 
 const isInstallModalVisible = ref(false)
 const installCode = ref(

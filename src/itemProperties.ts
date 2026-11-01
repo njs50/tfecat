@@ -1,3 +1,4 @@
+import { DEFAULT_STAT_VALUE } from './presets/constants'
 import type { CharacterStats } from './presets/types'
 
 /** Native item fields exposed as Item Property filter options. */
@@ -17,7 +18,7 @@ export const EXTRA_ITEM_PROPERTIES: readonly string[] = [
   ...COMPUTED_ITEM_PROPERTIES,
 ]
 
-/** Resolved primary stats for softcaps (unset / no profile → 0, not CLI’s default 15). */
+/** Resolved primary stats for softcaps (unset / no profile → 15, matching Mudlet defaults). */
 export type ResolvedCharacterStats = {
   Str: number
   Int: number
@@ -33,12 +34,12 @@ export type ResolvedCharacterStats = {
   Poison: number
 }
 
-const ZERO_STATS: ResolvedCharacterStats = {
-  Str: 0,
-  Int: 0,
-  Wis: 0,
-  Dex: 0,
-  Con: 0,
+const BASE_STATS: ResolvedCharacterStats = {
+  Str: DEFAULT_STAT_VALUE,
+  Int: DEFAULT_STAT_VALUE,
+  Wis: DEFAULT_STAT_VALUE,
+  Dex: DEFAULT_STAT_VALUE,
+  Con: DEFAULT_STAT_VALUE,
   Magic: 0,
   Fire: 0,
   Cold: 0,
@@ -52,9 +53,9 @@ export function resolveCharacterStats(
   stats: CharacterStats | null | undefined,
 ): ResolvedCharacterStats {
   const n = (v: number | null | undefined) =>
-    v == null || !Number.isFinite(v) ? 0 : v
+    v == null || !Number.isFinite(v) ? DEFAULT_STAT_VALUE : v
   return {
-    ...ZERO_STATS,
+    ...BASE_STATS,
     Str: n(stats?.Str),
     Int: n(stats?.Int),
     Wis: n(stats?.Wis),

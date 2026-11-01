@@ -57,6 +57,7 @@ jobs:
         env:
           VITE_PREVIEW_REF: ${{ github.ref_name }}
           VITE_PREVIEW_SHA: ${{ github.sha }}
+          VITE_BUILD_ID: ${{ github.sha }}
         run: pnpm exec vue-tsc && pnpm exec vite build --base=/tcat-preview/
 
       - name: Deploy dist to njs50/tcat-preview gh-pages
