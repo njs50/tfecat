@@ -1,7 +1,7 @@
 <template>
   <v-app id="tfecat">
     <v-app-bar :height="124" app class="app-bar">
-      <v-container fluid class="header-shell px-4">
+      <v-container fluid class="header-shell px-6 px-sm-8">
         <v-toolbar color="transparent" density="compact" class="brand-toolbar">
           <v-btn :href="catalogHref" aria-label="TFEcat item catalog home" class="brand-link text-none px-0" variant="text" :ripple="false">
             <BrandMark class="brand-mark mr-3" />
@@ -37,7 +37,7 @@
     </v-app-bar>
 
     <v-main>
-      <v-container fluid class="content-shell px-4 px-sm-8 py-8 py-sm-10">
+      <v-container fluid class="content-shell px-6 px-sm-8 py-10">
         <v-sheet color="transparent" class="page-heading mb-8">
           <div class="page-eyebrow">The Forest&apos;s Edge</div>
           <div class="page-title">Item catalog</div>
@@ -618,6 +618,7 @@ onMounted(() => {
 
 .brand-link {
   min-width: 0;
+  height: 56px !important;
 }
 
 .brand-mark {
@@ -643,6 +644,8 @@ onMounted(() => {
 }
 
 .install-button {
+  min-height: 40px;
+  border-radius: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.75rem;
   font-weight: 700;
@@ -662,6 +665,10 @@ onMounted(() => {
 
 .primary-nav :deep(.v-tab--disabled) {
   opacity: 0.46;
+}
+
+.primary-nav :deep(.v-tab__slider) {
+  height: 4px;
 }
 
 .page-eyebrow {
