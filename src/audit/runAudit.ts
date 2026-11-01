@@ -14,7 +14,6 @@ import {
   type ParseEquipmentResult,
   type ParsedGearPiece,
 } from './parseEquipment'
-import { itemSanitize } from './itemSanitize'
 
 export type ResolvedGearPiece = ParsedGearPiece & {
   catalogItem: ScoredCatalogItem | null
@@ -113,7 +112,7 @@ export function runEquipmentAudit(options: {
   > = {}
 
   for (const piece of parse.pieces) {
-    const found = findCatalogItem(itemSanitize(piece.raw, true), catalog)
+    const found = findCatalogItem(piece.raw, catalog)
     const equippedItem: ScoredCatalogItem | null = found
       ? {
           ...found,

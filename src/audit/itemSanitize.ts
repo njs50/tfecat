@@ -32,12 +32,17 @@ export function itemSanitize(raw: string, keepEnchant = false): string {
   return string.trim()
 }
 
-/** Lowercase search key used by Mudlet `catalog.findItem`. */
+/**
+ * Lowercase search key used by Mudlet `catalog.findItem`.
+ * Strip `labeled …` (and contents/containing) so backpacks/quivers/sacks
+ * match the base catalog name.
+ */
 export function sanitizeItemName(itemName: string): string {
   let name = itemName.toLowerCase()
   name = name.replace(/^(the |a |an )/i, '')
   name = name.replace(/^(pair of |set of)/i, '')
-  name = name.replace(/(.*) labeled .*$/i, 'an empty $1')
+  // Nick: strip labeled and everything after (do not rewrite to "an empty …").
+  name = name.replace(/\s+labeled\b.*$/i, '')
   name = name.replace(/ \+\d$/i, '')
   name = name.replace(/ (contains|containing) .*$/i, '')
   return itemSanitize(name)

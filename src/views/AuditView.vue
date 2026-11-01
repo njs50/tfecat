@@ -1,60 +1,133 @@
 <template>
   <v-container fluid class="content-shell px-4 px-sm-6 px-md-8 pt-4 pb-10">
-    <div class="d-flex flex-wrap align-center ga-2 mb-3">
-      <nav class="text-body-2" aria-label="Breadcrumb">
-        <span>Item audit</span>
-      </nav>
-      <v-spacer></v-spacer>
-      <v-btn
-        :to="{ name: 'filters', query: route.query }"
-        variant="text"
-        size="small"
-        prepend-icon="mdi-filter-variant"
-      >
-        Filters
-      </v-btn>
-      <v-btn
-        :to="{
-          name: 'characters',
-          params: { id: activeCharacterProfileId || undefined },
-          query: route.query,
-        }"
-        variant="text"
-        size="small"
-        prepend-icon="mdi-account"
-      >
-        Character
-      </v-btn>
-    </div>
-
-    <h1 class="text-h6 mb-1">Item audit</h1>
-    <p class="text-body-2 text-medium-emphasis mb-4">
-      Paste a Mudlet <code>equipment</code> list, then find upgrades using the same filters and
-      weights as the item catalog.
-    </p>
-
-    <v-row dense class="mb-2">
-      <v-col cols="12" md="6">
+    <v-row dense class="mb-1">
+      <v-col class="d-flex align-center ga-1" cols="12" md="6">
         <v-select
-          :model-value="activeCharacterProfileId"
+          :model-value="profileId"
           :items="characterProfileSelectItems"
           label="Character profile"
           density="compact"
           clearable
           hide-details
+          class="flex-grow-1"
           @update:model-value="onProfileChange"
         ></v-select>
+        <v-btn
+          icon
+          variant="tonal"
+          density="compact"
+          aria-label="Edit character profiles"
+          @click="openCharactersEditor"
+        >
+          <v-icon>mdi-pencil</v-icon>
+        </v-btn>
       </v-col>
-      <v-col cols="12" md="6">
+
+      <v-col class="d-flex align-center ga-1" cols="12" md="6">
         <v-select
-          :model-value="activeWeightConfigId"
+          :model-value="weightId"
           :items="weightConfigSelectItems"
           label="Weight config"
           density="compact"
           clearable
           hide-details
-          @update:model-value="(v) => (activeWeightConfigId = v)"
+          class="flex-grow-1"
+          @update:model-value="onWeightChange"
         ></v-select>
+        <v-btn
+          icon
+          variant="tonal"
+          density="compact"
+          aria-label="Edit weight configurations"
+          @click="openWeightsEditor"
+        >
+          <v-icon>mdi-pencil</v-icon>
+        </v-btn>
+      </v-col>
+    </v-row>
+
+    <div class="d-flex flex-wrap ga-4 mb-2">
+      <v-checkbox
+        v-model="manualCharacter"
+        label="Manually configure character"
+        density="compact"
+        hide-details
+      ></v-checkbox>
+      <v-checkbox
+        v-model="manualWeight"
+        label="Manually configure scoring"
+        density="compact"
+        hide-details
+      ></v-checkbox>
+    </div>
+
+    <v-row v-if="manualCharacter" dense class="mb-1">
+      <v-col cols="6" sm="4" md="2">
+        <v-text-field
+          v-model.number="levelMax"
+          type="number"
+          :min="1"
+          :max="LEVEL_MAX"
+          step="1"
+          label="Level"
+          density="compact"
+          hide-details
+        ></v-text-field>
+      </v-col>
+      <v-col cols="6" sm="4" md="2">
+        <v-select
+          v-model="charAlignment"
+          :items="charAlignments"
+          label="Alignment"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+      <v-col cols="6" sm="4" md="2">
+        <v-select
+          v-model="charRace"
+          :items="charRaces"
+          label="Race"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+      <v-col cols="6" sm="4" md="3">
+        <v-select
+          v-model="charClass"
+          :items="charClasses"
+          label="Class"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+      <v-col cols="6" sm="4" md="3">
+        <v-select
+          v-model="charGender"
+          :items="charGenders"
+          label="Gender"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+    </v-row>
+
+    <v-row v-if="manualWeight" dense class="mb-2">
+      <v-col cols="12" md="6">
+        <v-autocomplete
+          :model-value="itemPropertyDisplay"
+          :items="itemPropertyItems"
+          label="Item property"
+          density="compact"
+          :clearable="!selectedWeight"
+          hide-details
+          :disabled="!!selectedWeight"
+          @update:model-value="onItemPropertyUpdate"
+        ></v-autocomplete>
       </v-col>
     </v-row>
 
@@ -76,8 +149,9 @@
         Run audit
       </v-btn>
       <v-btn
+        v-if="profileId"
         variant="tonal"
-        :disabled="!activeCharacterProfileId || !pasteText.trim()"
+        :disabled="!pasteText.trim()"
         @click="savePasteToProfile"
       >
         Save paste to profile
@@ -104,7 +178,7 @@
       density="compact"
       class="mb-4"
     >
-      Select a weight config (or an Item Property on the filters page) so upgrades can be ranked.
+      Select a weight config, or enable manual scoring and pick an item property.
     </v-alert>
 
     <v-alert
@@ -168,7 +242,6 @@
             :to="{
               name: 'item',
               params: { itemKey: String(slot.equipped.catalogItem.catalogKey) },
-              query: route.query,
             }"
           >
             {{ slot.equipped.catalogItem.name }}
@@ -184,7 +257,6 @@
               :to="{
                 name: 'item',
                 params: { itemKey: String(up.item.catalogKey) },
-                query: route.query,
               }"
             >
               {{ up.item.name }}
@@ -202,55 +274,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { parseEquipmentPaste } from '../audit/parseEquipment'
 import { runEquipmentAudit, type AuditReport } from '../audit/runAudit'
-import { useCatalogFilters } from '../composables/useCatalogFilters'
+import { LEVEL_MAX } from '../presets/constants'
 import { formatWeightedScore } from '../presets/weightedScore'
 import { usePresets } from '../presets/usePresets'
 import { useCatalogStore } from '../store'
 
-const route = useRoute()
+const router = useRouter()
 const store = useCatalogStore()
 const {
   characterProfiles,
-  activeWeightConfigId,
-  activeWeightConfig,
-  activeCharacterProfileId,
-  activeCharacterProfile,
+  weightConfigs,
   characterProfileSelectItems,
   weightConfigSelectItems,
   upsertCharacterProfile,
 } = usePresets()
 
-const {
-  searchText,
-  levelRange,
-  charAlignment,
-  charClass,
-  charRace,
-  charGender,
-  itemType,
-  itemClass,
-  itemAffect,
-  itemProperty,
-  itemSlot,
-  itemLayer,
-  ensureFilterSync,
-} = useCatalogFilters()
-
-ensureFilterSync()
-
-if (!store.catalog) store.fetchCatalog()
-
-const activeCharacterStats = computed(
-  () => activeCharacterProfile.value?.stats ?? null,
-)
-
-const placeholder = `     +++ Equipment +++
-worn on body              under  a deerhunter's dark silk torso pad   excellent
-worn around neck          base   a shell necklace                    perfect`
+/** Local audit controls — not wired to catalog filter URL state. */
+const profileId = ref<string | null>(null)
+const weightId = ref<string | null>(null)
+const itemProperty = ref<string | null>(null)
+const manualCharacter = ref(false)
+const manualWeight = ref(false)
+const levelMax = ref(90)
+const charAlignment = ref<string | null>(null)
+const charRace = ref<string | null>(null)
+const charClass = ref<string | null>(null)
+const charGender = ref<string | null>(null)
 
 const pasteText = ref('')
 const verbose = ref(false)
@@ -259,31 +312,96 @@ const attempted = ref(false)
 const report = ref<AuditReport | null>(null)
 const parseErrors = ref<string[]>([])
 
+const placeholder = `     +++ Equipment +++
+---- --------      -----   ----                                       ---------
+worn on body              under  a deerhunter's dark silk torso pad   excellent
+worn around neck          base   a shell necklace                    perfect
+Weight: 12.50 lbs`
+
+const charClasses = [
+  'Bard', 'Bulwark', 'Cleric', 'Druid', 'Harbinger', 'Legate', 'Mage', 'Monk',
+  'Paladin', 'Ranger', 'Reaver', 'Thief', 'Warrior',
+].sort()
+const charRaces = [
+  'Ogre', 'Troll', 'Orc', 'Vyan', 'Goblin', 'Human', 'Lizardfolk', 'Dwarf',
+  'Halfling', 'Gnome', 'Ent', 'Elf',
+].sort()
+const charAlignments = [
+  'Lawful Good', 'Lawful Neutral', 'Lawful Evil', 'Neutral Good', 'True Neutral',
+  'Neutral Evil', 'Chaotic Good', 'Chaotic Neutral', 'Chaotic Evil',
+].sort()
+const charGenders = ['Female', 'Male'].sort()
+
+const selectedProfile = computed(
+  () => characterProfiles.value.find((p) => p.id === profileId.value) ?? null,
+)
+const selectedWeight = computed(
+  () => weightConfigs.value.find((w) => w.id === weightId.value) ?? null,
+)
+const characterStats = computed(() => selectedProfile.value?.stats ?? null)
+
+const itemPropertyDisplay = computed(() =>
+  selectedWeight.value ? 'weighted' : itemProperty.value,
+)
+const itemPropertyItems = computed(() =>
+  selectedWeight.value ? ['weighted'] : (store.itemProperties ?? []),
+)
+
 const scoringMode = computed(() => {
-  if (activeWeightConfig.value) return 'weighted'
+  if (selectedWeight.value) return 'weighted'
   if (itemProperty.value) return 'property'
   return 'none'
 })
 
 const canRun = computed(() => !!pasteText.value.trim() && !!store.catalog?.length)
 
-watch(
-  activeCharacterProfile,
-  (profile) => {
-    if (profile?.equipmentPaste && !pasteText.value.trim()) {
-      pasteText.value = profile.equipmentPaste
-    }
-  },
-  { immediate: true },
-)
+const auditReturnQuery = { returnTo: 'audit' }
 
-const onProfileChange = (id: string | null) => {
-  activeCharacterProfileId.value = id
+const openCharactersEditor = () => {
+  router.push({
+    name: 'characters',
+    params: profileId.value ? { id: profileId.value } : {},
+    query: auditReturnQuery,
+  })
+}
+
+const openWeightsEditor = () => {
+  router.push({
+    name: 'weights',
+    params: weightId.value ? { id: weightId.value } : {},
+    query: auditReturnQuery,
+  })
+}
+
+const applyProfileFields = (id: string | null) => {
   if (!id) return
-  const profile = characterProfiles.value.find((c) => c.id === id)
-  if (profile?.equipmentPaste) {
+  const profile = characterProfiles.value.find((p) => p.id === id)
+  if (!profile) return
+  levelMax.value = profile.level
+  charAlignment.value = profile.alignment
+  charRace.value = profile.race
+  charClass.value = profile.class
+  charGender.value = profile.gender
+  if (profile.equipmentPaste) {
     pasteText.value = profile.equipmentPaste
   }
+}
+
+const onProfileChange = (id: string | null) => {
+  profileId.value = id
+  applyProfileFields(id)
+}
+
+const onWeightChange = (id: string | null) => {
+  weightId.value = id
+  if (id) {
+    itemProperty.value = null
+  }
+}
+
+const onItemPropertyUpdate = (value: string | null) => {
+  if (selectedWeight.value) return
+  itemProperty.value = value
 }
 
 const formatScore = (n: number | null | undefined) => {
@@ -291,22 +409,44 @@ const formatScore = (n: number | null | undefined) => {
   return formatWeightedScore(n)
 }
 
-const currentFilterState = () => ({
-  searchText: searchText.value,
-  levelRange: levelRange.value as [number, number],
-  charAlignment: charAlignment.value,
-  charClass: charClass.value,
-  charRace: charRace.value,
-  charGender: charGender.value,
-  itemType: itemType.value,
-  itemClass: itemClass.value,
-  itemAffect: itemAffect.value,
-  itemProperty: itemProperty.value,
-  itemSlot: itemSlot.value,
-  itemLayer: itemLayer.value,
-  weights: activeWeightConfig.value?.weights ?? null,
-  characterStats: activeCharacterStats.value,
-})
+const effectiveCharacterFilters = () => {
+  if (manualCharacter.value || !selectedProfile.value) {
+    return {
+      levelRange: [1, levelMax.value] as [number, number],
+      charAlignment: charAlignment.value,
+      charClass: charClass.value,
+      charRace: charRace.value,
+      charGender: charGender.value,
+    }
+  }
+  return {
+    levelRange: [1, selectedProfile.value.level] as [number, number],
+    charAlignment: selectedProfile.value.alignment,
+    charClass: selectedProfile.value.class,
+    charRace: selectedProfile.value.race,
+    charGender: selectedProfile.value.gender,
+  }
+}
+
+const currentFilterState = () => {
+  const chars = effectiveCharacterFilters()
+  return {
+    searchText: '',
+    levelRange: chars.levelRange,
+    charAlignment: chars.charAlignment,
+    charClass: chars.charClass,
+    charRace: chars.charRace,
+    charGender: chars.charGender,
+    itemType: null,
+    itemClass: null,
+    itemAffect: null,
+    itemProperty: selectedWeight.value ? null : itemProperty.value,
+    itemSlot: null,
+    itemLayer: null,
+    weights: selectedWeight.value?.weights ?? null,
+    characterStats: characterStats.value,
+  }
+}
 
 const runAudit = () => {
   attempted.value = true
@@ -331,7 +471,7 @@ const runAudit = () => {
 }
 
 const savePasteToProfile = () => {
-  const profile = activeCharacterProfile.value
+  const profile = selectedProfile.value
   if (!profile) return
   const paste = pasteText.value.trim()
   upsertCharacterProfile({
@@ -341,19 +481,15 @@ const savePasteToProfile = () => {
 }
 
 watch(
-  [
-    activeWeightConfigId,
-    itemProperty,
-    levelRange,
-    charAlignment,
-    charClass,
-    charRace,
-    charGender,
-  ],
+  [weightId, itemProperty, levelMax, charAlignment, charClass, charRace, charGender, manualCharacter],
   () => {
     if (report.value) runAudit()
   },
 )
+
+onMounted(() => {
+  if (!store.catalog) store.fetchCatalog()
+})
 </script>
 
 <style scoped>
