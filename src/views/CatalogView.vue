@@ -1,8 +1,12 @@
 <template>
-  <!-- Document scroll only; sticky chrome is App main nav. Search lives above the table. -->
-  <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
+  <!--
+    Fill under sticky main nav (brand above can still scroll away).
+    Toolbar stays put; table body scrolls inside catalog-scroll-body with
+    thead sticky at top: 0 — no document scrollbar for the catalog itself.
+  -->
+  <v-container fluid class="content-shell catalog-shell px-6 px-sm-8 pt-4 pb-0">
     <v-card class="catalog-card" elevation="0">
-      <!-- Left: filter icon, chips, count. Right: search. Scrolls with the page. -->
+      <!-- Left: filter icon, chips, count. Right: search. -->
       <div class="catalog-toolbar pa-3">
         <div class="catalog-toolbar-left">
           <v-btn
@@ -50,91 +54,93 @@
 
       <v-divider></v-divider>
 
-      <v-data-table-server
-        :headers="headers"
-        :items="visibleCatalog"
-        :items-length="sortedCatalog.length"
-        :items-per-page="-1"
-        hide-default-footer
-        v-model:sort-by="sortBy"
-        class="catalog-table"
-        hover
-      >
-        <template #headers="{ columns, isSorted, getSortIcon, toggleSort }">
-          <tr>
-            <th
-              v-for="column in columns"
-              :key="column.key"
-              :class="[
-                'catalog-th',
-                column.sortable !== false ? 'catalog-th--sortable' : '',
-              ]"
-              :style="{
-                textAlign: column.align || 'start',
-                ...(column.width
-                  ? { width: column.width, maxWidth: column.width, whiteSpace: 'nowrap' }
-                  : {}),
-              }"
-              scope="col"
-              @click="column.sortable !== false && toggleSort(column)"
-            >
-              <span class="catalog-th__label">{{ column.title }}</span>
-              <v-icon
-                v-if="column.sortable !== false && isSorted(column)"
-                class="catalog-th__sort"
-                size="x-small"
+      <div ref="catalogScrollBody" class="catalog-scroll-body">
+        <v-data-table-server
+          :headers="headers"
+          :items="visibleCatalog"
+          :items-length="sortedCatalog.length"
+          :items-per-page="-1"
+          hide-default-footer
+          v-model:sort-by="sortBy"
+          class="catalog-table"
+          hover
+        >
+          <template #headers="{ columns, isSorted, getSortIcon, toggleSort }">
+            <tr>
+              <th
+                v-for="column in columns"
+                :key="column.key"
+                :class="[
+                  'catalog-th',
+                  column.sortable !== false ? 'catalog-th--sortable' : '',
+                ]"
+                :style="{
+                  textAlign: column.align || 'start',
+                  ...(column.width
+                    ? { width: column.width, maxWidth: column.width, whiteSpace: 'nowrap' }
+                    : {}),
+                }"
+                scope="col"
+                @click="column.sortable !== false && toggleSort(column)"
               >
-                {{ getSortIcon(column) }}
-              </v-icon>
-            </th>
-          </tr>
-        </template>
+                <span class="catalog-th__label">{{ column.title }}</span>
+                <v-icon
+                  v-if="column.sortable !== false && isSorted(column)"
+                  class="catalog-th__sort"
+                  size="x-small"
+                >
+                  {{ getSortIcon(column) }}
+                </v-icon>
+              </th>
+            </tr>
+          </template>
 
-        <template #item="{ item, index }">
-          <tr
-            @click="rowClicked(item)"
-            :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
-          >
-            <td
-              v-for="header in headers"
-              :key="header.key"
-              :style="{
-                'text-align': header.align || 'start',
-                ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
-              }"
+          <template #item="{ item, index }">
+            <tr
+              @click="rowClicked(item)"
+              :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
             >
-              <template v-if="header.key === 'Weight'">
-                <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
-              </template>
-              <template v-else-if="header.key === 'propertyAmount'">
-                <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
-              </template>
-              <template v-else-if="header.key === 'weightedScore'">
-                <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
-              </template>
-              <template v-else-if="header.key === 'damageOrAc'">
-                <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
-                <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
-              </template>
-              <template v-else-if="header.key === 'wearLayer'">
-                <span v-if="item.wearLayer">{{ item.wearLayer }}</span>
-              </template>
-              <template v-else>
-                {{ item[header.key] }}
-              </template>
-            </td>
-          </tr>
-        </template>
+              <td
+                v-for="header in headers"
+                :key="header.key"
+                :style="{
+                  'text-align': header.align || 'start',
+                  ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
+                }"
+              >
+                <template v-if="header.key === 'Weight'">
+                  <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
+                </template>
+                <template v-else-if="header.key === 'propertyAmount'">
+                  <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
+                </template>
+                <template v-else-if="header.key === 'weightedScore'">
+                  <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
+                </template>
+                <template v-else-if="header.key === 'damageOrAc'">
+                  <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
+                  <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
+                </template>
+                <template v-else-if="header.key === 'wearLayer'">
+                  <span v-if="item.wearLayer">{{ item.wearLayer }}</span>
+                </template>
+                <template v-else>
+                  {{ item[header.key] }}
+                </template>
+              </td>
+            </tr>
+          </template>
 
-        <template #bottom>
-          <div
-            v-if="visibleCatalog.length < sortedCatalog.length"
-            v-intersect="onCatalogScrollSentinel"
-            class="catalog-scroll-sentinel"
-            aria-hidden="true"
-          ></div>
-        </template>
-      </v-data-table-server>
+          <template #bottom>
+            <div
+              v-if="visibleCatalog.length < sortedCatalog.length"
+              v-intersect="catalogScrollIntersect"
+              class="catalog-scroll-sentinel"
+              aria-hidden="true"
+            ></div>
+          </template>
+        </v-data-table-server>
+      </div>
     </v-card>
   </v-container>
 </template>
@@ -155,6 +161,9 @@ const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
+
+/** Scroll pane for the table body (infinite-scroll root + sticky thead). */
+const catalogScrollBody = ref<HTMLElement | null>(null)
 
 const {
   searchText,
@@ -360,10 +369,19 @@ const loadMoreCatalog = () => {
   )
 }
 
-/** Window IntersectionObserver: reveal the next chunk near the bottom of the page. */
+/** Reveal the next chunk when the sentinel enters the table scroll pane. */
 const onCatalogScrollSentinel = (isIntersecting: boolean) => {
   if (isIntersecting) loadMoreCatalog()
 }
+
+const catalogScrollIntersect = computed(() => ({
+  handler: onCatalogScrollSentinel,
+  options: {
+    root: catalogScrollBody.value,
+    threshold: 0,
+    rootMargin: '120px 0px',
+  },
+}))
 
 const rowClicked = (item: any) => {
   router.push({
@@ -385,7 +403,21 @@ onMounted(() => {
   max-width: 1280px;
 }
 
+/* Fill under sticky nav; brand above scrolls away independently. */
+.catalog-shell {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: calc(100dvh - var(--tfecat-nav-height, 57px));
+  max-height: calc(100dvh - var(--tfecat-nav-height, 57px));
+}
+
 .catalog-card {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   border: 1px solid rgb(var(--v-theme-surface-variant));
   border-radius: 12px !important;
   background: rgb(var(--v-theme-surface));
@@ -393,6 +425,7 @@ onMounted(() => {
 
 .catalog-toolbar {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 12px;
@@ -427,7 +460,17 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* Sticky thead docks under sticky main nav on document scroll. */
+.catalog-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Let the pane own scrolling — don't nest a second table scrollbar. */
+.catalog-table :deep(.v-table__wrapper) {
+  overflow: visible;
+}
+
 .catalog-table :deep(table) {
   border-collapse: separate;
   border-spacing: 0;
@@ -439,7 +482,7 @@ onMounted(() => {
 
 .catalog-th {
   position: sticky;
-  top: var(--tfecat-nav-height, 57px);
+  top: 0;
   z-index: 3;
   height: 52px;
   padding: 0 16px;
