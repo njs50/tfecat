@@ -5,10 +5,12 @@
         <div class="brand-row">
           <v-btn
             :to="{ name: 'catalog' }"
+            :active="false"
             aria-label="TFEcat item catalog home"
             class="brand-link text-none px-0"
             variant="text"
             :ripple="false"
+            slim
           >
             <BrandMark class="brand-mark mr-3" />
             <span class="brand-wordmark" aria-hidden="true">
@@ -173,6 +175,15 @@ const copyInstall = () => {
 .brand-link {
   min-width: 0;
   height: 56px !important;
+  /* Router :to marks this active on catalog; keep transparent like prod :href. */
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+
+.brand-link :deep(.v-btn__overlay),
+.brand-link :deep(.v-btn__underlay) {
+  opacity: 0 !important;
 }
 
 .brand-mark {
