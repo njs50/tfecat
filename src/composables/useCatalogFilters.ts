@@ -395,6 +395,15 @@ export function useCatalogFilters() {
     if (routeHasCatalogQuery()) {
       applyQueryToState()
     } else {
+      // Sticky localStorage actives show chips immediately, but profile fields
+      // (align/race/class/gender/level max) must be copied onto filter state
+      // before we seed the URL — otherwise the catalog stays unfiltered.
+      if (activeCharacterProfileId.value) {
+        applyCharacterProfile(activeCharacterProfileId.value)
+      }
+      if (activeWeightConfigId.value) {
+        itemProperty.value = null
+      }
       pushFilterQuery()
     }
   }
