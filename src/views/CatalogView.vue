@@ -2,166 +2,173 @@
   <!-- Document scroll (no nested table scrollbar). Sticky chrome docks under sticky nav. -->
   <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
     <v-card class="catalog-card" elevation="0">
-      <div ref="catalogChromeEl" class="catalog-sticky-chrome">
-        <div v-show="filtersOpen" class="filter-panel pa-2">
-          <v-row class="align-center mb-0">
-            <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
-              <v-select
-                v-model="activeCharacterProfileId"
-                :items="characterProfileSelectItems"
-                label="Character profile"
-                density="compact"
-                clearable
-                hide-details
-                class="flex-grow-1"
-                @update:model-value="applyCharacterProfile"
-              ></v-select>
-              <v-btn
-                icon
-                variant="tonal"
-                density="compact"
-                aria-label="Edit character profiles"
-                @click="openCharactersManager"
-              >
-                <v-icon>mdi-pencil</v-icon>
-              </v-btn>
-            </v-col>
+      <!-- Filters scroll with the page and auto-close when they leave the viewport. -->
+      <div
+        v-show="filtersOpen"
+        ref="filterPanelEl"
+        v-intersect="filterPanelIntersect"
+        class="filter-panel pa-2"
+      >
+        <v-row class="align-center mb-0">
+          <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
+            <v-select
+              v-model="activeCharacterProfileId"
+              :items="characterProfileSelectItems"
+              label="Character profile"
+              density="compact"
+              clearable
+              hide-details
+              class="flex-grow-1"
+              @update:model-value="applyCharacterProfile"
+            ></v-select>
+            <v-btn
+              icon
+              variant="tonal"
+              density="compact"
+              aria-label="Edit character profiles"
+              @click="openCharactersManager"
+            >
+              <v-icon>mdi-pencil</v-icon>
+            </v-btn>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
-              <v-select
-                v-model="activeWeightConfigId"
-                :items="weightConfigSelectItems"
-                label="Weighted search"
-                density="compact"
-                clearable
-                hide-details
-                class="flex-grow-1"
-                @update:model-value="onWeightConfigSelected"
-              ></v-select>
-              <v-btn
-                icon
-                variant="tonal"
-                density="compact"
-                aria-label="Edit weight configurations"
-                @click="openWeightsManager"
-              >
-                <v-icon>mdi-pencil</v-icon>
-              </v-btn>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
+            <v-select
+              v-model="activeWeightConfigId"
+              :items="weightConfigSelectItems"
+              label="Weighted search"
+              density="compact"
+              clearable
+              hide-details
+              class="flex-grow-1"
+              @update:model-value="onWeightConfigSelected"
+            ></v-select>
+            <v-btn
+              icon
+              variant="tonal"
+              density="compact"
+              aria-label="Edit weight configurations"
+              @click="openWeightsManager"
+            >
+              <v-icon>mdi-pencil</v-icon>
+            </v-btn>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-              <v-text-field
-                v-model.number="levelMin"
-                type="number"
-                min="0"
-                :max="LEVEL_MAX"
-                step="1"
-                label="Level min"
-                density="compact"
-                hide-details
-              ></v-text-field>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+            <v-text-field
+              v-model.number="levelMin"
+              type="number"
+              min="0"
+              :max="LEVEL_MAX"
+              step="1"
+              label="Level min"
+              density="compact"
+              hide-details
+            ></v-text-field>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-              <v-text-field
-                v-model.number="levelMax"
-                type="number"
-                min="0"
-                :max="LEVEL_MAX"
-                step="1"
-                label="Level max"
-                density="compact"
-                hide-details
-              ></v-text-field>
-            </v-col>
-          </v-row>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+            <v-text-field
+              v-model.number="levelMax"
+              type="number"
+              min="0"
+              :max="LEVEL_MAX"
+              step="1"
+              label="Level max"
+              density="compact"
+              hide-details
+            ></v-text-field>
+          </v-col>
+        </v-row>
 
-          <v-row class="align-center mb-0">
-            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-              <v-select
-                v-model="charAlignment"
-                :items="charAlignments"
-                label="Alignment"
-                density="compact"
-                clearable
-                hide-details
-                :disabled="characterFiltersLocked"
-              ></v-select>
-            </v-col>
+        <v-row class="align-center mb-0">
+          <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+            <v-select
+              v-model="charAlignment"
+              :items="charAlignments"
+              label="Alignment"
+              density="compact"
+              clearable
+              hide-details
+              :disabled="characterFiltersLocked"
+            ></v-select>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-              <v-select
-                v-model="charRace"
-                :items="charRaces"
-                label="Race"
-                density="compact"
-                clearable
-                hide-details
-                :disabled="characterFiltersLocked"
-              ></v-select>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+            <v-select
+              v-model="charRace"
+              :items="charRaces"
+              label="Race"
+              density="compact"
+              clearable
+              hide-details
+              :disabled="characterFiltersLocked"
+            ></v-select>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-              <v-select
-                v-model="charClass"
-                :items="charClasses"
-                label="Class"
-                density="compact"
-                clearable
-                hide-details
-                :disabled="characterFiltersLocked"
-              ></v-select>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+            <v-select
+              v-model="charClass"
+              :items="charClasses"
+              label="Class"
+              density="compact"
+              clearable
+              hide-details
+              :disabled="characterFiltersLocked"
+            ></v-select>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-              <v-select
-                v-model="charGender"
-                :items="charGenders"
-                label="Gender"
-                density="compact"
-                clearable
-                hide-details
-                :disabled="characterFiltersLocked"
-              ></v-select>
-            </v-col>
-          </v-row>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+            <v-select
+              v-model="charGender"
+              :items="charGenders"
+              label="Gender"
+              density="compact"
+              clearable
+              hide-details
+              :disabled="characterFiltersLocked"
+            ></v-select>
+          </v-col>
+        </v-row>
 
-          <v-row class="align-center mb-0">
-            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-              <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
-            </v-col>
+        <v-row class="align-center mb-0">
+          <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+            <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-              <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable hide-details></v-select>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+            <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable hide-details></v-select>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-              <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+            <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-              <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+            <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-              <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
-            </v-col>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+            <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
+          </v-col>
 
-            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-              <v-autocomplete
-                :model-value="itemPropertyDisplay"
-                :items="itemPropertyItems"
-                label="Item Property"
-                density="compact"
-                :clearable="!activeWeightConfig"
-                hide-details
-                :disabled="!!activeWeightConfig"
-                @update:model-value="onItemPropertyUpdate"
-              ></v-autocomplete>
-            </v-col>
-          </v-row>
-        </div>
+          <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+            <v-autocomplete
+              :model-value="itemPropertyDisplay"
+              :items="itemPropertyItems"
+              label="Item Property"
+              density="compact"
+              :clearable="!activeWeightConfig"
+              hide-details
+              :disabled="!!activeWeightConfig"
+              @update:model-value="onItemPropertyUpdate"
+            ></v-autocomplete>
+          </v-col>
+        </v-row>
+      </div>
 
+      <!-- Search/chips stick under main nav; table header stays in normal table order. -->
+      <div class="catalog-sticky-chrome">
         <v-card-title class="catalog-toolbar pa-3 ga-2">
           <div class="filter-chips">
             <v-chip
@@ -271,7 +278,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { ref, computed, nextTick, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import {
@@ -295,15 +302,46 @@ const { mdAndUp } = useDisplay()
 
 /** Filters start collapsed; toolbar icon toggles the panel above search. */
 const filtersOpen = ref(false)
+const filterPanelEl = ref<HTMLElement | null>(null)
+/** Only auto-close after the open panel has actually been on-screen. */
+const filterPanelWasVisible = ref(false)
 
-/** Sticky filter + search chrome; height feeds sticky thead offset. */
-const catalogChromeEl = ref<HTMLElement | null>(null)
-let chromeResizeObserver: ResizeObserver | null = null
-
-const syncChromeHeightVar = () => {
-  const h = catalogChromeEl.value?.offsetHeight ?? 0
-  document.documentElement.style.setProperty('--tfecat-chrome-height', `${h}px`)
+/** Auto-close when the panel scrolls out of view under the sticky nav. */
+const onFilterPanelIntersect = (isIntersecting: boolean) => {
+  if (isIntersecting) {
+    filterPanelWasVisible.value = true
+    return
+  }
+  if (filterPanelWasVisible.value && filtersOpen.value) {
+    filtersOpen.value = false
+    filterPanelWasVisible.value = false
+  }
 }
+
+const filterPanelIntersect = computed(() => {
+  const navPx = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue('--tfecat-nav-height'),
+  )
+  const navInset = Number.isFinite(navPx) && navPx > 0 ? navPx : 57
+  return {
+    handler: onFilterPanelIntersect,
+    options: {
+      threshold: 0,
+      // Treat coverage under the sticky nav as "not visible".
+      rootMargin: `-${navInset}px 0px 0px 0px`,
+    },
+  }
+})
+
+watch(filtersOpen, async (open) => {
+  if (!open) {
+    filterPanelWasVisible.value = false
+    return
+  }
+  await nextTick()
+  // Bring the panel onto the page so it can be seen / later auto-closed.
+  filterPanelEl.value?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+})
 
 const {
   activeWeightConfigId,
@@ -928,22 +966,6 @@ onMounted(() => {
   // Pinia keeps the catalog; only fetch once (keep-alive also skips remount).
   if (!store.catalog) store.fetchCatalog()
   sortByScoreOrPropertyDesc()
-
-  syncChromeHeightVar()
-  if (catalogChromeEl.value && typeof ResizeObserver !== 'undefined') {
-    chromeResizeObserver = new ResizeObserver(syncChromeHeightVar)
-    chromeResizeObserver.observe(catalogChromeEl.value)
-  }
-})
-
-onBeforeUnmount(() => {
-  chromeResizeObserver?.disconnect()
-  chromeResizeObserver = null
-})
-
-watch(filtersOpen, () => {
-  // Filter panel height changes sticky thead offset.
-  queueMicrotask(syncChromeHeightVar)
 })
 </script>
 
@@ -953,13 +975,12 @@ watch(filtersOpen, () => {
 }
 
 .catalog-card {
-  overflow: visible;
   border: 1px solid rgb(var(--v-theme-surface-variant));
   border-radius: 12px !important;
   background: rgb(var(--v-theme-surface));
 }
 
-/* Filters (when open) + search/chips dock under sticky nav while the page scrolls. */
+/* Search/chips dock under sticky nav; filters stay above and scroll away. */
 .catalog-sticky-chrome {
   position: sticky;
   top: var(--tfecat-nav-height, 57px);
@@ -975,6 +996,7 @@ watch(filtersOpen, () => {
 }
 
 .filter-panel {
+  margin-bottom: 12px;
   border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
   background: rgb(var(--v-theme-surface));
 }
@@ -993,10 +1015,8 @@ watch(filtersOpen, () => {
   flex: 0 1 360px;
 }
 
+/* Normal table header row (no sticky thead — avoids rows rendering above it). */
 .catalog-table :deep(thead th) {
-  position: sticky;
-  top: calc(var(--tfecat-nav-height, 57px) + var(--tfecat-chrome-height, 0px));
-  z-index: 4;
   height: 52px;
   border-bottom-color: rgb(var(--v-theme-surface-variant)) !important;
   background: rgb(var(--v-theme-surface-variant));
