@@ -6,6 +6,7 @@ import {
   sameCatalogQuery,
   type CatalogFilterState,
 } from './useCatalogQuery'
+import { readItemQuery } from './useItemOverlay'
 import { LEVEL_MAX } from '../presets/constants'
 import { usePresets } from '../presets/usePresets'
 
@@ -112,9 +113,8 @@ export function useCatalogFilters() {
       activeWeights: activeWeightConfig.value,
     })
     // Preserve item overlay query so filter sync doesn't dismiss the drawer.
-    if (typeof route.query.item === 'string' && route.query.item) {
-      query.item = route.query.item
-    }
+    const itemKey = readItemQuery(route.query)
+    if (itemKey) query.item = itemKey
     if (sameCatalogQuery(query, route.query)) return
     const name = FILTER_ROUTE_NAMES.has(String(route.name))
       ? (route.name as 'catalog' | 'filters' | 'audit')
@@ -388,9 +388,8 @@ export function useCatalogFilters() {
         () => {
           if (!FILTER_ROUTE_NAMES.has(String(route.name))) return
           const query = catalogStateToQuery(currentFilterState())
-          if (typeof route.query.item === 'string' && route.query.item) {
-            query.item = route.query.item
-          }
+          const itemKey = readItemQuery(route.query)
+          if (itemKey) query.item = itemKey
           if (sameCatalogQuery(query, route.query)) return
           applyQueryToState()
         },

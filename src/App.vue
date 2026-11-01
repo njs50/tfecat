@@ -182,19 +182,21 @@
       Parent route stays catalog/audit so nav + scroll/filters survive dismiss.
     -->
     <v-navigation-drawer
-      :model-value="overlayOpen"
+      v-model="drawerModel"
       temporary
       :location="itemDrawerLocation"
       :width="itemDrawerWidth"
-      :mobile="null"
+      :mobile="false"
+      disable-resize-watcher
       disable-route-watcher
+      scrim
       class="item-overlay-drawer"
       @update:model-value="onItemDrawerModel"
     >
       <ItemDetailPanel
         v-if="overlayItemKey"
         :item-key="overlayItemKey"
-        @close="closeItemOverlay"
+        @close="requestCloseItemOverlay"
       />
     </v-navigation-drawer>
 
@@ -220,7 +222,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import BrandMark from './components/BrandMark.vue'
@@ -256,11 +258,51 @@ const auditNavTo = computed(() => {
   return { name: 'audit' as const, query }
 })
 
+/** Most of the viewport so long idents fit; bottom sheet on narrow. */
 const itemDrawerLocation = computed(() => (smAndDown.value ? 'bottom' : 'right'))
-const itemDrawerWidth = computed(() => (smAndDown.value ? '100%' : Math.min(560, width.value)))
+const itemDrawerWidth = computed(() =>
+  smAndDown.value ? '100%' : Math.max(480, Math.floor(width.value * 0.92)),
+)
+
+/**
+ * Local drawer model synced from `?item=`. Temporary drawers often receive the
+ * opening click as an outside-click and emit false immediately — guard that.
+ */
+const drawerModel = ref(false)
+let drawerOpenedAt = 0
+const DRAWER_OPEN_GUARD_MS = 400
+
+watch(
+  overlayOpen,
+  async (open) => {
+    if (open) {
+      drawerOpenedAt = Date.now()
+      await nextTick()
+      drawerModel.value = true
+    } else {
+      drawerModel.value = false
+    }
+  },
+  { immediate: true },
+)
 
 const onItemDrawerModel = (open: boolean) => {
-  if (!open) closeItemOverlay()
+  if (open) {
+    drawerModel.value = true
+    return
+  }
+  if (overlayOpen.value && Date.now() - drawerOpenedAt < DRAWER_OPEN_GUARD_MS) {
+    // Swallow click-through dismiss from the gesture that opened the drawer.
+    drawerModel.value = true
+    return
+  }
+  drawerModel.value = false
+  if (overlayOpen.value) closeItemOverlay()
+}
+
+const requestCloseItemOverlay = () => {
+  drawerModel.value = false
+  closeItemOverlay()
 }
 
 const isInstallModalVisible = ref(false)
@@ -513,10 +555,14 @@ const copyInstall = () => {
 </style>
 
 <style>
-/* Bottom sheet height for narrow viewports (temporary drawer location=bottom). */
+/* Near-fullscreen sheet / panel so item idents aren’t cramped. */
 .item-overlay-drawer.v-navigation-drawer--bottom {
-  height: min(92dvh, 920px) !important;
+  height: 92dvh !important;
   max-height: 92dvh;
+}
+.item-overlay-drawer.v-navigation-drawer--right {
+  height: 100% !important;
+  max-height: 100dvh;
 }
 </style>
 

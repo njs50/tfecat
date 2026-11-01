@@ -97,7 +97,7 @@
 
           <template #item="{ item, index }">
             <tr
-              @click="rowClicked(item)"
+              @click.stop="rowClicked(item)"
               :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
             >
               <td
@@ -147,9 +147,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useCatalogFilters } from '../composables/useCatalogFilters'
+import { useItemOverlay } from '../composables/useItemOverlay'
 import { getItemPropertyAmount } from '../itemProperties'
 import { formatWeightedScore, getWeightedScore } from '../presets/weightedScore'
 import { useCatalogStore } from '../store'
@@ -158,8 +158,7 @@ import { useCatalogStore } from '../store'
 defineOptions({ name: 'CatalogView' })
 
 const store = useCatalogStore()
-const route = useRoute()
-const router = useRouter()
+const { openItemOverlay } = useItemOverlay()
 const { mdAndUp } = useDisplay()
 
 /** Scroll pane for the table body (infinite-scroll root + sticky thead). */
@@ -385,10 +384,8 @@ const catalogScrollIntersect = computed(() => ({
 
 const rowClicked = (item: any) => {
   const itemKey = String(item.catalogKey ?? item.name)
-  router.push({
-    name: 'catalog',
-    query: { ...route.query, item: itemKey },
-  })
+  // Defer so the row click doesn’t hit the temporary drawer scrim and dismiss it.
+  openItemOverlay(itemKey)
 }
 
 onMounted(() => {

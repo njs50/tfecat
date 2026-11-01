@@ -237,24 +237,26 @@
         </h2>
 
         <div v-if="slot.equipped?.catalogItem" class="equipped-row mb-2">
-          <router-link
+          <a
+            href="#"
             class="item-link"
-            :to="itemLink(String(slot.equipped.catalogItem.catalogKey))"
+            @click.prevent.stop="openItemOverlay(String(slot.equipped.catalogItem.catalogKey))"
           >
             {{ slot.equipped.catalogItem.name }}
-          </router-link>
+          </a>
           <span class="score-chip equipped">{{ formatScore(slot.equipped.score) }}</span>
           <span class="text-caption text-medium-emphasis ml-2">equipped</span>
         </div>
 
         <ul v-if="slot.upgrades.length" class="upgrade-list">
           <li v-for="up in slot.upgrades" :key="String(up.item.catalogKey)">
-            <router-link
+            <a
+              href="#"
               class="item-link"
-              :to="itemLink(String(up.item.catalogKey))"
+              @click.prevent.stop="openItemOverlay(String(up.item.catalogKey))"
             >
               {{ up.item.name }}
-            </router-link>
+            </a>
             <span class="score-chip">{{ formatScore(up.score) }}</span>
             <span class="text-caption text-medium-emphasis">
               level {{ up.item.Level }} · Δ{{ formatScore(up.delta) }}
@@ -272,7 +274,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { parseEquipmentPaste } from '../audit/parseEquipment'
 import { runEquipmentAudit, type AuditReport } from '../audit/runAudit'
-import { itemOverlayLocation } from '../composables/useItemOverlay'
+import { useItemOverlay } from '../composables/useItemOverlay'
 import { LEVEL_MAX } from '../presets/constants'
 import { formatWeightedScore } from '../presets/weightedScore'
 import { usePresets } from '../presets/usePresets'
@@ -284,8 +286,7 @@ defineOptions({ name: 'AuditView' })
 const router = useRouter()
 const route = useRoute()
 const store = useCatalogStore()
-
-const itemLink = (itemKey: string) => itemOverlayLocation(itemKey, route)
+const { openItemOverlay } = useItemOverlay()
 const {
   characterProfiles,
   weightConfigs,
