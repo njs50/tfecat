@@ -30,26 +30,82 @@ export function presetsStorageKey(baseUrl = import.meta.env.BASE_URL): string {
 
 export const PRESETS_STORAGE_KEY = presetsStorageKey()
 
-/** Example configs so a fresh browser has something to try. */
+/** Shared baseline weights for the built-in class starter profiles. */
+const BASE_CLASS_WEIGHTS: Record<string, number> = {
+  Dexterity: 150,
+  Deflection: 10,
+  'Global Armor': 18,
+  'Armor Class': 2,
+  resist: 7,
+  Constitution: 150,
+  Wisdom: 30,
+  Move_regen: 15,
+}
+
+/** Built-in starter configs (always injected; not editable in place). */
 export const DEFAULT_WEIGHT_CONFIGS: WeightConfig[] = [
   {
-    id: 'default-reaver',
-    name: 'reaver',
+    id: 'default-fighter',
+    name: 'Fighter',
+    builtin: true,
     weights: {
-      Damroll: 2,
-      Hitroll: 1,
-      Hit_points: 0.1,
+      ...BASE_CLASS_WEIGHTS,
+      Damroll: 100,
+      Hitroll: 45,
+      Strength: 60,
+      Hit_points: 8,
     },
   },
   {
-    id: 'default-cleric',
-    name: 'cleric',
+    id: 'default-healer',
+    name: 'Healer',
+    builtin: true,
     weights: {
-      Mana_regen: 2,
-      Restoration: 5,
+      ...BASE_CLASS_WEIGHTS,
+      Damroll: 50,
+      Hitroll: 24,
+      Strength: 40,
+      Intelligence: 150,
+      Mana_regen: 125,
+      Hit_points: 8,
+      Mana_points: 4,
+    },
+  },
+  {
+    id: 'default-wizard',
+    name: 'Wizard',
+    builtin: true,
+    weights: {
+      ...BASE_CLASS_WEIGHTS,
+      Strength: 40,
+      Intelligence: 150,
+      Mana_regen: 125,
+      Hit_points: 15,
+      Mana_points: 4,
     },
   },
 ]
+
+/** Ids of current + legacy built-in weight configs (legacy examples are dropped on load). */
+export const BUILTIN_WEIGHT_CONFIG_IDS = new Set([
+  ...DEFAULT_WEIGHT_CONFIGS.map((c) => c.id),
+  'default-reaver',
+  'default-cleric',
+])
+
+export function isBuiltinWeightConfigId(id: string): boolean {
+  return BUILTIN_WEIGHT_CONFIG_IDS.has(id)
+}
+
+/** Fresh builtins first, then user configs (never store/edit builtins in place). */
+export function mergeBuiltinWeightConfigs(configs: WeightConfig[]): WeightConfig[] {
+  const builtins = structuredClone(DEFAULT_WEIGHT_CONFIGS)
+  const user = configs.filter(
+    (c) => !isBuiltinWeightConfigId(c.id) && !c.builtin && c.id !== UNSAVED_PRESET_ID,
+  )
+  const unsaved = configs.find((c) => c.id === UNSAVED_PRESET_ID)
+  return unsaved ? [...builtins, ...user, unsaved] : [...builtins, ...user]
+}
 
 const emptyState = (): PresetsState => ({
   weightConfigs: structuredClone(DEFAULT_WEIGHT_CONFIGS),
@@ -81,6 +137,10 @@ function sanitizeWeightConfig(raw: unknown): WeightConfig | null {
     return null
   }
   if (raw.id === UNSAVED_PRESET_ID) {
+    return null
+  }
+  // Built-ins come from code only — drop any stored copy (including legacy examples).
+  if (isBuiltinWeightConfigId(raw.id) || raw.builtin === true) {
     return null
   }
   return {
@@ -153,7 +213,7 @@ function parsePresetsRaw(raw: string | null): PresetsState | null {
           .filter((c): c is CharacterProfile => !!c)
       : []
     return {
-      weightConfigs: weightConfigs.length ? weightConfigs : structuredClone(DEFAULT_WEIGHT_CONFIGS),
+      weightConfigs: mergeBuiltinWeightConfigs(weightConfigs),
       characterProfiles,
       activeWeightConfigId:
         typeof parsed.activeWeightConfigId === 'string' ? parsed.activeWeightConfigId : null,
@@ -191,7 +251,14 @@ export function savePresetsState(state: PresetsState): void {
   if (typeof localStorage === 'undefined') {
     return
   }
-  localStorage.setItem(presetsStorageKey(), JSON.stringify(state))
+  // Never persist built-ins — they are always re-injected from code on load.
+  const toStore: PresetsState = {
+    ...state,
+    weightConfigs: state.weightConfigs.filter(
+      (c) => !isBuiltinWeightConfigId(c.id) && !c.builtin && c.id !== UNSAVED_PRESET_ID,
+    ),
+  }
+  localStorage.setItem(presetsStorageKey(), JSON.stringify(toStore))
 }
 
 export function newId(): string {

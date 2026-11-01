@@ -24,7 +24,7 @@
         density="compact"
         class="mb-3"
         hide-details="auto"
-        hint="Rename &lt;unsaved&gt; and Save to keep a shared weight set"
+        :hint="nameHint"
         persistent-hint
         @focus="clearUnsavedNameOnFocus"
       ></v-text-field>
@@ -43,6 +43,7 @@
             label="Property"
             density="compact"
             hide-details
+            :disabled="isBuiltinDraft"
           ></v-autocomplete>
         </v-col>
         <v-col cols="8" sm="3" md="4">
@@ -53,10 +54,16 @@
             label="Weight"
             density="compact"
             hide-details
+            :disabled="isBuiltinDraft"
           ></v-text-field>
         </v-col>
         <v-col cols="4" sm="2" md="2" class="d-flex justify-end">
-          <v-btn icon variant="text" @click="draftRows.splice(index, 1)">
+          <v-btn
+            icon
+            variant="text"
+            :disabled="isBuiltinDraft"
+            @click="draftRows.splice(index, 1)"
+          >
             <v-icon>mdi-delete</v-icon>
           </v-btn>
         </v-col>
@@ -67,6 +74,7 @@
         variant="outlined"
         density="compact"
         prepend-icon="mdi-plus"
+        :disabled="isBuiltinDraft"
         @click="draftRows.push({ property: null, weight: 1 })"
       >
         Add property
@@ -83,8 +91,13 @@
         </v-btn>
         <v-spacer></v-spacer>
         <v-btn variant="text" @click="emit('close')">Cancel</v-btn>
-        <v-btn color="primary" variant="elevated" :disabled="!draft" @click="save">
-          Save
+        <v-btn
+          color="primary"
+          variant="elevated"
+          :disabled="!canSave"
+          @click="save"
+        >
+          {{ saveLabel }}
         </v-btn>
       </div>
     </template>
@@ -93,7 +106,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { newId } from '../presets/storage'
+import { isBuiltinWeightConfigId, newId } from '../presets/storage'
 import { UNSAVED_PRESET_ID, UNSAVED_PRESET_LABEL } from '../presets/constants'
 import type { WeightConfig } from '../presets/types'
 
@@ -115,6 +128,8 @@ const editingId = ref<string | null>(null)
 const isNew = ref(false)
 const draft = ref<WeightConfig | null>(null)
 const draftRows = ref<DraftRow[]>([])
+/** Original built-in name when editing a starter profile (for save-as-new). */
+const builtinSourceName = ref<string | null>(null)
 
 const configItems = computed(() =>
   props.configs
@@ -122,21 +137,59 @@ const configItems = computed(() =>
     .sort((a, b) => {
       if (a.id === UNSAVED_PRESET_ID) return -1
       if (b.id === UNSAVED_PRESET_ID) return 1
+      if (a.builtin && !b.builtin) return -1
+      if (!a.builtin && b.builtin) return 1
       return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
     })
-    .map((c) => ({ title: c.name, value: c.id })),
+    .map((c) => ({
+      title: c.builtin ? `${c.name} (built-in)` : c.name,
+      value: c.id,
+    })),
+)
+
+const isBuiltinDraft = computed(
+  () =>
+    !!draft.value &&
+    (draft.value.builtin === true || isBuiltinWeightConfigId(draft.value.id)),
 )
 
 const canDelete = computed(
-  () => !!editingId.value && !isNew.value && editingId.value !== UNSAVED_PRESET_ID,
+  () =>
+    !!editingId.value &&
+    !isNew.value &&
+    editingId.value !== UNSAVED_PRESET_ID &&
+    !isBuiltinDraft.value,
 )
+
+const nameHint = computed(() => {
+  if (isBuiltinDraft.value) {
+    return 'Built-in weights can’t be changed. Rename and Save as new to use as a starting point.'
+  }
+  return 'Rename <unsaved> and Save to keep a shared weight set'
+})
+
+const saveLabel = computed(() => (isBuiltinDraft.value ? 'Save as new' : 'Save'))
+
+const canSave = computed(() => {
+  if (!draft.value) return false
+  const name = draft.value.name.trim()
+  if (!name || name === UNSAVED_PRESET_LABEL) return false
+  if (isBuiltinDraft.value) {
+    // Require a new name so the starter profile itself stays intact.
+    return name !== (builtinSourceName.value ?? draft.value.name)
+  }
+  return true
+})
 
 const loadDraft = (config: WeightConfig) => {
   draft.value = {
     id: config.id,
     name: config.name,
     weights: { ...config.weights },
+    builtin: config.builtin,
   }
+  builtinSourceName.value =
+    config.builtin || isBuiltinWeightConfigId(config.id) ? config.name : null
   draftRows.value = Object.entries(config.weights).map(([property, weight]) => ({
     property,
     weight,
@@ -149,6 +202,7 @@ const loadDraft = (config: WeightConfig) => {
 const startNew = () => {
   isNew.value = true
   editingId.value = null
+  builtinSourceName.value = null
   loadDraft({
     id: newId(),
     name: 'New weights',
@@ -199,7 +253,7 @@ const clearUnsavedNameOnFocus = () => {
 }
 
 const save = () => {
-  if (!draft.value) return
+  if (!draft.value || !canSave.value) return
   const weights: Record<string, number> = {}
   for (const row of draftRows.value) {
     if (!row.property || !Number.isFinite(row.weight)) continue
@@ -207,10 +261,11 @@ const save = () => {
   }
   let name = draft.value.name.trim() || 'Untitled'
   if (name === UNSAVED_PRESET_LABEL) name = 'Untitled'
+  const fromBuiltin = isBuiltinDraft.value
   const saved: WeightConfig = {
-    id: draft.value.id,
+    id: fromBuiltin ? newId() : draft.value.id,
     name,
-    weights,
+    weights: fromBuiltin ? { ...draft.value.weights } : weights,
   }
   emit('save', saved)
   isNew.value = false
@@ -219,7 +274,7 @@ const save = () => {
 }
 
 const remove = () => {
-  if (!editingId.value || isNew.value || editingId.value === UNSAVED_PRESET_ID) return
+  if (!canDelete.value || !editingId.value) return
   const id = editingId.value
   emit('remove', id)
   const remaining = props.configs.filter((c) => c.id !== id)

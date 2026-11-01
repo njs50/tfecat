@@ -1,5 +1,11 @@
 import { computed, ref, watch } from 'vue'
-import { loadPresetsState, newId, savePresetsState } from './storage'
+import {
+  isBuiltinWeightConfigId,
+  loadPresetsState,
+  mergeBuiltinWeightConfigs,
+  newId,
+  savePresetsState,
+} from './storage'
 import {
   DEFAULT_STAT_VALUE,
   UNSAVED_PRESET_ID,
@@ -11,7 +17,7 @@ import type { CharacterProfile, CharacterStats, WeightConfig } from './types'
 const state = loadPresetsState()
 
 const weightConfigs = ref<WeightConfig[]>(
-  state.weightConfigs.filter((c) => c.id !== UNSAVED_PRESET_ID),
+  mergeBuiltinWeightConfigs(state.weightConfigs.filter((c) => c.id !== UNSAVED_PRESET_ID)),
 )
 const characterProfiles = ref<CharacterProfile[]>(
   state.characterProfiles.filter((c) => c.id !== UNSAVED_PRESET_ID),
@@ -92,11 +98,19 @@ export function usePresets() {
   })
 
   const upsertWeightConfig = (config: WeightConfig) => {
-    const cleaned = { ...config, weights: { ...config.weights } }
+    const cleaned: WeightConfig = {
+      ...config,
+      weights: { ...config.weights },
+      builtin: undefined,
+    }
     // Saving a named config from &lt;unsaved&gt; promotes it to a real id.
     if (cleaned.id === UNSAVED_PRESET_ID && cleaned.name.trim() !== UNSAVED_PRESET_LABEL) {
       cleaned.id = newId()
       weightConfigs.value = weightConfigs.value.filter((c) => c.id !== UNSAVED_PRESET_ID)
+    }
+    // Built-ins are immutable — rename + save always forks a user copy.
+    if (isBuiltinWeightConfigId(cleaned.id) || config.builtin) {
+      cleaned.id = newId()
     }
     const idx = weightConfigs.value.findIndex((c) => c.id === cleaned.id)
     if (idx >= 0) {
@@ -108,6 +122,7 @@ export function usePresets() {
   }
 
   const deleteWeightConfig = (id: string) => {
+    if (isBuiltinWeightConfigId(id)) return
     weightConfigs.value = weightConfigs.value.filter((c) => c.id !== id)
     if (activeWeightConfigId.value === id) {
       activeWeightConfigId.value = null

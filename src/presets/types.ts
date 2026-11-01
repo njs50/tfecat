@@ -6,6 +6,11 @@ export type WeightConfig = {
   name: string
   /** Property display names (catalog casing / extras) → weight. */
   weights: Record<string, number>
+  /**
+   * Built-in starter profiles (Fighter / Healer / Wizard).
+   * Not persisted; weights cannot be overwritten — rename + Save creates a user copy.
+   */
+  builtin?: boolean
 }
 
 /** Primary stats used by Mudlet `tcat` softcaps (Str/Int/Wis/Dex/Con). */
