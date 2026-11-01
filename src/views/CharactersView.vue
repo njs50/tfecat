@@ -8,15 +8,6 @@
         <span class="mx-1 text-medium-emphasis">›</span>
         <span>Character profiles</span>
       </nav>
-      <v-spacer></v-spacer>
-      <v-btn
-        variant="tonal"
-        density="compact"
-        :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
-        @click="onShare"
-      >
-        {{ shareCopied ? 'Copied' : 'Share' }}
-      </v-btn>
     </div>
 
     <h1 class="text-h6 mb-3">Character profiles</h1>
@@ -42,8 +33,6 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import CharacterProfilesDialog from '../components/CharacterProfilesDialog.vue'
-import { catalogQueryToState } from '../composables/useCatalogQuery'
-import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
 import { usePresets } from '../presets/usePresets'
 import type { CharacterProfile } from '../presets/types'
 
@@ -53,13 +42,10 @@ const router = useRouter()
 const route = useRoute()
 const {
   characterProfiles,
-  activeCharacterProfile,
-  activeWeightConfig,
   activeCharacterProfileId,
   upsertCharacterProfile,
   deleteCharacterProfile,
 } = usePresets()
-const { shareCopied, flashCopied } = useShareFeedback()
 
 const charClasses = [
   'Bard', 'Bulwark', 'Cleric', 'Druid', 'Harbinger', 'Legate', 'Mage', 'Monk',
@@ -92,33 +78,6 @@ const onSave = (profile: CharacterProfile) => {
       query: route.query,
     })
   }
-}
-
-const onShare = async () => {
-  const parsed = catalogQueryToState(route.query)
-  const ok = await copyShareLink({
-    router,
-    route: { ...route, path: '/', name: 'catalog' } as any,
-    filterState: {
-      searchText: parsed.searchText ?? '',
-      levelRange: parsed.levelRange ?? [0, 90],
-      charAlignment: parsed.charAlignment ?? null,
-      charClass: parsed.charClass ?? null,
-      charRace: parsed.charRace ?? null,
-      charGender: parsed.charGender ?? null,
-      itemType: parsed.itemType ?? null,
-      itemClass: parsed.itemClass ?? null,
-      itemAffect: parsed.itemAffect ?? null,
-      itemProperty: parsed.itemProperty ?? null,
-      itemSlot: parsed.itemSlot ?? null,
-      itemLayer: parsed.itemLayer ?? null,
-      activeWeightConfigId: activeWeightConfig.value?.id ?? null,
-      activeCharacterProfileId: activeCharacterProfile.value?.id ?? null,
-    },
-    activeProfile: activeCharacterProfile.value,
-    activeWeights: activeWeightConfig.value,
-  })
-  if (ok) flashCopied()
 }
 </script>
 

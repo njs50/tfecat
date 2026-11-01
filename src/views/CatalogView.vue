@@ -3,14 +3,6 @@
   <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
         <v-card class="catalog-card" elevation="0">
           <v-card-title class="catalog-toolbar pa-3 ga-2">
-            <v-btn
-              variant="tonal"
-              density="compact"
-              :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
-              @click="onShare"
-            >
-              {{ shareCopied ? 'Copied' : 'Share' }}
-            </v-btn>
             <v-spacer></v-spacer>
             <v-btn
               icon
@@ -258,7 +250,6 @@ import {
   catalogStateToQuery,
   sameCatalogQuery,
 } from '../composables/useCatalogQuery'
-import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
 import { getItemPropertyAmount } from '../itemProperties'
 import { LEVEL_MAX } from '../presets/constants'
 import { usePresets } from '../presets/usePresets'
@@ -269,7 +260,6 @@ const store = useCatalogStore()
 const route = useRoute()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
-const { shareCopied, flashCopied } = useShareFeedback()
 
 /** Filters start collapsed; toolbar filter icon toggles. */
 const filtersOpen = ref(false)
@@ -428,17 +418,6 @@ const pushFilterQuery = () => {
   })
   if (sameCatalogQuery(query, route.query)) return
   router.replace({ name: 'catalog', query })
-}
-
-const onShare = async () => {
-  const ok = await copyShareLink({
-    router,
-    route,
-    filterState: currentFilterState(),
-    activeProfile: activeCharacterProfile.value,
-    activeWeights: activeWeightConfig.value,
-  })
-  if (ok) flashCopied()
 }
 
 watch(
