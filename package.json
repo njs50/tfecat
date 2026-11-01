@@ -11,7 +11,9 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "vite",
+    "dev:make": "vite --base / --host :: --port ${PORT:-3000}",
     "build": "vue-tsc && vite build",
+    "build:make": "vue-tsc && vite build --base / --mode development",
     "preview": "vite preview",
     "deploy": "pnpm run build && gh-pages -d dist",
     "update": "pnpm run update-trainers && pnpm run update-customs && pnpm run update-catalog && pnpm run update-summary",

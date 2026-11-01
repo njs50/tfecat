@@ -1,86 +1,46 @@
 <template>
   <v-app id="tfecat">
-    <v-app-bar :clipped-left="true" app class="px-2">
-      <v-icon color="white">mdi-cat</v-icon>
-      <v-toolbar-title>TFE Items</v-toolbar-title>
-      <v-spacer></v-spacer>
-
-      <v-dialog
-        max-width="600"
-        v-model="isInstallModalVisible"
-      >
-        <template #activator="{ props }">
-          <v-btn 
-            color="primary" 
-            variant="elevated"
-            prepend-icon="mdi-download"
-            v-bind="props"
-          >
-            Install
+    <v-app-bar :height="124" app class="app-bar">
+      <v-container fluid class="header-shell px-6 px-sm-8">
+        <div class="brand-row">
+          <v-btn :href="catalogHref" aria-label="TFEcat item catalog home" class="brand-link text-none px-0" variant="text" :ripple="false">
+            <BrandMark class="brand-mark mr-3" />
+            <span class="brand-wordmark" aria-hidden="true"><span class="brand-wordmark__tfe">TFE</span><span class="brand-wordmark__cat">cat</span></span>
           </v-btn>
-        </template>
-
-        <v-card class="modal-card">
-          <v-card-title class="modal-title d-flex align-center">
-            <v-icon class="mr-3" color="primary">mdi-package-variant</v-icon>
-            <span>Install the tfecat mudlet package</span>
-          </v-card-title>
-
-          <v-card-text class="modal-content pa-4">
-            <div class="mb-4">
-              <p class="text-body-large mb-3">
-                To install the tfecat package for the first time, copy and paste the following command into your Mudlet input bar:
-              </p>
-
-            </div>
-
-            <v-textarea
-              ref="installInput"
-              readonly
-              v-model='installCode'
-              variant="outlined"
-              density="compact"
-              bg-color="grey-darken-4"
-              class="font-mono"
-              hide-details
-              rows="3"
-              auto-grow
-            ></v-textarea>
-
-            <div class="mt-3 text-body-small text-grey-lighten-1">
-              <v-icon size="small" class="mr-1">mdi-lightbulb</v-icon>
-              Click the copy button to copy the command to your clipboard
-            </div>
-          </v-card-text>
-
-          <v-divider></v-divider>
-
-          <v-card-actions class="modal-actions pa-4">
-            <v-spacer></v-spacer>
-            <v-btn
-              color="secondary"
-              variant="outlined"
-              prepend-icon="mdi-content-copy"
-              @click="copyInstall"
-            >
-              Copy
-            </v-btn>
-            <v-btn
-              color="primary"
-              variant="elevated"
-              prepend-icon="mdi-check"
-              @click="isInstallModalVisible = false"
-            >
-              Got it!
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+          <v-spacer></v-spacer>
+          <v-dialog max-width="600" v-model="isInstallModalVisible">
+            <template #activator="{ props }">
+              <v-btn class="install-button" color="primary" variant="elevated" prepend-icon="mdi-console-line" v-bind="props">Install CLI</v-btn>
+            </template>
+            <v-card class="modal-card">
+              <v-card-title class="modal-title d-flex align-center"><v-icon class="mr-3" color="primary">mdi-package-variant</v-icon><span>Install the tfecat mudlet package</span></v-card-title>
+              <v-card-text class="modal-content pa-4">
+                <div class="mb-4"><p class="text-body-large mb-3">To install the tfecat package for the first time, copy and paste the following command into your Mudlet input bar:</p></div>
+                <v-textarea ref="installInput" readonly v-model="installCode" variant="outlined" density="compact" bg-color="grey-darken-4" class="font-mono" hide-details rows="3" auto-grow></v-textarea>
+                <div class="mt-3 text-body-small text-grey-lighten-1"><v-icon size="small" class="mr-1">mdi-lightbulb</v-icon>Click the copy button to copy the command to your clipboard</div>
+              </v-card-text>
+              <v-divider></v-divider>
+              <v-card-actions class="modal-actions pa-4">
+                <v-spacer></v-spacer>
+                <v-btn color="secondary" variant="outlined" prepend-icon="mdi-content-copy" @click="copyInstall">Copy</v-btn>
+                <v-btn color="primary" variant="elevated" prepend-icon="mdi-check" @click="isInstallModalVisible = false">Got it!</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+        </div>
+        <nav aria-label="Primary" class="primary-nav">
+          <a :href="catalogHref" aria-current="page" class="nav-link nav-link--active">Item catalog</a>
+          <!-- Coming soon — keep for upcoming trainers / item-audit pages
+          <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
+          <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
+          -->
+        </nav>
+      </v-container>
     </v-app-bar>
 
     <v-main>
-      <v-container fluid class="pa-2">
-        <v-expansion-panels>
+      <v-container fluid class="content-shell px-6 px-sm-8 py-10">
+        <v-expansion-panels class="filter-panel">
           <v-expansion-panel>
             <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
             <v-expansion-panel-text class="pa-1">
@@ -146,19 +106,18 @@
           </v-expansion-panel>
         </v-expansion-panels>
 
-        <v-card class="mt-2 elevation-2 rounded-lg">
-          <v-card-title class="d-flex align-center py-1">
-            <v-spacer></v-spacer>
+        <v-card class="catalog-card mt-4" elevation="0">
+          <v-card-title class="catalog-toolbar pa-3">
             <v-text-field
               v-model="searchText"
               append-inner-icon="mdi-magnify"
-              label="Search"
+              label="Search items"
               single-line
               hide-details
               clearable
               density="compact"
-              class="ma-1"
-              style="max-width: 400px;"
+              variant="outlined"
+              class="search-field"
             ></v-text-field>
           </v-card-title>
           <v-divider></v-divider>
@@ -167,14 +126,13 @@
             :items="catalog"
             :items-per-page-options="itemsPerPageOptions"
             v-model:sort-by="sortBy"
-            class="elevation-0"
+            class="catalog-table"
             hover
           >
             <template #item="{ item, index }">
               <tr
                 @click="rowClicked(item)"
-                style="cursor:pointer;"
-                :class="[index % 2 === 0 ? 'bg-grey-darken-4' : '', 'hover-row']"
+                :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
               >
                 <td
                   v-for="header in headers"
@@ -256,9 +214,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useDisplay } from 'vuetify'
 import { getItemPropertyAmount } from './itemProperties'
 import { useCatalogStore } from './store'
+import BrandMark from './components/BrandMark.vue'
 
 const store = useCatalogStore()
 const { mdAndUp } = useDisplay()
+const catalogHref = import.meta.env.BASE_URL
 
 /** Branch + short SHA; only when preview-deploy sets VITE_PREVIEW_*. */
 const previewWatermark = computed(() => {
@@ -635,6 +595,204 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.app-bar {
+  border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
+  background: rgb(var(--v-theme-surface)) !important;
+}
+
+.header-shell,
+.content-shell {
+  max-width: 1280px;
+}
+
+.header-shell {
+  height: 100%;
+  padding-top: 20px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  height: 56px;
+}
+
+.brand-link {
+  min-width: 0;
+  height: 56px !important;
+}
+
+.brand-mark {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+}
+
+.brand-wordmark {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.08em;
+  line-height: 1;
+}
+
+.brand-wordmark__tfe {
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.brand-wordmark__cat {
+  color: rgb(var(--v-theme-primary));
+}
+
+.install-button {
+  min-height: 40px;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.primary-nav {
+  display: flex;
+  gap: 32px;
+  margin-top: 20px;
+}
+
+.nav-link {
+  position: relative;
+  flex: 0 0 auto;
+  padding-bottom: 16px;
+  color: #738078;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 120ms ease;
+  white-space: nowrap;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible,
+.nav-link--active {
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.nav-link:focus-visible {
+  outline: none;
+}
+
+.nav-link--active::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: rgb(var(--v-theme-primary));
+  content: '';
+}
+
+.page-eyebrow {
+  color: rgb(var(--v-theme-secondary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.page-title {
+  margin-top: 8px;
+  color: rgb(var(--v-theme-on-surface));
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.filter-panel :deep(.v-expansion-panel) {
+  border: 1px solid rgb(var(--v-theme-surface-variant));
+  background: rgb(var(--v-theme-surface));
+  box-shadow: none;
+}
+
+.filter-panel :deep(.v-expansion-panel-title) {
+  min-height: 52px;
+  font-weight: 500;
+}
+
+.catalog-card {
+  overflow: hidden;
+  border: 1px solid rgb(var(--v-theme-surface-variant));
+  border-radius: 12px !important;
+  background: rgb(var(--v-theme-surface));
+}
+
+.catalog-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  background: rgb(var(--v-theme-surface));
+}
+
+.search-field {
+  max-width: 360px;
+}
+
+.catalog-table :deep(thead th) {
+  height: 52px;
+  border-bottom-color: rgb(var(--v-theme-surface-variant)) !important;
+  background: rgb(var(--v-theme-surface-variant));
+  color: rgb(var(--v-theme-secondary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.catalog-row {
+  cursor: pointer;
+  background: rgb(var(--v-theme-surface));
+  transition: background-color 120ms ease;
+}
+
+.catalog-row--alternate {
+  background: rgb(var(--v-theme-background));
+}
+
+.catalog-row:hover {
+  background: rgba(var(--v-theme-primary), 0.09) !important;
+}
+
+.catalog-row td {
+  height: 56px !important;
+  border-bottom-color: rgb(var(--v-theme-surface-variant)) !important;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.catalog-table :deep(.v-data-table-footer) {
+  border-top: 1px solid rgb(var(--v-theme-surface-variant));
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-secondary));
+}
+
+@media (max-width: 599px) {
+  .search-field {
+    max-width: none;
+  }
+
+  .catalog-toolbar {
+    display: block;
+  }
+
+  .page-title {
+    font-size: 1.75rem;
+  }
+}
+
 /* Ensure icons are visible in dark theme */
 .v-icon {
   color: inherit;
@@ -655,12 +813,6 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.7) !important; 
 }
 
-.hover-row:hover {
-  background: #333 !important;
-}
-.bg-grey-darken-4 {
-  background: #232323 !important;
-}
 
 .item-ident-pre {
   margin: 0;

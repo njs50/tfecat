@@ -36,6 +36,9 @@ export const useCatalogStore = defineStore('catalog', {
               itemAffects[affect.name] = true
             } else if (affect.type === 'property') {
               itemProps[affect.name] = true
+            } else if (affect.type === 'pseudo') {
+              // Parser metadata such as placeholders is not a filterable item attribute.
+              continue
             } else {
               console.error('unknown affect type', affect)
             }
