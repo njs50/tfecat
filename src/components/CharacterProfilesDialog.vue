@@ -27,6 +27,7 @@
             hide-details="auto"
             hint="Rename &lt;unsaved&gt; and Save to keep a shared profile"
             persistent-hint
+            @focus="clearUnsavedNameOnFocus"
           ></v-text-field>
         </v-col>
         <v-col cols="12" md="6">
@@ -236,6 +237,13 @@ const sanitizeStat = (v: number | null | undefined): number => {
   const n = Number(v)
   if (!Number.isFinite(n)) return DEFAULT_CHARACTER_STATS.Str!
   return Math.min(STAT_MAX, Math.max(STAT_MIN, Math.round(n)))
+}
+
+/** Placeholder name — clear on focus so the user can type without deleting first. */
+const clearUnsavedNameOnFocus = () => {
+  if (draft.value?.name === UNSAVED_PRESET_LABEL) {
+    draft.value.name = ''
+  }
 }
 
 const save = () => {

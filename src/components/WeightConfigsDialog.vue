@@ -26,6 +26,7 @@
         hide-details="auto"
         hint="Rename &lt;unsaved&gt; and Save to keep a shared weight set"
         persistent-hint
+        @focus="clearUnsavedNameOnFocus"
       ></v-text-field>
 
       <div class="text-subtitle-2 mb-2">Property weights</div>
@@ -189,6 +190,13 @@ watch(editingId, (id) => {
     loadDraft(config)
   }
 })
+
+/** Placeholder name — clear on focus so the user can type without deleting first. */
+const clearUnsavedNameOnFocus = () => {
+  if (draft.value?.name === UNSAVED_PRESET_LABEL) {
+    draft.value.name = ''
+  }
+}
 
 const save = () => {
   if (!draft.value) return
