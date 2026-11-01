@@ -271,6 +271,10 @@ const copyInstall = () => {
   top: 0;
   z-index: 100;
   flex: 0 0 auto;
+  /* Clear iPhone notch / status blur (viewport-fit=cover + black-translucent). */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   background: rgb(var(--v-theme-surface));
   border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
 }
