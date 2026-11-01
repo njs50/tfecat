@@ -1,8 +1,8 @@
 <template>
   <v-app id="tfecat">
-    <!-- Brand scrolls away; primary nav sticks. -->
-    <header class="site-header">
-      <v-container fluid class="header-shell px-6 px-sm-8 brand-block">
+    <!-- Brand + nav are siblings (not one short header) so sticky nav can pin for the whole page. -->
+    <div class="brand-block">
+      <v-container fluid class="header-shell px-6 px-sm-8">
         <div class="brand-row">
           <v-btn
             :to="{ name: 'catalog', query: route.query }"
@@ -84,26 +84,27 @@
           </v-dialog>
         </div>
       </v-container>
+    </div>
 
-      <div class="nav-sticky">
-        <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
-          <nav aria-label="Primary" class="primary-nav">
-            <router-link
-              :to="{ name: 'catalog', query: route.query }"
-              class="nav-link"
-              active-class="nav-link--active"
-              aria-current="page"
-            >
-              Item catalog
-            </router-link>
-            <!-- Coming soon — keep for upcoming trainers / item-audit pages
-            <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
-            <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
-            -->
-          </nav>
-        </v-container>
-      </div>
-    </header>
+    <!-- Only this row sticks; brand scrolls away. No small-breakpoint overflow menu yet. -->
+    <div class="nav-sticky">
+      <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
+        <nav aria-label="Primary" class="primary-nav">
+          <router-link
+            :to="catalogNavTo"
+            class="nav-link"
+            :class="{ 'nav-link--active': catalogNavActive }"
+            :aria-current="catalogNavActive ? 'page' : undefined"
+          >
+            Item catalog
+          </router-link>
+          <!-- Coming soon — keep for upcoming trainers / item-audit pages
+          <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
+          <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
+          -->
+        </nav>
+      </v-container>
+    </div>
 
     <v-main>
       <!-- Keep CatalogView mounted so item ↔ search keeps filters/sort/scroll. -->
@@ -144,6 +145,17 @@ import { useAppUpdate } from './composables/useAppUpdate'
 const route = useRoute()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
 
+/** Listing + item detail share the catalog section in the main nav. */
+const catalogNavActive = computed(
+  () => route.name === 'catalog' || route.name === 'item',
+)
+
+/** Always target the search listing (keeps query → filters/sort via keep-alive). */
+const catalogNavTo = computed(() => ({
+  name: 'catalog' as const,
+  query: route.query,
+}))
+
 const isInstallModalVisible = ref(false)
 const installCode = ref(
   `lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://raw.githubusercontent.com/njs50/njs50-package-manager/main/njs50-package-manager.xml')`,
@@ -168,16 +180,13 @@ const copyInstall = () => {
 </script>
 
 <style scoped>
-.site-header {
-  background: rgb(var(--v-theme-surface));
-}
-
 .header-shell {
   max-width: 1280px;
 }
 
 .brand-block {
   padding-top: 20px;
+  background: rgb(var(--v-theme-surface));
 }
 
 .brand-row {
