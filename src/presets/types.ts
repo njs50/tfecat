@@ -33,7 +33,7 @@ export const EMPTY_CHARACTER_STATS = DEFAULT_CHARACTER_STATS
 export type CharacterProfile = {
   id: string
   name: string
-  /** Max item level; selecting the profile sets level range to [1, level]. */
+  /** Character level; selecting the profile pre-sets filter max level (min unchanged). */
   level: number
   alignment: string | null
   race: string | null

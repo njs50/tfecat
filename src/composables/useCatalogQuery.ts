@@ -112,7 +112,7 @@ export function catalogStateToQuery(
 }
 
 function appendProfileFields(query: LocationQueryRaw, profile: CharacterProfile) {
-  query.level = `1-${profile.level}`
+  query.level = `0-${profile.level}`
   if (profile.alignment) query.align = profile.alignment
   if (profile.race) query.race = profile.race
   if (profile.class) query.class = profile.class

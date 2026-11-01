@@ -96,7 +96,6 @@
                     label="Level min"
                     density="compact"
                     hide-details
-                    :disabled="characterFiltersLocked"
                   ></v-text-field>
                 </v-col>
 
@@ -110,7 +109,6 @@
                     label="Level max"
                     density="compact"
                     hide-details
-                    :disabled="characterFiltersLocked"
                   ></v-text-field>
                 </v-col>
               </v-row>
@@ -626,21 +624,40 @@ const catalog = computed<any[]>(() => {
   }))
 })
 
-const onWeightConfigSelected = (id: string | null) => {
-  if (id) itemProperty.value = null
-  if (!id) clearUnsavedWeightConfig()
+/** Clear weighted search and fields it owns (item property). */
+const clearWeightSelection = () => {
+  activeWeightConfigId.value = null
+  clearUnsavedWeightConfig()
+  itemProperty.value = null
   sortByScoreOrPropertyDesc()
 }
 
+const onWeightConfigSelected = (id: string | null) => {
+  if (id) {
+    itemProperty.value = null
+    sortByScoreOrPropertyDesc()
+    return
+  }
+  clearWeightSelection()
+}
+
 const applyCharacterProfile = (id: string | null) => {
-  // Clearing unlocks the fields but leaves current filter values in place.
+  // Clearing resets every field the profile was driving.
   if (!id) {
     clearUnsavedCharacterProfile()
+    const min = levelRange.value[0]
+    levelRange.value = [min, 90]
+    charAlignment.value = null
+    charRace.value = null
+    charClass.value = null
+    charGender.value = null
     return
   }
   const profile = characterProfiles.value.find((p) => p.id === id)
   if (!profile) return
-  levelRange.value = [1, profile.level]
+  // Keep min as-is (default 0); only pre-set max to the character's level.
+  const min = levelRange.value[0]
+  levelRange.value = [min, Math.max(min, profile.level)]
   charAlignment.value = profile.alignment
   charRace.value = profile.race
   charClass.value = profile.class
@@ -659,7 +676,7 @@ const activeFilterChips = computed((): FilterChip[] => {
       label: activeCharacterProfile.value.name,
       clear: () => {
         activeCharacterProfileId.value = null
-        clearUnsavedCharacterProfile()
+        applyCharacterProfile(null)
       },
     })
   }
@@ -668,15 +685,12 @@ const activeFilterChips = computed((): FilterChip[] => {
     chips.push({
       id: 'weights',
       label: activeWeightConfig.value.name,
-      clear: () => {
-        activeWeightConfigId.value = null
-        clearUnsavedWeightConfig()
-      },
+      clear: () => clearWeightSelection(),
     })
   }
 
-  // Profile locks level + align/race/class/gender — no separate chips.
-  if (!characterFiltersLocked.value) {
+  // Level stays editable with a profile — still chip when not default.
+  {
     const [lo, hi] = levelRange.value
     if (lo !== 0 || hi !== 90) {
       chips.push({
@@ -687,6 +701,10 @@ const activeFilterChips = computed((): FilterChip[] => {
         },
       })
     }
+  }
+
+  // Profile locks align/race/class/gender — skip those chips while selected.
+  if (!characterFiltersLocked.value) {
     if (charAlignment.value) {
       chips.push({
         id: 'align',

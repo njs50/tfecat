@@ -12,8 +12,8 @@
 
     <h1 class="text-h6 mb-3">Character profiles</h1>
     <p class="text-body-2 text-medium-emphasis mb-4">
-      Selecting a profile on search presets alignment, race, class, gender, level range (1 … level),
-      and softcap stats. Saved profiles stay in this browser.
+      Selecting a profile on search presets alignment, race, class, gender, max level (character level),
+      and softcap stats. Min level is left alone (default 0). Saved profiles stay in this browser.
     </p>
 
     <CharacterProfilesDialog
