@@ -39,6 +39,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build site
+        env:
+          VITE_BUILD_ID: ${{ github.sha }}
         run: pnpm run build
 
       # Publish ./dist to the existing gh-pages branch with GITHUB_TOKEN.

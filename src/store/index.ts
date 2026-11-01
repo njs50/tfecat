@@ -23,6 +23,8 @@ export const useCatalogStore = defineStore('catalog', {
       Object.keys(data).forEach(key => {
         const item = data[key]
 
+        // Stable id for /item/:itemKey routes (original catalog.json key).
+        item.catalogKey = key
         item.name = item.name.replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
         item['Unidentified Name'] = item['Unidentified Name'].replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
 
