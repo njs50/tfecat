@@ -366,15 +366,15 @@ const copyInstall = () => {
 }
 
 .nav-shell--compact {
-  padding-top: 8px;
-  padding-bottom: 0;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 .compact-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
-  min-height: 48px;
+  min-height: 40px;
 }
 
 .primary-nav {
@@ -384,7 +384,13 @@ const copyInstall = () => {
 
 .primary-nav--compact {
   gap: 20px;
-  align-self: flex-end;
+  align-self: center;
+}
+
+/* Compact: keep the active underline without sinking icon/install to the bottom. */
+.nav-block--compact .nav-link {
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .nav-link {
