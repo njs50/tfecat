@@ -10,16 +10,27 @@ const router = createRouter({
       component: CatalogView,
     },
     {
-      // Legacy shareable item URLs → catalog + overlay query (keeps filters shareable).
+      // Legacy/shareable `/item/:itemKey` → catalog with drawer (`?item=`).
+      // Supports encoded keys; drawer opens without a standalone item page.
       path: '/item/:itemKey',
       name: 'item',
-      redirect: (to) => ({
-        name: 'catalog',
-        query: {
-          ...to.query,
-          item: String(to.params.itemKey ?? ''),
-        },
-      }),
+      redirect: (to) => {
+        const raw = to.params.itemKey
+        const key = Array.isArray(raw) ? raw[0] : String(raw ?? '')
+        let item = key
+        try {
+          item = decodeURIComponent(key)
+        } catch {
+          item = key
+        }
+        return {
+          name: 'catalog',
+          query: {
+            ...to.query,
+            item,
+          },
+        }
+      },
     },
     {
       path: '/weights/:id?',

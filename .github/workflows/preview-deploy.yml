@@ -60,6 +60,44 @@ jobs:
           VITE_BUILD_ID: ${{ github.sha }}
         run: pnpm exec vue-tsc && pnpm exec vite build --base=/tcat-preview/
 
+      # Rapid tip pushes collide on GitHub Pages ("in progress deployment … cancel
+      # <previous sha>"). Wait for the github-pages deployment slot to go idle
+      # before force-pushing gh-pages.
+      - name: Wait for tcat-preview Pages deploy slot
+        env:
+          TCAT_PREVIEW_PAT: ${{ secrets.TCAT_PREVIEW_PAT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TCAT_PREVIEW_PAT}" ]; then
+            echo 'Missing secret TCAT_PREVIEW_PAT' >&2
+            exit 1
+          fi
+          API="https://api.github.com/repos/njs50/tcat-preview"
+          AUTH="Authorization: Bearer ${TCAT_PREVIEW_PAT}"
+          for attempt in $(seq 1 60); do
+            ids=$(curl -sS -H "$AUTH" -H "Accept: application/vnd.github+json" \
+              "${API}/deployments?environment=github-pages&per_page=5" \
+              | jq -r '.[].id')
+            busy=0
+            for id in $ids; do
+              state=$(curl -sS -H "$AUTH" -H "Accept: application/vnd.github+json" \
+                "${API}/deployments/${id}/statuses" \
+                | jq -r '.[0].state // "none"')
+              case "$state" in
+                in_progress|queued|pending|waiting) busy=1 ;;
+              esac
+            done
+            if [ "$busy" = "0" ]; then
+              echo "Pages deploy slot idle (attempt ${attempt})"
+              # Brief settle — Pages sometimes still rejects for a few seconds.
+              sleep 15
+              exit 0
+            fi
+            echo "Pages deploy slot busy (attempt ${attempt}/60); sleeping 10s"
+            sleep 10
+          done
+          echo 'Timed out waiting for idle Pages deploy slot; pushing anyway' >&2
+
       - name: Deploy dist to njs50/tcat-preview gh-pages
         id: deploy
         env:
@@ -82,9 +120,11 @@ jobs:
           echo "preview_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Report Pages build status on the pull request
-        timeout-minutes: 8
+        timeout-minutes: 12
         env:
           PREVIEW_SHA: ${{ steps.deploy.outputs.preview_sha }}
           TCAT_PREVIEW_PAT: ${{ secrets.TCAT_PREVIEW_PAT }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAX_ATTEMPTS: "45"
+          SLEEP_SECONDS: "10"
         run: bash .github/scripts/report-preview-pages-status.sh

@@ -311,8 +311,22 @@ while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
     fi
     finish "failure" "$desc" "$target"
   fi
-  if [ "$RUN_STATUS" = "completed" ] && [ "$RUN_CONCLUSION" != "success" ] && [ "$PAGES_STATUS" != "built" ]; then
-    finish "failure" "$(description_for "$RUN_CONCLUSION")" "$target"
+  # Concurrent tip pushes can fail pages-build-deployment with “in progress
+  # deployment”. Keep polling — a later retry / settle sometimes lands “built”,
+  # and we must not treat a collision as a permanent tip failure on attempt 1–N.
+  collision=0
+  if [ "$RUN_STATUS" = "completed" ] && [ "$RUN_CONCLUSION" != "success" ]; then
+    if [ -n "$RUN_URL" ] && [ "${DRY_RUN:-}" != "1" ]; then
+      # Best-effort: collision failures mention “in progress deployment” in logs;
+      # without log access, keep waiting while Pages still says building/queued.
+      if [ "$PAGES_STATUS" = "building" ] || [ "$PAGES_STATUS" = "queued" ] || [ "$PAGES_STATUS" = "missing" ]; then
+        collision=1
+        echo "workflow failed but pages=${PAGES_STATUS}; treating as possible deploy collision — continue waiting"
+      fi
+    fi
+    if [ "$collision" != "1" ] && [ "$PAGES_STATUS" != "built" ]; then
+      finish "failure" "$(description_for "$RUN_CONCLUSION")" "$target"
+    fi
   fi
   if [ "$PAGES_STATUS" = "built" ]; then
     finish "success" "Preview deployed" "$target"
