@@ -2,18 +2,39 @@
   <!-- Document scroll only; sticky chrome is App main nav. Search lives above the table. -->
   <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
     <v-card class="catalog-card" elevation="0">
-      <div class="catalog-toolbar pa-3 ga-2">
-        <v-btn
-          icon
-          variant="tonal"
-          density="comfortable"
-          :color="filtersPageActive ? 'primary' : undefined"
-          :aria-pressed="filtersPageActive"
-          aria-label="Toggle filters"
-          @click="toggleFiltersPage"
-        >
-          <v-icon>mdi-filter-variant</v-icon>
-        </v-btn>
+      <!-- Left: filter icon, chips, count. Right: search. Scrolls with the page. -->
+      <div class="catalog-toolbar pa-3">
+        <div class="catalog-toolbar-left">
+          <v-btn
+            icon
+            variant="tonal"
+            density="comfortable"
+            :color="filtersPageActive ? 'primary' : undefined"
+            :aria-pressed="filtersPageActive"
+            aria-label="Toggle filters"
+            @click="toggleFiltersPage"
+          >
+            <v-icon>mdi-filter-variant</v-icon>
+          </v-btn>
+          <div class="filter-chips">
+            <v-chip
+              v-for="chip in activeFilterChips"
+              :key="chip.id"
+              size="small"
+              variant="tonal"
+              closable
+              @click:close="chip.clear()"
+            >
+              {{ chip.label }}
+            </v-chip>
+          </div>
+          <div class="catalog-count text-caption text-medium-emphasis">
+            <span v-if="sortedCatalog.length">
+              {{ sortedCatalog.length }} {{ sortedCatalog.length === 1 ? 'item' : 'items' }}
+            </span>
+            <span v-else>No items match</span>
+          </div>
+        </div>
         <v-text-field
           v-model="searchText"
           append-inner-icon="mdi-magnify"
@@ -25,27 +46,6 @@
           variant="outlined"
           class="search-field"
         ></v-text-field>
-      </div>
-
-      <div class="catalog-meta px-3 pb-3">
-        <div class="filter-chips">
-          <v-chip
-            v-for="chip in activeFilterChips"
-            :key="chip.id"
-            size="small"
-            variant="tonal"
-            closable
-            @click:close="chip.clear()"
-          >
-            {{ chip.label }}
-          </v-chip>
-        </div>
-        <div class="catalog-count text-caption text-medium-emphasis">
-          <span v-if="sortedCatalog.length">
-            {{ sortedCatalog.length }} {{ sortedCatalog.length === 1 ? 'item' : 'items' }}
-          </span>
-          <span v-else>No items match</span>
-        </div>
       </div>
 
       <v-divider></v-divider>
@@ -181,7 +181,7 @@ const {
 /** Softcap stats from the active profile; no profile → defaults (15) in scoring. */
 const activeCharacterStats = computed(() => activeCharacterProfile.value?.stats ?? null)
 
-/** Chip-style wear+layer label: `head.top`, or just one part when alone. */
+/** Chip-style wear+layer label: `left_hand base`, or just one part when alone. */
 const formatWearLayer = (item: any): string => {
   const list = (value: unknown): string => {
     if (value == null || value === '') return ''
@@ -189,7 +189,7 @@ const formatWearLayer = (item: any): string => {
     return String(value)
   }
   const parts = [list(item?.['Wear Loc.']), list(item?.Layer)].filter(Boolean)
-  return parts.join('.')
+  return parts.join(' ')
 }
 
 const headers = computed(() => {
@@ -205,17 +205,13 @@ const headers = computed(() => {
   ]
 
   if (mdAndUp.value) {
-    cols.push({ title: 'Wear', key: 'wearLayer', align: 'start' })
+    cols.push({ title: 'Wear Location', key: 'wearLayer', align: 'start' })
   }
 
   const weightedActive = !!activeWeightConfig.value
   if (weightedActive) {
-    // Long "Score (Fighter)" header only on md+; smaller breakpoints stay compact.
     cols.push({
-      title:
-        mdAndUp.value && activeWeightConfig.value?.name
-          ? `Score (${activeWeightConfig.value.name})`
-          : 'Score',
+      title: 'Score',
       key: 'weightedScore',
       align: 'end',
     })
@@ -399,21 +395,23 @@ onMounted(() => {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  gap: 8px 12px;
   background: rgb(var(--v-theme-surface));
+}
+
+.catalog-toolbar-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .search-field {
   max-width: 360px;
-  flex: 1 1 220px;
-}
-
-/* Chips + count scroll away with the page (not sticky). */
-.catalog-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  background: rgb(var(--v-theme-surface));
+  flex: 0 1 360px;
+  margin-left: auto;
 }
 
 .filter-chips {
@@ -422,13 +420,17 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   min-width: 0;
-  flex: 1 1 auto;
 }
 
 .catalog-count {
   flex: 0 0 auto;
-  margin-left: auto;
   white-space: nowrap;
+}
+
+/* Sticky thead docks under sticky main nav on document scroll. */
+.catalog-table :deep(table) {
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .catalog-table :deep(thead) {
@@ -436,6 +438,9 @@ onMounted(() => {
 }
 
 .catalog-th {
+  position: sticky;
+  top: var(--tfecat-nav-height, 57px);
+  z-index: 3;
   height: 52px;
   padding: 0 16px;
   border-bottom: thin solid rgb(var(--v-theme-surface-variant)) !important;

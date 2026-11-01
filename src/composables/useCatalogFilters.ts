@@ -325,7 +325,7 @@ export function useCatalogFilters() {
       const parts = [itemSlot.value, itemLayer.value].filter(Boolean)
       chips.push({
         id: 'wear',
-        label: parts.join('.'),
+        label: parts.join(' '),
         clear: () => {
           itemSlot.value = null
           itemLayer.value = null
