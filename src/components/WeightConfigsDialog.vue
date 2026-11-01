@@ -3,11 +3,12 @@
     <v-row class="align-center mb-3" dense>
       <v-col cols="12" sm="8" md="6">
         <v-select
-          v-model="editingId"
+          :model-value="editingId"
           :items="configItems"
           label="Edit configuration"
           density="compact"
           hide-details
+          @update:model-value="onSelectConfig"
         ></v-select>
       </v-col>
       <v-col cols="12" sm="4" md="6" class="d-flex justify-sm-end">

@@ -239,10 +239,11 @@ const sanitizeStat = (v: number | null | undefined): number => {
   return Math.min(STAT_MAX, Math.max(STAT_MIN, Math.round(n)))
 }
 
-/** Placeholder name — clear on focus so the user can type without deleting first. */
+/** Placeholder names — clear on focus so the user can type without deleting first. */
 const clearUnsavedNameOnFocus = () => {
-  if (draft.value?.name === UNSAVED_PRESET_LABEL) {
-    draft.value.name = ''
+  const name = draft.value?.name
+  if (name === UNSAVED_PRESET_LABEL || name === 'New character') {
+    draft.value!.name = ''
   }
 }
 
