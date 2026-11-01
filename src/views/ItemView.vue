@@ -23,6 +23,8 @@
 
     <template v-if="item">
       <pre class="item-ident-pre">{{ displayBuffer }}</pre>
+      <!-- Mudlet tcat weighted displayItem block (after ident, before customs). -->
+      <pre v-if="weightSummary" class="item-ident-pre item-weight-summary">{{ weightSummary }}</pre>
       <div v-if="item.custom && Object.keys(item.custom).length > 0" class="mt-4">
         <div v-for="(custom, roomKey) in item.custom" :key="roomKey" class="mb-3">
           <div class="text-subtitle-1 mb-1 text-medium-emphasis">Custom in Room #{{ roomKey }}:</div>
@@ -48,6 +50,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { catalogQueryToState } from '../composables/useCatalogQuery'
 import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
 import { usePresets } from '../presets/usePresets'
+import { formatWeightSummary } from '../presets/weightedScore'
 import { useCatalogStore } from '../store'
 
 const props = defineProps<{ itemKey: string }>()
@@ -134,6 +137,14 @@ const formatItemDisplayBuffer = (it: any): string => {
 
 const displayBuffer = computed(() => (item.value ? formatItemDisplayBuffer(item.value) : ''))
 
+/** CLI-style per-property × weight breakdown when a weight config is active. */
+const weightSummary = computed(() => {
+  const it = item.value
+  const weights = activeWeightConfig.value?.weights
+  if (!it || !weights || !Object.keys(weights).length) return ''
+  return formatWeightSummary(it, weights, activeCharacterProfile.value?.stats ?? null)
+})
+
 const onShare = async () => {
   const parsed = catalogQueryToState(route.query)
   const ok = await copyShareLink({
@@ -179,5 +190,9 @@ const onShare = async () => {
   white-space: pre;
   overflow-x: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.item-weight-summary {
+  margin-top: 1rem;
 }
 </style>
