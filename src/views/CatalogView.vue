@@ -1,6 +1,6 @@
 <template>
-  <v-container fluid class="pa-2">
-        <v-expansion-panels>
+  <v-container fluid class="content-shell px-6 px-sm-8 py-10">
+        <v-expansion-panels class="filter-panel">
           <v-expansion-panel>
             <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
             <v-expansion-panel-text class="pa-1">
@@ -166,12 +166,11 @@
           </v-expansion-panel>
         </v-expansion-panels>
 
-        <v-card class="mt-2 elevation-2 rounded-lg">
-              <v-card-title class="d-flex align-center py-1 ga-1">
+        <v-card class="catalog-card mt-4" elevation="0">
+          <v-card-title class="catalog-toolbar pa-3 ga-2">
             <v-btn
               variant="tonal"
               density="compact"
-              class="ma-1"
               :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
               @click="onShare"
             >
@@ -181,13 +180,13 @@
             <v-text-field
               v-model="searchText"
               append-inner-icon="mdi-magnify"
-              label="Search"
+              label="Search items"
               single-line
               hide-details
               clearable
               density="compact"
-              class="ma-1"
-              style="max-width: 400px;"
+              variant="outlined"
+              class="search-field"
             ></v-text-field>
           </v-card-title>
           <v-divider></v-divider>
@@ -196,14 +195,13 @@
             :items="catalog"
             :items-per-page-options="itemsPerPageOptions"
             v-model:sort-by="sortBy"
-            class="elevation-0"
+            class="catalog-table"
             hover
           >
             <template #item="{ item, index }">
               <tr
                 @click="rowClicked(item)"
-                style="cursor:pointer;"
-                :class="[index % 2 === 0 ? 'bg-grey-darken-4' : '', 'hover-row']"
+                :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
               >
                 <td
                   v-for="header in headers"
@@ -669,6 +667,76 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.content-shell {
+  max-width: 1280px;
+}
+
+.filter-panel :deep(.v-expansion-panel) {
+  border: 1px solid rgb(var(--v-theme-surface-variant));
+  background: rgb(var(--v-theme-surface));
+  box-shadow: none;
+}
+
+.filter-panel :deep(.v-expansion-panel-title) {
+  min-height: 52px;
+  font-weight: 500;
+}
+
+.catalog-card {
+  overflow: hidden;
+  border: 1px solid rgb(var(--v-theme-surface-variant));
+  border-radius: 12px !important;
+  background: rgb(var(--v-theme-surface));
+}
+
+.catalog-toolbar {
+  display: flex;
+  align-items: center;
+  background: rgb(var(--v-theme-surface));
+}
+
+.search-field {
+  max-width: 360px;
+}
+
+.catalog-table :deep(thead th) {
+  height: 52px;
+  border-bottom-color: rgb(var(--v-theme-surface-variant)) !important;
+  background: rgb(var(--v-theme-surface-variant));
+  color: rgb(var(--v-theme-secondary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.catalog-row {
+  cursor: pointer;
+  background: rgb(var(--v-theme-surface));
+  transition: background-color 120ms ease;
+}
+
+.catalog-row--alternate {
+  background: rgb(var(--v-theme-background));
+}
+
+.catalog-row:hover {
+  background: rgba(var(--v-theme-primary), 0.09) !important;
+}
+
+.catalog-row td {
+  height: 56px !important;
+  border-bottom-color: rgb(var(--v-theme-surface-variant)) !important;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.catalog-table :deep(.v-data-table-footer) {
+  border-top: 1px solid rgb(var(--v-theme-surface-variant));
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-secondary));
+}
+
 .v-icon {
   color: inherit;
 }
@@ -678,12 +746,13 @@ onMounted(() => {
 .v-text-field .v-icon {
   color: rgba(255, 255, 255, 0.7) !important;
 }
-.hover-row:hover {
-  background: #333 !important;
+
+@media (max-width: 599px) {
+  .search-field {
+    max-width: none;
+  }
 }
-.bg-grey-darken-4 {
-  background: #232323 !important;
-}
+
 @media (max-width: 449px) {
   .filter-col {
     flex: 0 0 100% !important;

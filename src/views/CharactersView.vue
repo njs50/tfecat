@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="pa-2" style="max-width: 900px;">
+  <v-container fluid class="content-shell px-6 px-sm-8 py-10" style="max-width: 900px;">
     <div class="d-flex flex-wrap align-center ga-2 mb-3">
       <nav class="text-body-2" aria-label="Breadcrumb">
         <router-link :to="{ name: 'catalog', query: route.query }" class="crumb-link">
@@ -123,6 +123,8 @@ const onShare = async () => {
 </script>
 
 <style scoped>
+.content-shell { max-width: 1280px; }
+
 .crumb-link {
   color: rgb(var(--v-theme-primary));
   text-decoration: none;
