@@ -46,6 +46,11 @@ export type CharacterProfile = {
   gender: string | null
   /** Null entries resolve to DEFAULT_STAT_VALUE for softcaps. */
   stats: CharacterStats
+  /**
+   * Raw Mudlet `equipment` paste (`+++ Equipment +++` dump).
+   * Used by Item Audit; optional so older saved profiles stay valid.
+   */
+  equipmentPaste?: string
 }
 
 export type PresetsState = {

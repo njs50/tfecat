@@ -35,7 +35,7 @@ const CATALOG_QUERY_KEYS = new Set([
   'str', 'int', 'wis', 'dex', 'con',
 ])
 
-const FILTER_ROUTE_NAMES = new Set(['catalog', 'filters'])
+const FILTER_ROUTE_NAMES = new Set(['catalog', 'filters', 'audit'])
 
 const clampLevel = (n: unknown, fallback: number) => {
   const v = typeof n === 'number' ? n : Number(n)
@@ -113,7 +113,7 @@ export function useCatalogFilters() {
     })
     if (sameCatalogQuery(query, route.query)) return
     const name = FILTER_ROUTE_NAMES.has(String(route.name))
-      ? (route.name as 'catalog' | 'filters')
+      ? (route.name as 'catalog' | 'filters' | 'audit')
       : 'catalog'
     router.replace({ name, query })
   }

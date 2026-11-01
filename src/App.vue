@@ -50,6 +50,14 @@
               >
                 Item catalog
               </router-link>
+              <router-link
+                :to="auditNavTo"
+                class="nav-link"
+                :class="{ 'nav-link--active': auditNavActive }"
+                :aria-current="auditNavActive ? 'page' : undefined"
+              >
+                Item audit
+              </router-link>
             </nav>
           </v-container>
         </div>
@@ -79,6 +87,14 @@
                   :aria-current="catalogNavActive ? 'page' : undefined"
                 >
                   Item catalog
+                </router-link>
+                <router-link
+                  :to="auditNavTo"
+                  class="nav-link"
+                  :class="{ 'nav-link--active': auditNavActive }"
+                  :aria-current="auditNavActive ? 'page' : undefined"
+                >
+                  Item audit
                 </router-link>
               </nav>
               <v-spacer></v-spacer>
@@ -207,6 +223,12 @@ const catalogNavActive = computed(
 /** Always target the search listing (keeps query → filters/sort via keep-alive). */
 const catalogNavTo = computed(() => ({
   name: 'catalog' as const,
+  query: route.query,
+}))
+
+const auditNavActive = computed(() => route.name === 'audit')
+const auditNavTo = computed(() => ({
+  name: 'audit' as const,
   query: route.query,
 }))
 

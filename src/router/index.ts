@@ -32,6 +32,11 @@ const router = createRouter({
       name: 'filters',
       component: () => import('../views/FiltersView.vue'),
     },
+    {
+      path: '/audit',
+      name: 'audit',
+      component: () => import('../views/AuditView.vue'),
+    },
   ],
   scrollBehavior(_to, _from, savedPosition) {
     // Browser Back/Forward restores prior scroll; in-app pushes start at top.
