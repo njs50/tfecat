@@ -136,13 +136,32 @@ const weightSummary = computed(() => {
   return formatWeightSummary(it, weights, activeCharacterProfile.value?.stats ?? null)
 })
 
-/** Single pre: item ident, then weight block (no separate scroll). */
+const CUSTOM_TABLE_HEADER = `Item                        Price  Weight  Lvl  Ingredients
+----                        -----  ------  ---  -----------`
+
+/** Append custom-in-room blocks in the same monospace layout as before. */
+const formatCustomsBlock = (it: any): string => {
+  const custom = it?.custom
+  if (!custom || typeof custom !== 'object') return ''
+  const rooms = Object.keys(custom)
+  if (!rooms.length) return ''
+  return rooms
+    .map((roomKey) => {
+      const raw = custom[roomKey]?.raw ?? ''
+      return `Custom in Room #${roomKey}:\n${CUSTOM_TABLE_HEADER}\n${raw}`.replace(/\s*$/, '')
+    })
+    .join('\n\n')
+}
+
+/** Single pre: ident, optional weight block, optional customs. */
 const displayBuffer = computed(() => {
   if (!item.value) return ''
-  const base = formatItemDisplayBuffer(item.value)
-  const summary = weightSummary.value
-  if (!summary) return base
-  return `${base.replace(/\s*$/, '')}\n\n${summary}\n`
+  const parts = [
+    formatItemDisplayBuffer(item.value).replace(/\s*$/, ''),
+    weightSummary.value,
+    formatCustomsBlock(item.value),
+  ].filter(Boolean)
+  return `${parts.join('\n\n')}\n`
 })
 
 const onShare = async () => {
