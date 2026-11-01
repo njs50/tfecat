@@ -16,6 +16,11 @@ export async function copyShareLink(options: {
     options.activeProfile,
     options.activeWeights,
   )
+  // Keep overlay item on shared URLs (catalog/audit ?item=).
+  const item = options.route.query.item
+  if (typeof item === 'string' && item) {
+    query.item = item
+  }
   const resolved = options.router.resolve({
     path: options.route.path,
     query,

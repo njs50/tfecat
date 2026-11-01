@@ -6,6 +6,7 @@ import {
   sameCatalogQuery,
   type CatalogFilterState,
 } from './useCatalogQuery'
+import { readItemQuery } from './useItemOverlay'
 import { LEVEL_MAX } from '../presets/constants'
 import { usePresets } from '../presets/usePresets'
 
@@ -35,7 +36,7 @@ const CATALOG_QUERY_KEYS = new Set([
   'str', 'int', 'wis', 'dex', 'con',
 ])
 
-const FILTER_ROUTE_NAMES = new Set(['catalog', 'filters'])
+const FILTER_ROUTE_NAMES = new Set(['catalog', 'filters', 'audit'])
 
 const clampLevel = (n: unknown, fallback: number) => {
   const v = typeof n === 'number' ? n : Number(n)
@@ -111,9 +112,12 @@ export function useCatalogFilters() {
       activeProfile: activeCharacterProfile.value,
       activeWeights: activeWeightConfig.value,
     })
+    // Preserve item overlay query so filter sync doesn't dismiss the drawer.
+    const itemKey = readItemQuery(route.query)
+    if (itemKey) query.item = itemKey
     if (sameCatalogQuery(query, route.query)) return
     const name = FILTER_ROUTE_NAMES.has(String(route.name))
-      ? (route.name as 'catalog' | 'filters')
+      ? (route.name as 'catalog' | 'filters' | 'audit')
       : 'catalog'
     router.replace({ name, query })
   }
@@ -384,6 +388,8 @@ export function useCatalogFilters() {
         () => {
           if (!FILTER_ROUTE_NAMES.has(String(route.name))) return
           const query = catalogStateToQuery(currentFilterState())
+          const itemKey = readItemQuery(route.query)
+          if (itemKey) query.item = itemKey
           if (sameCatalogQuery(query, route.query)) return
           applyQueryToState()
         },

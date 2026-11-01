@@ -50,6 +50,14 @@
               >
                 Item catalog
               </router-link>
+              <router-link
+                :to="auditNavTo"
+                class="nav-link"
+                :class="{ 'nav-link--active': auditNavActive }"
+                :aria-current="auditNavActive ? 'page' : undefined"
+              >
+                Item audit
+              </router-link>
             </nav>
           </v-container>
         </div>
@@ -79,6 +87,14 @@
                   :aria-current="catalogNavActive ? 'page' : undefined"
                 >
                   Item catalog
+                </router-link>
+                <router-link
+                  :to="auditNavTo"
+                  class="nav-link"
+                  :class="{ 'nav-link--active': auditNavActive }"
+                  :aria-current="auditNavActive ? 'page' : undefined"
+                >
+                  Item audit
                 </router-link>
               </nav>
               <v-spacer></v-spacer>
@@ -153,13 +169,40 @@
     </v-dialog>
 
     <v-main class="app-main">
-      <!-- Keep CatalogView mounted so item ↔ search keeps filters/sort/scroll. -->
+      <!-- Keep catalog + audit mounted under the item overlay (query ?item=). -->
       <router-view v-slot="{ Component }">
-        <keep-alive :include="['CatalogView']">
+        <keep-alive :include="['CatalogView', 'AuditView']">
           <component :is="Component" />
         </keep-alive>
       </router-view>
     </v-main>
+
+    <!--
+      Item detail: temporary right drawer (bottom sheet on narrow).
+      Driven by `?item=`. `persistent` blocks click-through scrim dismiss on open;
+      we close ourselves once dismiss is armed (scrim / swipe / Esc / X).
+    -->
+    <v-navigation-drawer
+      :model-value="overlayOpen"
+      temporary
+      persistent
+      :location="itemDrawerLocation"
+      :width="itemDrawerWidth"
+      :mobile="false"
+      disable-resize-watcher
+      disable-route-watcher
+      scrim
+      class="item-overlay-drawer"
+      @update:model-value="onItemDrawerModel"
+    >
+      <ItemDetailPanel
+        v-if="overlayItemKey"
+        :item-key="overlayItemKey"
+        @close="closeItemOverlay"
+        @content-width="onItemContentWidth"
+        @content-height="onItemContentHeight"
+      />
+    </v-navigation-drawer>
 
     <div
       v-if="previewWatermark"
@@ -187,28 +230,125 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import BrandMark from './components/BrandMark.vue'
+import ItemDetailPanel from './components/ItemDetailPanel.vue'
 import { useAppUpdate } from './composables/useAppUpdate'
 import { useCatalogFilters } from './composables/useCatalogFilters'
+import { useItemOverlay } from './composables/useItemOverlay'
 
 const route = useRoute()
-const { width, smAndUp } = useDisplay()
+const { width, height, smAndUp, smAndDown } = useDisplay()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
 const { ensureFilterSync } = useCatalogFilters()
+const { overlayOpen, overlayItemKey, closeItemOverlay } = useItemOverlay()
 
 /** Full two-row chrome only on wide viewports — md (960) still catches landscape phones. */
 const FULL_CHROME_MIN_WIDTH = 1000
 const fullChrome = computed(() => width.value >= FULL_CHROME_MIN_WIDTH)
 
-/** Listing + item detail share the catalog section in the main nav. */
-const catalogNavActive = computed(
-  () => route.name === 'catalog' || route.name === 'item',
-)
+/** Catalog stays active on `/` even while the item overlay query is open. */
+const catalogNavActive = computed(() => route.name === 'catalog')
 
 /** Always target the search listing (keeps query → filters/sort via keep-alive). */
-const catalogNavTo = computed(() => ({
-  name: 'catalog' as const,
-  query: route.query,
-}))
+const catalogNavTo = computed(() => {
+  const query = { ...route.query }
+  delete query.item
+  return { name: 'catalog' as const, query }
+})
+
+const auditNavActive = computed(() => route.name === 'audit')
+const auditNavTo = computed(() => {
+  const query = { ...route.query }
+  delete query.item
+  return { name: 'audit' as const, query }
+})
+
+/** Bottom sheet on narrow; right panel sized to the ident `<pre>` on desktop. */
+const itemDrawerLocation = computed(() => (smAndDown.value ? 'bottom' : 'right'))
+
+/** Measured monospace block size from ItemDetailPanel (0 until first layout). */
+const itemContentWidth = ref(0)
+const itemContentHeight = ref(0)
+const onItemContentWidth = (w: number) => {
+  itemContentWidth.value = Math.max(0, Math.floor(w))
+}
+const onItemContentHeight = (h: number) => {
+  itemContentHeight.value = Math.max(0, Math.floor(h))
+}
+
+/**
+ * Vuetify uses `width` as the size along the drawer axis:
+ * right → panel width; bottom → panel height.
+ */
+const itemDrawerWidth = computed(() => {
+  if (smAndDown.value) {
+    // Bottom sheet: shrink-wrap to pre height (toolbar + padding), cap ~92vh.
+    const maxH = Math.floor(height.value * 0.92)
+    const chromeY = 56 // toolbar + panel padding
+    const minH = 180
+    const content =
+      itemContentHeight.value > 0
+        ? itemContentHeight.value + chromeY
+        : Math.min(maxH, 420)
+    return Math.min(maxH, Math.max(minH, content))
+  }
+  // Right panel: shrink-wrap to pre width, cap ~92vw.
+  const maxW = Math.floor(width.value * 0.92)
+  const padX = 32
+  const minW = 280
+  const content =
+    itemContentWidth.value > 0 ? itemContentWidth.value + padX : Math.min(560, maxW)
+  return Math.min(maxW, Math.max(minW, content))
+})
+
+/**
+ * Scrim/swipe dismiss is deferred so the gesture that opened the drawer
+ * cannot immediately clear `?item=` (Vuetify temporary click-through).
+ */
+let dismissArmed = false
+let dismissArmTimer: ReturnType<typeof setTimeout> | null = null
+const DISMISS_ARM_MS = 350
+
+watch(overlayOpen, (open) => {
+  dismissArmed = false
+  if (dismissArmTimer) {
+    clearTimeout(dismissArmTimer)
+    dismissArmTimer = null
+  }
+  if (!open) {
+    itemContentWidth.value = 0
+    itemContentHeight.value = 0
+    return
+  }
+  dismissArmTimer = setTimeout(() => {
+    dismissArmed = true
+    dismissArmTimer = null
+  }, DISMISS_ARM_MS)
+})
+
+const onItemDrawerModel = (open: boolean) => {
+  if (open) return
+  // `persistent` blocks scrim; swipe/Esc can still emit false — ignore until armed.
+  if (!dismissArmed) return
+  closeItemOverlay()
+}
+
+const onItemOverlayScrimClick = (event: Event) => {
+  const target = event.target as HTMLElement | null
+  if (!target?.classList?.contains('v-navigation-drawer__scrim')) return
+  if (!overlayOpen.value) return
+  if (!dismissArmed) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+  closeItemOverlay()
+}
+
+const onItemOverlayKeydown = (event: KeyboardEvent) => {
+  if (event.key !== 'Escape') return
+  if (!overlayOpen.value || !dismissArmed) return
+  closeItemOverlay()
+}
 
 const isInstallModalVisible = ref(false)
 const installCode = ref(
@@ -234,6 +374,8 @@ onMounted(() => {
     chromeResizeObserver.observe(chromeEl.value)
   }
   ensureFilterSync()
+  document.addEventListener('click', onItemOverlayScrimClick, true)
+  window.addEventListener('keydown', onItemOverlayKeydown)
 })
 
 // Breakpoint swaps change chrome height without a resize of the same node tree.
@@ -245,6 +387,12 @@ watch([fullChrome, smAndUp], async () => {
 onBeforeUnmount(() => {
   chromeResizeObserver?.disconnect()
   chromeResizeObserver = null
+  document.removeEventListener('click', onItemOverlayScrimClick, true)
+  window.removeEventListener('keydown', onItemOverlayKeydown)
+  if (dismissArmTimer) {
+    clearTimeout(dismissArmTimer)
+    dismissArmTimer = null
+  }
 })
 
 /** Branch + short SHA; only when preview-deploy sets VITE_PREVIEW_*. */
@@ -451,6 +599,23 @@ const copyInstall = () => {
   font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: rgba(255, 255, 255, 0.4);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.item-overlay-drawer {
+  /* Sit above main content; temporary drawers already use a scrim. */
+  z-index: 2400;
+}
+</style>
+
+<style>
+/* Size comes from `:width` (axis size) via itemDrawerWidth — pre-sized.
+   Cap bottom sheet with max-height so CSS can’t fight a shorter content height. */
+.item-overlay-drawer.v-navigation-drawer--bottom {
+  max-height: 92dvh;
+}
+.item-overlay-drawer.v-navigation-drawer--right {
+  height: 100% !important;
+  max-height: 100dvh;
 }
 </style>
 

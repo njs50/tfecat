@@ -97,7 +97,7 @@
 
           <template #item="{ item, index }">
             <tr
-              @click="rowClicked(item)"
+              @click="rowClicked(item, $event)"
               :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
             >
               <td
@@ -147,9 +147,9 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useCatalogFilters } from '../composables/useCatalogFilters'
+import { useItemOverlay } from '../composables/useItemOverlay'
 import { getItemPropertyAmount } from '../itemProperties'
 import { formatWeightedScore, getWeightedScore } from '../presets/weightedScore'
 import { useCatalogStore } from '../store'
@@ -158,8 +158,7 @@ import { useCatalogStore } from '../store'
 defineOptions({ name: 'CatalogView' })
 
 const store = useCatalogStore()
-const route = useRoute()
-const router = useRouter()
+const { openItemOverlay } = useItemOverlay()
 const { mdAndUp } = useDisplay()
 
 /** Scroll pane for the table body (infinite-scroll root + sticky thead). */
@@ -383,12 +382,9 @@ const catalogScrollIntersect = computed(() => ({
   },
 }))
 
-const rowClicked = (item: any) => {
-  router.push({
-    name: 'item',
-    params: { itemKey: item.catalogKey ?? item.name },
-    query: route.query,
-  })
+const rowClicked = (item: any, event?: Event) => {
+  const itemKey = String(item.catalogKey ?? item.name)
+  openItemOverlay(itemKey, event)
 }
 
 onMounted(() => {

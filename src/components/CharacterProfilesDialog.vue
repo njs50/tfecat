@@ -103,6 +103,23 @@
         </v-col>
       </v-row>
 
+      <div class="text-subtitle-2 mt-4 mb-1">Equipment</div>
+      <p class="text-body-2 text-medium-emphasis mb-2">
+        Paste a Mudlet <code>equipment</code> dump for Item Audit. Saved with this profile.
+      </p>
+      <v-textarea
+        v-model="draft.equipmentPaste"
+        label="Equipment paste"
+        auto-grow
+        rows="6"
+        max-rows="16"
+        density="compact"
+        hide-details="auto"
+        spellcheck="false"
+        class="equipment-paste"
+        :placeholder="equipmentPlaceholder"
+      ></v-textarea>
+
       <div class="d-flex flex-wrap ga-2 mt-4">
         <v-btn
           color="error"
@@ -177,8 +194,13 @@ const loadDraft = (profile: CharacterProfile) => {
   draft.value = {
     ...profile,
     stats: { ...DEFAULT_CHARACTER_STATS, ...(profile.stats ?? {}) },
+    equipmentPaste: profile.equipmentPaste ?? '',
   }
 }
+
+const equipmentPlaceholder = `     +++ Equipment +++
+worn on body              under  a deerhunter's dark silk torso pad   excellent
+worn around neck          base   a shell necklace                    perfect`
 
 const startNew = () => {
   isNew.value = true
@@ -192,6 +214,7 @@ const startNew = () => {
     class: null,
     gender: null,
     stats: { ...DEFAULT_CHARACTER_STATS },
+    equipmentPaste: '',
   })
 }
 
@@ -252,6 +275,7 @@ const save = () => {
   if (name === UNSAVED_PRESET_LABEL) {
     name = 'Untitled'
   }
+  const paste = (draft.value.equipmentPaste ?? '').trim()
   const saved: CharacterProfile = {
     ...draft.value,
     name,
@@ -263,6 +287,7 @@ const save = () => {
       Dex: sanitizeStat(draft.value.stats?.Dex),
       Con: sanitizeStat(draft.value.stats?.Con),
     },
+    ...(paste ? { equipmentPaste: paste } : { equipmentPaste: undefined }),
   }
   emit('save', saved)
   isNew.value = false
@@ -283,3 +308,11 @@ const remove = () => {
   }
 }
 </script>
+
+<style scoped>
+.equipment-paste :deep(textarea) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+</style>

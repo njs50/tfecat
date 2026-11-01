@@ -64,8 +64,13 @@ const charAlignments = [
 const charGenders = ['Female', 'Male'].sort()
 
 const goBack = () => {
+  if (route.query.returnTo === 'audit') {
+    router.push({ name: 'audit' })
+    return
+  }
   // Editors are opened from the filters page — return there, not catalog.
-  router.push({ name: 'filters', query: route.query })
+  const { returnTo: _returnTo, ...query } = route.query
+  router.push({ name: 'filters', query })
 }
 
 const onSave = (profile: CharacterProfile) => {

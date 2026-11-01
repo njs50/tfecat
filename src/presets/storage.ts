@@ -187,6 +187,10 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
   }
   const nullableString = (v: unknown): string | null =>
     typeof v === 'string' && v.length ? v : null
+  const equipmentPaste =
+    typeof raw.equipmentPaste === 'string' && raw.equipmentPaste.length
+      ? raw.equipmentPaste
+      : undefined
   return {
     id: raw.id,
     name: raw.name,
@@ -196,6 +200,7 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
     class: nullableString(raw.class),
     gender: nullableString(raw.gender),
     stats: sanitizeCharacterStats(raw.stats),
+    ...(equipmentPaste ? { equipmentPaste } : {}),
   }
 }
 

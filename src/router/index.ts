@@ -10,10 +10,27 @@ const router = createRouter({
       component: CatalogView,
     },
     {
+      // Legacy/shareable `/item/:itemKey` → catalog with drawer (`?item=`).
+      // Supports encoded keys; drawer opens without a standalone item page.
       path: '/item/:itemKey',
       name: 'item',
-      component: () => import('../views/ItemView.vue'),
-      props: true,
+      redirect: (to) => {
+        const raw = to.params.itemKey
+        const key = Array.isArray(raw) ? raw[0] : String(raw ?? '')
+        let item = key
+        try {
+          item = decodeURIComponent(key)
+        } catch {
+          item = key
+        }
+        return {
+          name: 'catalog',
+          query: {
+            ...to.query,
+            item,
+          },
+        }
+      },
     },
     {
       path: '/weights/:id?',
@@ -32,10 +49,32 @@ const router = createRouter({
       name: 'filters',
       component: () => import('../views/FiltersView.vue'),
     },
+    {
+      path: '/audit',
+      name: 'audit',
+      component: () => import('../views/AuditView.vue'),
+    },
   ],
-  scrollBehavior(_to, _from, savedPosition) {
+  scrollBehavior(to, from, savedPosition) {
     // Browser Back/Forward restores prior scroll; in-app pushes start at top.
     if (savedPosition) return savedPosition
+    // Opening/closing the item drawer is query-only — keep catalog/audit scroll.
+    if (to.name != null && to.name === from.name) {
+      const toItem = to.query.item
+      const fromItem = from.query.item
+      if (toItem === fromItem) return { top: 0 }
+      const stripItem = (q: typeof to.query) => {
+        const next = { ...q }
+        delete next.item
+        return next
+      }
+      const a = stripItem(to.query)
+      const b = stripItem(from.query)
+      const sameElse =
+        Object.keys(a).length === Object.keys(b).length &&
+        Object.keys(a).every((k) => String(a[k] ?? '') === String(b[k] ?? ''))
+      if (sameElse) return false
+    }
     return { top: 0 }
   },
 })

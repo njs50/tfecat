@@ -339,3 +339,146 @@ export function getItemPropertyAmount(
   // Resist cap only applies on the special hasAff paths in CLI; plain fire returns early.
   return rawPropertyAmount(item, propertyName)
 }
+
+/** One labelled component of a synthetic/composite property amount. */
+export type ItemPropertyAmountPart = {
+  label: string
+  amount: number
+}
+
+const pushPart = (
+  parts: ItemPropertyAmountPart[],
+  label: string,
+  amount: number | null | undefined,
+) => {
+  if (amount == null || amount === 0 || !Number.isFinite(amount)) return
+  parts.push({ label, amount })
+}
+
+/**
+ * Expand softcapped resist-family keys into raw labelled sources (for weight debug).
+ * Caps are applied to the combined total in getItemPropertyAmount; parts show uncapped
+ * contributors so the paren breakdown stays readable.
+ */
+function resistFamilyParts(
+  item: any,
+  key: 'magic' | 'mind' | 'poison',
+  stats: ResolvedCharacterStats,
+): ItemPropertyAmountPart[] {
+  const parts: ItemPropertyAmountPart[] = []
+  for (const aff of propertyRows(item)) {
+    const name = aff.name!.toLowerCase()
+    const amount = parseNumeric(aff.amount)
+    if (amount === null) continue
+    if (key === 'magic') {
+      if (name === 'intelligence' && stats.Int < 30) pushPart(parts, 'intelligence', amount * 2)
+      if (name === 'wisdom' && stats.Wis < 30) pushPart(parts, 'wisdom', amount)
+      if (name === 'magic') pushPart(parts, 'magic', amount)
+    } else if (key === 'mind') {
+      if (name === 'intelligence' && stats.Int < 30) pushPart(parts, 'intelligence', amount)
+      if (name === 'wisdom' && stats.Wis < 30) pushPart(parts, 'wisdom', amount * 2)
+      if (name === 'mind') pushPart(parts, 'mind', amount)
+    } else if (key === 'poison') {
+      if (name === 'constitution' && stats.Con < 30) pushPart(parts, 'constitution', amount * 2)
+      if (name === 'poison') pushPart(parts, 'poison', amount)
+    }
+  }
+  return parts
+}
+
+/**
+ * Labelled components that make up a synthetic property amount.
+ * Returns [] for plain single-source properties (no paren breakdown).
+ * Parts are unsorted — callers sort by amount/score for display.
+ */
+export function getItemPropertyAmountParts(
+  item: any,
+  propertyName: string,
+  characterStats?: CharacterStats | null,
+): ItemPropertyAmountPart[] {
+  if (!propertyName || getItemPropertyAmount(item, propertyName, characterStats) == null) {
+    return []
+  }
+
+  const stats = resolveCharacterStats(characterStats)
+  const key = propertyName.toLowerCase()
+  const parts: ItemPropertyAmountPart[] = []
+
+  if (key === 'resist') {
+    for (const t of ['fire', 'cold', 'electricity', 'acid'] as const) {
+      pushPart(parts, t, getItemPropertyAmount(item, t, characterStats))
+    }
+    for (const t of ['magic', 'mind', 'poison'] as const) {
+      const family = resistFamilyParts(item, t, stats)
+      if (family.length) {
+        parts.push(...family)
+      } else {
+        pushPart(parts, t, getItemPropertyAmount(item, t, characterStats))
+      }
+    }
+    return parts
+  }
+
+  if (key === 'deflection') {
+    pushPart(parts, 'deflection', rawPropertyAmount(item, 'Deflection'))
+    pushPart(parts, 'global armor', parseNumeric(item?.['Global Armor']))
+    return parts
+  }
+
+  if (key === 'regen') {
+    for (const name of ['hit_regen', 'mana_regen', 'move_regen'] as const) {
+      pushPart(parts, name, rawPropertyAmount(item, name))
+    }
+    return parts
+  }
+
+  if (key === 'smart') {
+    for (const aff of propertyRows(item)) {
+      const name = aff.name!.toLowerCase()
+      const amount = parseNumeric(aff.amount)
+      if (amount === null) continue
+      if (name === 'intelligence' && stats.Int < 30) pushPart(parts, 'intelligence', amount)
+      if (name === 'wisdom' && stats.Wis < 30) pushPart(parts, 'wisdom', amount)
+    }
+    return parts
+  }
+
+  if (key === 'magic' || key === 'mind' || key === 'poison') {
+    return resistFamilyParts(item, key, stats)
+  }
+
+  if (key === 'hit_regen') {
+    for (const aff of propertyRows(item)) {
+      const name = aff.name!.toLowerCase()
+      const amount = parseNumeric(aff.amount)
+      if (amount === null) continue
+      if (name === 'constitution' && stats.Con < 30) pushPart(parts, 'constitution', amount * 0.6)
+      if (name === 'hit_regen') pushPart(parts, 'hit_regen', amount)
+    }
+    return parts
+  }
+
+  if (key === 'mana_regen') {
+    for (const aff of propertyRows(item)) {
+      const name = aff.name!.toLowerCase()
+      const amount = parseNumeric(aff.amount)
+      if (amount === null) continue
+      if (name === 'intelligence' && stats.Int < 30) pushPart(parts, 'intelligence', amount * 0.2)
+      if (name === 'mana_regen') pushPart(parts, 'mana_regen', amount)
+    }
+    return parts
+  }
+
+  if (key === 'damroll') {
+    for (const aff of propertyRows(item)) {
+      const name = aff.name!.toLowerCase()
+      const amount = parseNumeric(aff.amount)
+      if (amount === null) continue
+      if (name === 'strength' && stats.Str < 30) pushPart(parts, 'strength', amount * 0.33)
+      if (name === 'damroll') pushPart(parts, 'damroll', amount)
+    }
+    return parts
+  }
+
+  return []
+}

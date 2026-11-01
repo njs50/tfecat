@@ -1,0 +1,283 @@
+<template>
+  <div class="item-panel">
+    <div class="item-panel__toolbar d-flex align-center ga-2 mb-3">
+      <v-btn
+        icon
+        variant="text"
+        density="comfortable"
+        aria-label="Close item"
+        @click="emit('close')"
+      >
+        <v-icon>mdi-close</v-icon>
+      </v-btn>
+      <div class="item-panel__title text-body-2 text-truncate text-high-emphasis" style="text-transform: capitalize;">
+        {{ item?.name || 'Item' }}
+      </div>
+      <v-spacer></v-spacer>
+      <v-btn
+        icon
+        variant="text"
+        density="comfortable"
+        :aria-label="shareCopied ? 'Copied' : 'Share'"
+        @click="onShare"
+      >
+        <v-icon>{{ shareCopied ? 'mdi-check' : 'mdi-share-variant' }}</v-icon>
+      </v-btn>
+    </div>
+
+    <template v-if="item">
+      <pre ref="preEl" class="item-ident-pre">{{ displayBuffer }}</pre>
+    </template>
+    <v-alert v-else-if="catalogLoaded" type="warning" variant="tonal" class="mt-2">
+      Item not found.
+    </v-alert>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { catalogQueryToState } from '../composables/useCatalogQuery'
+import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
+import { usePresets } from '../presets/usePresets'
+import { formatWeightSummary } from '../presets/weightedScore'
+import { useCatalogStore } from '../store'
+
+const props = defineProps<{ itemKey: string }>()
+const emit = defineEmits<{
+  close: []
+  contentWidth: [number]
+  contentHeight: [number]
+}>()
+
+const store = useCatalogStore()
+const router = useRouter()
+const route = useRoute()
+const { activeCharacterProfile, activeWeightConfig } = usePresets()
+const { shareCopied, flashCopied } = useShareFeedback()
+
+const preEl = ref<HTMLElement | null>(null)
+
+/** Intrinsic monospace width (avoids parent-constrained scrollWidth feedback). */
+const measurePreContentWidth = (el: HTMLElement, text: string): number => {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    const style = getComputedStyle(el)
+    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`.trim()
+    let max = 0
+    for (const line of text.split('\n')) {
+      max = Math.max(max, ctx.measureText(line).width)
+    }
+    if (max > 0) return Math.ceil(max)
+  }
+  return el.scrollWidth
+}
+
+/** Intrinsic monospace height from line count (avoids height:100% parent clamp). */
+const measurePreContentHeight = (el: HTMLElement, text: string): number => {
+  const style = getComputedStyle(el)
+  const fontSize = parseFloat(style.fontSize) || 14
+  const lineHeightRaw = style.lineHeight
+  const lineHeight =
+    lineHeightRaw === 'normal' || !lineHeightRaw
+      ? fontSize * 1.25
+      : parseFloat(lineHeightRaw) || fontSize * 1.25
+  const lines = (text || el.textContent || '').split('\n').length
+  return Math.ceil(Math.max(1, lines) * lineHeight)
+}
+
+const reportContentSize = async () => {
+  await nextTick()
+  const el = preEl.value
+  if (!el) {
+    emit('contentWidth', 0)
+    emit('contentHeight', 0)
+    return
+  }
+  const text = displayBuffer.value || el.textContent || ''
+  emit('contentWidth', measurePreContentWidth(el, text))
+  emit('contentHeight', measurePreContentHeight(el, text))
+}
+
+onMounted(() => {
+  if (!store.catalog) store.fetchCatalog()
+  void reportContentSize()
+})
+
+watch(
+  () => props.itemKey,
+  () => {
+    if (!store.catalog) store.fetchCatalog()
+  },
+)
+
+const catalogLoaded = computed(() => !!store.catalog)
+
+const item = computed(() => {
+  const raw = props.itemKey
+  let decoded = raw
+  try {
+    decoded = decodeURIComponent(raw)
+  } catch {
+    decoded = raw
+  }
+  return (
+    store.catalog?.find((i: any) => i.catalogKey === raw || i.catalogKey === decoded) ?? null
+  )
+})
+
+const allowedRestrictionValues = (map: Record<string, boolean> | undefined): string[] | null => {
+  if (!map) return null
+  const entries = Object.entries(map)
+  if (!entries.length) return null
+  const allowed = entries.filter(([, ok]) => ok).map(([k]) => k)
+  if (allowed.length === entries.length) return null
+  return allowed
+}
+
+const IDENT_COLON_COLUMN = 14
+const formatRequirementLine = (label: string, values: string[]): string =>
+  `${label.padStart(IDENT_COLON_COLUMN)}: ${values.join(', ')}`
+
+const ALIGNMENT_CODES: Record<string, string> = {
+  'Lawful Good': 'LG',
+  'Lawful Neutral': 'LN',
+  'Lawful Evil': 'LE',
+  'Neutral Good': 'NG',
+  'True Neutral': 'PN',
+  'Neutral Evil': 'NE',
+  'Chaotic Good': 'CG',
+  'Chaotic Neutral': 'CN',
+  'Chaotic Evil': 'CE',
+}
+
+const buildRequiresBlock = (it: any): string | null => {
+  const lines: string[] = []
+  const gender = allowedRestrictionValues(it.charGenders)
+  if (gender) lines.push(formatRequirementLine('Gender', gender))
+  const race = allowedRestrictionValues(it.charRaces)
+  if (race) lines.push(formatRequirementLine('Race', race))
+  const klass = allowedRestrictionValues(it.charClasses)
+  if (klass) lines.push(formatRequirementLine('Class', klass))
+  const alignment = allowedRestrictionValues(it.charAlignments)
+  if (alignment) {
+    lines.push(
+      formatRequirementLine(
+        'Alignment',
+        alignment.map((name) => ALIGNMENT_CODES[name] ?? name),
+      ),
+    )
+  }
+  return lines.length ? lines.join('\n') : null
+}
+
+const formatItemDisplayBuffer = (it: any): string => {
+  const buffer: string = it?.buffer ?? ''
+  const requires = buildRequiresBlock(it)
+  const antiFlagsLine = /^[ \t]*Anti-Flags:.*$/m
+  if (!requires) return buffer
+  if (antiFlagsLine.test(buffer)) return buffer.replace(antiFlagsLine, requires)
+  if (/^[ \t]*Restrictions:.*$/m.test(buffer)) {
+    return buffer.replace(/^[ \t]*Restrictions:.*$/m, (line) => `${requires}\n\n${line}`)
+  }
+  return `${buffer.replace(/\s*$/, '')}\n\n${requires}\n`
+}
+
+const weightSummary = computed(() => {
+  const it = item.value
+  const weights = activeWeightConfig.value?.weights
+  if (!it || !weights || !Object.keys(weights).length) return ''
+  return formatWeightSummary(it, weights, activeCharacterProfile.value?.stats ?? null)
+})
+
+const CUSTOM_TABLE_HEADER = `Item                        Price  Weight  Lvl  Ingredients
+----                        -----  ------  ---  -----------`
+
+const formatCustomsBlock = (it: any): string => {
+  const custom = it?.custom
+  if (!custom || typeof custom !== 'object') return ''
+  const rooms = Object.keys(custom)
+  if (!rooms.length) return ''
+  return rooms
+    .map((roomKey) => {
+      const raw = custom[roomKey]?.raw ?? ''
+      return `Custom in Room #${roomKey}:\n${CUSTOM_TABLE_HEADER}\n${raw}`.replace(/\s*$/, '')
+    })
+    .join('\n\n')
+}
+
+const displayBuffer = computed(() => {
+  if (!item.value) return ''
+  const parts = [
+    formatItemDisplayBuffer(item.value).replace(/\s*$/, ''),
+    weightSummary.value,
+    formatCustomsBlock(item.value),
+  ].filter(Boolean)
+  return `${parts.join('\n\n')}\n`
+})
+
+watch(displayBuffer, () => {
+  void reportContentSize()
+})
+
+const onShare = async () => {
+  const parsed = catalogQueryToState(route.query)
+  const ok = await copyShareLink({
+    router,
+    route,
+    filterState: {
+      searchText: parsed.searchText ?? '',
+      levelRange: parsed.levelRange ?? [0, 90],
+      charAlignment: parsed.charAlignment ?? null,
+      charClass: parsed.charClass ?? null,
+      charRace: parsed.charRace ?? null,
+      charGender: parsed.charGender ?? null,
+      itemType: parsed.itemType ?? null,
+      itemClass: parsed.itemClass ?? null,
+      itemAffect: parsed.itemAffect ?? null,
+      itemProperty: parsed.itemProperty ?? null,
+      itemSlot: parsed.itemSlot ?? null,
+      itemLayer: parsed.itemLayer ?? null,
+      activeWeightConfigId: parsed.activeWeightConfigId ?? null,
+      activeCharacterProfileId: parsed.activeCharacterProfileId ?? null,
+    },
+    activeProfile: activeCharacterProfile.value,
+    activeWeights: activeWeightConfig.value,
+  })
+  if (ok) flashCopied()
+}
+</script>
+
+<style scoped>
+.item-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 8px 12px 16px;
+  box-sizing: border-box;
+}
+
+.item-panel__toolbar {
+  flex: 0 0 auto;
+}
+
+.item-panel__title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.item-ident-pre {
+  flex: 1 1 auto;
+  margin: 0;
+  color: inherit;
+  font-size: 0.875rem;
+  /* Keep intrinsic monospace width so the drawer can shrink-wrap to content. */
+  width: max-content;
+  max-width: 100%;
+  white-space: pre;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+</style>
