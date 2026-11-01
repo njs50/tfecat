@@ -11,7 +11,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "vite",
-    "dev:make": "vite --base / --host 0.0.0.0 --port ${PORT:-3000}",
+    "dev:make": "vite --base / --host :: --port ${PORT:-3000}",
     "build": "vue-tsc && vite build",
     "build:make": "vue-tsc && vite build --base / --mode development",
     "preview": "vite preview",
