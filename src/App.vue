@@ -28,11 +28,11 @@
             </v-card>
           </v-dialog>
         </v-toolbar>
-        <v-tabs color="primary" density="compact" height="44" model-value="catalog" class="primary-nav">
-          <v-tab :href="catalogHref" value="catalog">Item catalog</v-tab>
-          <v-tab value="trainers" disabled>Trainers</v-tab>
-          <v-tab value="audit" disabled>Item audit</v-tab>
-        </v-tabs>
+        <nav aria-label="Primary" class="primary-nav">
+          <a :href="catalogHref" aria-current="page" class="nav-link nav-link--active">Item catalog</a>
+          <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
+          <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
+        </nav>
       </v-container>
     </v-app-bar>
 
@@ -653,22 +653,47 @@ onMounted(() => {
   text-transform: uppercase;
 }
 
-.primary-nav :deep(.v-tab) {
-  min-width: 0;
-  padding-inline: 0;
-  margin-right: 32px;
+.primary-nav {
+  display: flex;
+  align-items: flex-end;
+  height: 44px;
+  gap: 32px;
+}
+
+.nav-link {
+  position: relative;
+  flex: 0 0 auto;
+  padding-bottom: 16px;
+  color: #738078;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.18em;
+  line-height: 1;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 120ms ease;
+  white-space: nowrap;
 }
 
-.primary-nav :deep(.v-tab--disabled) {
-  opacity: 0.46;
+.nav-link:hover,
+.nav-link:focus-visible,
+.nav-link--active {
+  color: rgb(var(--v-theme-on-surface));
 }
 
-.primary-nav :deep(.v-tab__slider) {
+.nav-link:focus-visible {
+  outline: none;
+}
+
+.nav-link--active::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
   height: 4px;
+  background: rgb(var(--v-theme-primary));
+  content: '';
 }
 
 .page-eyebrow {
