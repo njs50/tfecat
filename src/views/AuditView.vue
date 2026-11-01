@@ -3,7 +3,7 @@
     <v-row dense class="mb-1">
       <v-col class="d-flex align-center ga-1" cols="12" md="6">
         <v-select
-          :model-value="profileId"
+          :model-value="activeCharacterProfileId"
           :items="characterProfileSelectItems"
           label="Character profile"
           density="compact"
@@ -25,7 +25,7 @@
 
       <v-col class="d-flex align-center ga-1" cols="12" md="6">
         <v-select
-          :model-value="weightId"
+          :model-value="activeWeightConfigId"
           :items="weightConfigSelectItems"
           label="Weight config"
           density="compact"
@@ -149,7 +149,7 @@
         Run audit
       </v-btn>
       <v-btn
-        v-if="profileId"
+        v-if="activeCharacterProfileId"
         variant="tonal"
         :disabled="!pasteText.trim()"
         @click="savePasteToProfile"
@@ -288,14 +288,17 @@ const store = useCatalogStore()
 const {
   characterProfiles,
   weightConfigs,
+  activeCharacterProfileId,
+  activeWeightConfigId,
   characterProfileSelectItems,
   weightConfigSelectItems,
   upsertCharacterProfile,
 } = usePresets()
 
-/** Local audit controls — not wired to catalog filter URL state. */
-const profileId = ref<string | null>(null)
-const weightId = ref<string | null>(null)
+/**
+ * Profile + weight IDs are the shared presets actives (same as catalog filters).
+ * Manual character / scoring fields below stay audit-local overrides.
+ */
 const itemProperty = ref<string | null>(null)
 const manualCharacter = ref(false)
 const manualWeight = ref(false)
@@ -333,10 +336,10 @@ const charAlignments = [
 const charGenders = ['Female', 'Male'].sort()
 
 const selectedProfile = computed(
-  () => characterProfiles.value.find((p) => p.id === profileId.value) ?? null,
+  () => characterProfiles.value.find((p) => p.id === activeCharacterProfileId.value) ?? null,
 )
 const selectedWeight = computed(
-  () => weightConfigs.value.find((w) => w.id === weightId.value) ?? null,
+  () => weightConfigs.value.find((w) => w.id === activeWeightConfigId.value) ?? null,
 )
 const characterStats = computed(() => selectedProfile.value?.stats ?? null)
 
@@ -360,7 +363,7 @@ const auditReturnQuery = { returnTo: 'audit' }
 const openCharactersEditor = () => {
   router.push({
     name: 'characters',
-    params: profileId.value ? { id: profileId.value } : {},
+    params: activeCharacterProfileId.value ? { id: activeCharacterProfileId.value } : {},
     query: auditReturnQuery,
   })
 }
@@ -368,32 +371,47 @@ const openCharactersEditor = () => {
 const openWeightsEditor = () => {
   router.push({
     name: 'weights',
-    params: weightId.value ? { id: weightId.value } : {},
+    params: activeWeightConfigId.value ? { id: activeWeightConfigId.value } : {},
     query: auditReturnQuery,
   })
 }
 
-const applyProfileFields = (id: string | null) => {
+/** Seed local manual fields + empty paste from the shared active profile. */
+const hydrateFromProfile = (id: string | null) => {
   if (!id) return
   const profile = characterProfiles.value.find((p) => p.id === id)
   if (!profile) return
-  levelMax.value = profile.level
-  charAlignment.value = profile.alignment
-  charRace.value = profile.race
-  charClass.value = profile.class
-  charGender.value = profile.gender
-  if (profile.equipmentPaste) {
+  if (!manualCharacter.value) {
+    levelMax.value = profile.level
+    charAlignment.value = profile.alignment
+    charRace.value = profile.race
+    charClass.value = profile.class
+    charGender.value = profile.gender
+  }
+  if (profile.equipmentPaste && !pasteText.value.trim()) {
     pasteText.value = profile.equipmentPaste
   }
 }
 
 const onProfileChange = (id: string | null) => {
-  profileId.value = id
-  applyProfileFields(id)
+  activeCharacterProfileId.value = id
+  if (id) {
+    const profile = characterProfiles.value.find((p) => p.id === id)
+    if (profile) {
+      levelMax.value = profile.level
+      charAlignment.value = profile.alignment
+      charRace.value = profile.race
+      charClass.value = profile.class
+      charGender.value = profile.gender
+      if (profile.equipmentPaste) {
+        pasteText.value = profile.equipmentPaste
+      }
+    }
+  }
 }
 
 const onWeightChange = (id: string | null) => {
-  weightId.value = id
+  activeWeightConfigId.value = id
   if (id) {
     itemProperty.value = null
   }
@@ -481,14 +499,35 @@ const savePasteToProfile = () => {
 }
 
 watch(
-  [weightId, itemProperty, levelMax, charAlignment, charClass, charRace, charGender, manualCharacter],
+  [
+    activeWeightConfigId,
+    activeCharacterProfileId,
+    itemProperty,
+    levelMax,
+    charAlignment,
+    charClass,
+    charRace,
+    charGender,
+    manualCharacter,
+    manualWeight,
+  ],
   () => {
     if (report.value) runAudit()
   },
 )
 
+// Shared selection changed elsewhere (e.g. filters page) — refresh paste/manual seeds.
+watch(activeCharacterProfileId, (id) => {
+  hydrateFromProfile(id)
+})
+
+watch(activeWeightConfigId, (id) => {
+  if (id) itemProperty.value = null
+})
+
 onMounted(() => {
   if (!store.catalog) store.fetchCatalog()
+  hydrateFromProfile(activeCharacterProfileId.value)
 })
 </script>
 

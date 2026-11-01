@@ -6,6 +6,10 @@ export type AppVersionInfo = {
 }
 
 const POLL_MS = 5 * 60 * 1000
+/** sessionStorage: SHA we asked Reload to fetch (survives soft reload races). */
+const PENDING_VERSION_KEY = 'tfecat.pendingVersion'
+/** Query param to bypass GitHub Pages HTML cache (max-age=600) on Reload. */
+const RELOAD_PARAM = '_tfecat_reload'
 
 function versionUrl(): string {
   const base = import.meta.env.BASE_URL || '/'
@@ -14,6 +18,8 @@ function versionUrl(): string {
 
 async function fetchRemoteVersion(): Promise<AppVersionInfo | null> {
   try {
+    // Always bypass HTTP cache so we notice deploys even while index.html is
+    // still CDN-cached (Pages serves everything with max-age=600).
     const res = await fetch(`${versionUrl()}?t=${Date.now()}`, {
       cache: 'no-store',
       headers: { Accept: 'application/json' },
@@ -27,9 +33,27 @@ async function fetchRemoteVersion(): Promise<AppVersionInfo | null> {
   }
 }
 
+function stripReloadParam(): void {
+  try {
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has(RELOAD_PARAM)) return
+    url.searchParams.delete(RELOAD_PARAM)
+    const next = `${url.pathname}${url.search}${url.hash}`
+    window.history.replaceState(window.history.state, '', next)
+  } catch {
+    // ignore
+  }
+}
+
 /**
  * Polls version.json (same path for browser tab + installed PWA).
  * Shows updateAvailable when the remote SHA differs from the build that loaded this page.
+ *
+ * GitHub Pages caches HTML + version.json with max-age≈600s. We deliberately
+ * bypass cache for version.json so deploys are visible quickly — but then a plain
+ * `location.reload()` can keep serving a stale index (old VITE_BUILD_ID) against
+ * a fresh version.json, so the snackbar reappears. Reload navigates with a bust
+ * query so the document is re-fetched.
  */
 export function useAppUpdate() {
   const updateAvailable = ref(false)
@@ -46,16 +70,35 @@ export function useAppUpdate() {
       const remote = await fetchRemoteVersion()
       if (!remote) return
       remoteSha.value = remote.sha
-      if (remote.sha !== buildId) {
-        updateAvailable.value = true
+
+      if (remote.sha === buildId) {
+        updateAvailable.value = false
+        try {
+          sessionStorage.removeItem(PENDING_VERSION_KEY)
+        } catch {
+          // ignore
+        }
+        return
       }
+
+      // Still on an older shell than version.json reports.
+      updateAvailable.value = true
     } finally {
       checking = false
     }
   }
 
   const reloadToUpdate = () => {
-    location.reload()
+    const target = remoteSha.value || String(Date.now())
+    try {
+      sessionStorage.setItem(PENDING_VERSION_KEY, target)
+    } catch {
+      // ignore
+    }
+    // New URL → skip CDN-cached index.html for this navigation.
+    const url = new URL(window.location.href)
+    url.searchParams.set(RELOAD_PARAM, target.slice(0, 12))
+    window.location.replace(url.toString())
   }
 
   const onVisibility = () => {
@@ -65,6 +108,7 @@ export function useAppUpdate() {
   }
 
   onMounted(() => {
+    stripReloadParam()
     void checkForUpdate()
     timer = setInterval(() => {
       void checkForUpdate()

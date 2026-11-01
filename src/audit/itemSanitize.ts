@@ -34,8 +34,8 @@ export function itemSanitize(raw: string, keepEnchant = false): string {
 
 /**
  * Lowercase search key used by Mudlet `catalog.findItem`.
- * Strip `labeled …` (and contents/containing) so backpacks/quivers/sacks
- * match the base catalog name.
+ * Strip `labeled …` and a leading `empty` so open sacks/backpacks/quivers
+ * match the base (often “closed …”) catalog name.
  */
 export function sanitizeItemName(itemName: string): string {
   let name = itemName.toLowerCase()
@@ -43,6 +43,8 @@ export function sanitizeItemName(itemName: string): string {
   name = name.replace(/^(pair of |set of)/i, '')
   // Nick: strip labeled and everything after (do not rewrite to "an empty …").
   name = name.replace(/\s+labeled\b.*$/i, '')
+  // Worn containers show as "empty … sack" / "an empty …"; catalog is often "closed …".
+  name = name.replace(/^(an )?empty\s+/i, '')
   name = name.replace(/ \+\d$/i, '')
   name = name.replace(/ (contains|containing) .*$/i, '')
   return itemSanitize(name)

@@ -38,10 +38,6 @@ export function findCatalogItem<T extends Catalogish>(
   })
   if (ends) return ends
 
-  if (/^an empty /.test(iname)) {
-    return findCatalogItem(iname.replace(/^an empty /, 'a closed '), items)
-  }
-
   // Light plural strip (Mudlet: e?s$)
   const singular = iname.replace(/e?s$/, '')
   if (singular !== iname) {
