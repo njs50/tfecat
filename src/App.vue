@@ -5,7 +5,7 @@
       <v-container fluid class="header-shell px-6 px-sm-8 brand-block">
         <div class="brand-row">
           <v-btn
-            :to="{ name: 'catalog' }"
+            :to="{ name: 'catalog', query: route.query }"
             :active="false"
             aria-label="TFEcat item catalog home"
             class="brand-link text-none px-0"
@@ -89,7 +89,7 @@
         <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
           <nav aria-label="Primary" class="primary-nav">
             <router-link
-              :to="{ name: 'catalog' }"
+              :to="{ name: 'catalog', query: route.query }"
               class="nav-link"
               active-class="nav-link--active"
               aria-current="page"
@@ -106,7 +106,12 @@
     </header>
 
     <v-main>
-      <router-view />
+      <!-- Keep CatalogView mounted so item ↔ search keeps filters/sort/scroll. -->
+      <router-view v-slot="{ Component }">
+        <keep-alive :include="['CatalogView']">
+          <component :is="Component" />
+        </keep-alive>
+      </router-view>
     </v-main>
 
     <div
@@ -132,9 +137,11 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import BrandMark from './components/BrandMark.vue'
 import { useAppUpdate } from './composables/useAppUpdate'
 
+const route = useRoute()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
 
 const isInstallModalVisible = ref(false)

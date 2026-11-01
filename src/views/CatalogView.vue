@@ -255,6 +255,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
+
+/** keep-alive include name in App.vue — preserves filters/sort across item nav. */
+defineOptions({ name: 'CatalogView' })
 import {
   catalogQueryToState,
   catalogStateToQuery,
@@ -839,7 +842,8 @@ onMounted(() => {
     // Seed the address bar from current UI + localStorage preset selection.
     pushFilterQuery()
   }
-  store.fetchCatalog()
+  // Pinia keeps the catalog; only fetch once (keep-alive also skips remount).
+  if (!store.catalog) store.fetchCatalog()
   sortByScoreOrPropertyDesc()
 })
 </script>

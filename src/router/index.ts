@@ -28,7 +28,9 @@ const router = createRouter({
       props: true,
     },
   ],
-  scrollBehavior() {
+  scrollBehavior(_to, _from, savedPosition) {
+    // Browser Back/Forward restores prior scroll; in-app pushes start at top.
+    if (savedPosition) return savedPosition
     return { top: 0 }
   },
 })
