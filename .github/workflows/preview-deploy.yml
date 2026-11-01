@@ -2,15 +2,13 @@
 # preview repo njs50/tcat-preview (branch gh-pages). Last non-main
 # branch push wins — intentional for agent-check previews.
 #
-# After the push, wait for tcat-preview's "pages build and deployment"
-# workflow and surface it on the tfecat pull request: a commit status
-# (tcat-preview/pages-build-deployment) plus a comment with that
-# workflow's status badge.
+# Readiness is not polled here: after the gh-pages push succeeds, callers
+# (agents / Nick) poll https://njs50.github.io/tcat-preview/version.json
+# for the build SHA (same file the SPA uses for update detection).
 #
 # Requires repo secret TCAT_PREVIEW_PAT: fine-grained PAT on
-# njs50/tcat-preview with Contents read/write (push), plus Actions and
-# Pages read so the job can tell when that preview is deployed.
-# Polling tries the PAT first, then the public Actions API.
+# njs50/tcat-preview with Contents read/write (push). Deployments read
+# helps the idle-slot wait avoid Pages “in progress deployment” collisions.
 name: Preview deploy
 
 on:
@@ -22,8 +20,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  statuses: write
 
 concurrency:
   group: preview-deploy
@@ -32,9 +28,8 @@ concurrency:
 jobs:
   deploy-preview:
     runs-on: ubuntu-latest
-    # Soft waits already bound the Pages slot (~10m) and report step (12m);
-    # this caps the whole job so a hung curl/poll cannot burn a runner.
-    timeout-minutes: 30
+    # Slot wait (~10m soft) + build/push; no post-deploy poll.
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -56,6 +51,7 @@ jobs:
       # Project Pages URL is https://njs50.github.io/tcat-preview/
       # so Vite base must be /tcat-preview/ (prod on tfecat stays /tfecat/).
       # VITE_PREVIEW_* bake a bottom-left branch/SHA watermark (absent in prod).
+      # VITE_BUILD_ID is written to version.json for live-SHA checks.
       - name: Build site for tcat-preview
         env:
           VITE_PREVIEW_REF: ${{ github.ref_name }}
@@ -102,7 +98,6 @@ jobs:
           echo 'Timed out waiting for idle Pages deploy slot; pushing anyway' >&2
 
       - name: Deploy dist to njs50/tcat-preview gh-pages
-        id: deploy
         env:
           TCAT_PREVIEW_PAT: ${{ secrets.TCAT_PREVIEW_PAT }}
         run: |
@@ -120,14 +115,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m "Preview ${GITHUB_SHA} from ${GITHUB_REPOSITORY}@${GITHUB_REF_NAME}"
           git push --force "https://x-access-token:${TCAT_PREVIEW_PAT}@github.com/njs50/tcat-preview.git" HEAD:gh-pages
-          echo "preview_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Report Pages build status on the pull request
-        timeout-minutes: 12
-        env:
-          PREVIEW_SHA: ${{ steps.deploy.outputs.preview_sha }}
-          TCAT_PREVIEW_PAT: ${{ secrets.TCAT_PREVIEW_PAT }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MAX_ATTEMPTS: "45"
-          SLEEP_SECONDS: "10"
-        run: bash .github/scripts/report-preview-pages-status.sh
+          echo "Pushed preview build ${GITHUB_SHA}"
+          echo "Poll https://njs50.github.io/tcat-preview/version.json for sha=${GITHUB_SHA}"
