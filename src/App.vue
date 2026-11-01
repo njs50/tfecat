@@ -86,49 +86,23 @@
       </v-container>
     </div>
 
-    <!-- Only this row sticks; brand scrolls away. Search + filters toggle live here. -->
+    <!-- Only this row sticks; brand scrolls away. Search/filters live in CatalogView. -->
     <div ref="navStickyEl" class="nav-sticky">
       <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
-        <div class="nav-row">
-          <nav aria-label="Primary" class="primary-nav">
-            <router-link
-              :to="catalogNavTo"
-              class="nav-link"
-              :class="{ 'nav-link--active': catalogNavActive }"
-              :aria-current="catalogNavActive ? 'page' : undefined"
-            >
-              Item catalog
-            </router-link>
-            <!-- Coming soon — keep for upcoming trainers / item-audit pages
-            <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
-            <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
-            -->
-          </nav>
-          <div class="nav-tools">
-            <v-btn
-              icon
-              variant="tonal"
-              density="comfortable"
-              :color="filtersPageActive ? 'primary' : undefined"
-              :aria-pressed="filtersPageActive"
-              aria-label="Toggle filters"
-              @click="toggleFiltersPage"
-            >
-              <v-icon>mdi-filter-variant</v-icon>
-            </v-btn>
-            <v-text-field
-              v-model="searchText"
-              append-inner-icon="mdi-magnify"
-              label="Search items"
-              single-line
-              hide-details
-              clearable
-              density="compact"
-              variant="outlined"
-              class="nav-search"
-            ></v-text-field>
-          </div>
-        </div>
+        <nav aria-label="Primary" class="primary-nav">
+          <router-link
+            :to="catalogNavTo"
+            class="nav-link"
+            :class="{ 'nav-link--active': catalogNavActive }"
+            :aria-current="catalogNavActive ? 'page' : undefined"
+          >
+            Item catalog
+          </router-link>
+          <!-- Coming soon — keep for upcoming trainers / item-audit pages
+          <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
+          <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
+          -->
+        </nav>
       </v-container>
     </div>
 
@@ -171,12 +145,7 @@ import { useCatalogFilters } from './composables/useCatalogFilters'
 
 const route = useRoute()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
-const {
-  searchText,
-  filtersPageActive,
-  toggleFiltersPage,
-  ensureFilterSync,
-} = useCatalogFilters()
+const { ensureFilterSync } = useCatalogFilters()
 
 /** Listing + item detail share the catalog section in the main nav. */
 const catalogNavActive = computed(
@@ -307,36 +276,12 @@ const copyInstall = () => {
 }
 
 .nav-shell {
-  padding-top: 12px;
-}
-
-.nav-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 24px;
+  padding-top: 20px;
 }
 
 .primary-nav {
   display: flex;
   gap: 32px;
-  flex: 0 0 auto;
-  align-self: flex-end;
-}
-
-.nav-tools {
-  display: flex;
-  flex: 1 1 240px;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  min-width: 0;
-  padding-bottom: 8px;
-}
-
-.nav-search {
-  max-width: 360px;
-  flex: 1 1 220px;
 }
 
 .nav-link {

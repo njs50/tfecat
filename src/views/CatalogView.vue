@@ -1,8 +1,33 @@
 <template>
-  <!-- Document scroll only; sticky chrome lives in App nav. -->
+  <!-- Document scroll only; sticky chrome is App main nav. Search lives above the table. -->
   <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
     <v-card class="catalog-card" elevation="0">
-      <div class="catalog-meta pa-3">
+      <div class="catalog-toolbar pa-3 ga-2">
+        <v-btn
+          icon
+          variant="tonal"
+          density="comfortable"
+          :color="filtersPageActive ? 'primary' : undefined"
+          :aria-pressed="filtersPageActive"
+          aria-label="Toggle filters"
+          @click="toggleFiltersPage"
+        >
+          <v-icon>mdi-filter-variant</v-icon>
+        </v-btn>
+        <v-text-field
+          v-model="searchText"
+          append-inner-icon="mdi-magnify"
+          label="Search items"
+          single-line
+          hide-details
+          clearable
+          density="compact"
+          variant="outlined"
+          class="search-field"
+        ></v-text-field>
+      </div>
+
+      <div class="catalog-meta px-3 pb-3">
         <div class="filter-chips">
           <v-chip
             v-for="chip in activeFilterChips"
@@ -91,11 +116,8 @@
                 <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
                 <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
               </template>
-              <template v-else-if="header.key === 'Wear Loc.'">
-                <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
-              </template>
-              <template v-else-if="header.key === 'Layer'">
-                <span v-if="item.Layer">{{ Array.isArray(item.Layer) ? item.Layer.join(', ') : item.Layer }}</span>
+              <template v-else-if="header.key === 'wearLayer'">
+                <span v-if="item.wearLayer">{{ item.wearLayer }}</span>
               </template>
               <template v-else>
                 {{ item[header.key] }}
@@ -151,11 +173,24 @@ const {
   activeWeightConfigId,
   activeWeightConfig,
   activeCharacterProfile,
+  filtersPageActive,
   ensureFilterSync,
+  toggleFiltersPage,
 } = useCatalogFilters()
 
 /** Softcap stats from the active profile; no profile → defaults (15) in scoring. */
 const activeCharacterStats = computed(() => activeCharacterProfile.value?.stats ?? null)
+
+/** Chip-style wear+layer label: `head.top`, or just one part when alone. */
+const formatWearLayer = (item: any): string => {
+  const list = (value: unknown): string => {
+    if (value == null || value === '') return ''
+    if (Array.isArray(value)) return value.filter(Boolean).join(', ')
+    return String(value)
+  }
+  const parts = [list(item?.['Wear Loc.']), list(item?.Layer)].filter(Boolean)
+  return parts.join('.')
+}
 
 const headers = computed(() => {
   const cols: {
@@ -170,18 +205,17 @@ const headers = computed(() => {
   ]
 
   if (mdAndUp.value) {
-    cols.push(
-      { title: 'Wear Loc.', key: 'Wear Loc.', align: 'start' },
-      { title: 'Layer', key: 'Layer', align: 'start' },
-    )
+    cols.push({ title: 'Wear', key: 'wearLayer', align: 'start' })
   }
 
   const weightedActive = !!activeWeightConfig.value
   if (weightedActive) {
+    // Long "Score (Fighter)" header only on md+; smaller breakpoints stay compact.
     cols.push({
-      title: activeWeightConfig.value?.name
-        ? `Score (${activeWeightConfig.value.name})`
-        : 'Score',
+      title:
+        mdAndUp.value && activeWeightConfig.value?.name
+          ? `Score (${activeWeightConfig.value.name})`
+          : 'Score',
       key: 'weightedScore',
       align: 'end',
     })
@@ -278,6 +312,7 @@ const catalog = computed<any[]>(() => {
         : null,
     weightedScore: weights ? getWeightedScore(item, weights, stats) : null,
     damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
+    wearLayer: formatWearLayer(item) || null,
   }))
 })
 
@@ -360,6 +395,18 @@ onMounted(() => {
   background: rgb(var(--v-theme-surface));
 }
 
+.catalog-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  background: rgb(var(--v-theme-surface));
+}
+
+.search-field {
+  max-width: 360px;
+  flex: 1 1 220px;
+}
+
 /* Chips + count scroll away with the page (not sticky). */
 .catalog-meta {
   display: flex;
@@ -440,5 +487,11 @@ onMounted(() => {
   height: 1px;
   width: 100%;
   pointer-events: none;
+}
+
+@media (max-width: 599px) {
+  .search-field {
+    max-width: none;
+  }
 }
 </style>

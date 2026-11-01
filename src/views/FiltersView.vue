@@ -8,9 +8,6 @@
         <span class="mx-1 text-medium-emphasis">›</span>
         <span>Filters</span>
       </nav>
-      <v-spacer></v-spacer>
-      <v-btn variant="text" @click="goBack">Cancel</v-btn>
-      <v-btn color="primary" variant="elevated" @click="goBack">Done</v-btn>
     </div>
 
     <h1 class="text-h6 mb-3">Filter configuration</h1>
@@ -174,6 +171,12 @@
         ></v-autocomplete>
       </v-col>
     </v-row>
+
+    <div class="d-flex flex-wrap ga-2 mt-4">
+      <v-spacer></v-spacer>
+      <v-btn variant="text" @click="goBack">Cancel</v-btn>
+      <v-btn color="primary" variant="elevated" @click="goBack">Done</v-btn>
+    </div>
   </v-container>
 </template>
 

@@ -58,10 +58,14 @@ export function formatWeightedScore(score: number): string {
 }
 
 /**
- * Item-page weight block, aligned with catalog ident "Affects:":
- *   "       Affects:" / "          Is chaotic."
- * Header column matches Affects (7 spaces); detail lines use the same
- * 10-space indent as affect rows.
+ * Item-page weight block (appended into the same `<pre>` as the ident).
+ * Labels pad so `:` columns line up; values right-align, e.g.:
+ * ```
+ *  Weight Score:
+ *       Hit_points: 280
+ *      Armor Class:   9
+ *   weighted score: 289
+ * ```
  */
 export function formatWeightSummary(
   item: unknown,
@@ -69,11 +73,18 @@ export function formatWeightSummary(
   characterStats?: CharacterStats | null,
 ): string {
   const { lines, total } = getWeightedScoreBreakdown(item, weights, characterStats)
-  const headerIndent = '       ' // matches "       Affects:"
-  const lineIndent = '          ' // matches "          Is chaotic."
-  const body = lines.map(
-    (line) => `${lineIndent}${line.property}: ${formatWeightedScore(line.contribution)}`,
-  )
-  const totalLine = `${lineIndent}weighted score: ${formatWeightedScore(total)}`
-  return [`${headerIndent}Weight Score:`, ...body, totalLine].join('\n')
+  const totalLabel = 'weighted score'
+  const labels = [...lines.map((line) => line.property), totalLabel]
+  // Keep a little left margin on the longest label (matches Nick's screenshot pad).
+  const labelWidth = Math.max(16, ...labels.map((l) => l.length + 2))
+  const values = [
+    ...lines.map((line) => formatWeightedScore(line.contribution)),
+    formatWeightedScore(total),
+  ]
+  const valueWidth = Math.max(1, ...values.map((v) => v.length))
+  const formatLine = (label: string, value: string) =>
+    `${label.padStart(labelWidth)}: ${value.padStart(valueWidth)}`
+  const body = lines.map((line, i) => formatLine(line.property, values[i]))
+  const totalLine = formatLine(totalLabel, values[values.length - 1])
+  return [' Weight Score:', ...body, totalLine].join('\n')
 }

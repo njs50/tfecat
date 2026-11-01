@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
     <div class="d-flex flex-wrap align-center ga-2 mb-3">
-      <nav class="text-body-2" aria-label="Breadcrumb">
+      <nav class="text-body-2 crumb-nav" aria-label="Breadcrumb">
         <router-link :to="{ name: 'catalog', query: route.query }" class="crumb-link">
           Item Search
         </router-link>
@@ -9,22 +9,23 @@
         <span class="text-high-emphasis" style="text-transform: capitalize;">
           {{ item?.name || 'Item' }}
         </span>
+        <v-btn
+          icon
+          variant="text"
+          density="compact"
+          size="small"
+          class="share-crumb-btn"
+          :aria-label="shareCopied ? 'Copied' : 'Share'"
+          @click="onShare"
+        >
+          <v-icon size="small">{{ shareCopied ? 'mdi-check' : 'mdi-share-variant' }}</v-icon>
+        </v-btn>
       </nav>
-      <v-spacer></v-spacer>
-      <v-btn
-        variant="tonal"
-        density="compact"
-        :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
-        @click="onShare"
-      >
-        {{ shareCopied ? 'Copied' : 'Share' }}
-      </v-btn>
     </div>
 
     <template v-if="item">
+      <!-- Ident + weight summary share one pre so they scroll together. -->
       <pre class="item-ident-pre">{{ displayBuffer }}</pre>
-      <!-- Mudlet tcat weighted displayItem block (after ident, before customs). -->
-      <pre v-if="weightSummary" class="item-ident-pre item-weight-summary">{{ weightSummary }}</pre>
       <div v-if="item.custom && Object.keys(item.custom).length > 0" class="mt-4">
         <div v-for="(custom, roomKey) in item.custom" :key="roomKey" class="mb-3">
           <div class="text-subtitle-1 mb-1 text-medium-emphasis">Custom in Room #{{ roomKey }}:</div>
@@ -135,14 +136,21 @@ const formatItemDisplayBuffer = (it: any): string => {
   return `${buffer.replace(/\s*$/, '')}\n\n${requires}\n`
 }
 
-const displayBuffer = computed(() => (item.value ? formatItemDisplayBuffer(item.value) : ''))
-
 /** CLI-style per-property × weight breakdown when a weight config is active. */
 const weightSummary = computed(() => {
   const it = item.value
   const weights = activeWeightConfig.value?.weights
   if (!it || !weights || !Object.keys(weights).length) return ''
   return formatWeightSummary(it, weights, activeCharacterProfile.value?.stats ?? null)
+})
+
+/** Single pre: item ident, then weight block (no separate scroll). */
+const displayBuffer = computed(() => {
+  if (!item.value) return ''
+  const base = formatItemDisplayBuffer(item.value)
+  const summary = weightSummary.value
+  if (!summary) return base
+  return `${base.replace(/\s*$/, '')}\n\n${summary}\n`
 })
 
 const onShare = async () => {
@@ -176,6 +184,14 @@ const onShare = async () => {
 <style scoped>
 .content-shell { max-width: 1280px; }
 
+.crumb-nav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
 .crumb-link {
   color: rgb(var(--v-theme-primary));
   text-decoration: none;
@@ -183,6 +199,16 @@ const onShare = async () => {
 .crumb-link:hover {
   text-decoration: underline;
 }
+
+.share-crumb-btn {
+  margin-left: 4px;
+  color: rgb(var(--v-theme-on-surface));
+  opacity: 0.7;
+}
+.share-crumb-btn:hover {
+  opacity: 1;
+}
+
 .item-ident-pre {
   margin: 0;
   color: inherit;
@@ -190,9 +216,5 @@ const onShare = async () => {
   white-space: pre;
   overflow-x: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
-.item-weight-summary {
-  margin-top: 1rem;
 }
 </style>
