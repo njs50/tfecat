@@ -69,7 +69,8 @@ onMounted(() => {
 const itemProperties = computed(() => store.itemProperties ?? [])
 
 const goBack = () => {
-  router.push({ name: 'catalog', query: route.query })
+  // Editors are opened from the filters page — return there, not catalog.
+  router.push({ name: 'filters', query: route.query })
 }
 
 const onSave = (config: WeightConfig) => {
