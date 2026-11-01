@@ -200,6 +200,7 @@
         :item-key="overlayItemKey"
         @close="closeItemOverlay"
         @content-width="onItemContentWidth"
+        @content-height="onItemContentHeight"
       />
     </v-navigation-drawer>
 
@@ -235,7 +236,7 @@ import { useCatalogFilters } from './composables/useCatalogFilters'
 import { useItemOverlay } from './composables/useItemOverlay'
 
 const route = useRoute()
-const { width, smAndUp, smAndDown } = useDisplay()
+const { width, height, smAndUp, smAndDown } = useDisplay()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
 const { ensureFilterSync } = useCatalogFilters()
 const { overlayOpen, overlayItemKey, closeItemOverlay } = useItemOverlay()
@@ -264,19 +265,38 @@ const auditNavTo = computed(() => {
 /** Bottom sheet on narrow; right panel sized to the ident `<pre>` on desktop. */
 const itemDrawerLocation = computed(() => (smAndDown.value ? 'bottom' : 'right'))
 
-/** Measured monospace block width from ItemDetailPanel (0 until first layout). */
+/** Measured monospace block size from ItemDetailPanel (0 until first layout). */
 const itemContentWidth = ref(0)
+const itemContentHeight = ref(0)
 const onItemContentWidth = (w: number) => {
   itemContentWidth.value = Math.max(0, Math.floor(w))
 }
+const onItemContentHeight = (h: number) => {
+  itemContentHeight.value = Math.max(0, Math.floor(h))
+}
 
+/**
+ * Vuetify uses `width` as the size along the drawer axis:
+ * right → panel width; bottom → panel height.
+ */
 const itemDrawerWidth = computed(() => {
+  if (smAndDown.value) {
+    // Bottom sheet: shrink-wrap to pre height (toolbar + padding), cap ~92vh.
+    const maxH = Math.floor(height.value * 0.92)
+    const chromeY = 56 // toolbar + panel padding
+    const minH = 180
+    const content =
+      itemContentHeight.value > 0
+        ? itemContentHeight.value + chromeY
+        : Math.min(maxH, 420)
+    return Math.min(maxH, Math.max(minH, content))
+  }
+  // Right panel: shrink-wrap to pre width, cap ~92vw.
   const maxW = Math.floor(width.value * 0.92)
-  if (smAndDown.value) return Math.max(280, Math.floor(width.value))
-  // Match pre content: pad for panel chrome, cap at most of the viewport.
   const padX = 32
   const minW = 280
-  const content = itemContentWidth.value > 0 ? itemContentWidth.value + padX : Math.min(560, maxW)
+  const content =
+    itemContentWidth.value > 0 ? itemContentWidth.value + padX : Math.min(560, maxW)
   return Math.min(maxW, Math.max(minW, content))
 })
 
@@ -296,6 +316,7 @@ watch(overlayOpen, (open) => {
   }
   if (!open) {
     itemContentWidth.value = 0
+    itemContentHeight.value = 0
     return
   }
   dismissArmTimer = setTimeout(() => {
@@ -587,10 +608,9 @@ const copyInstall = () => {
 </style>
 
 <style>
-/* Near-fullscreen sheet / panel so item idents aren’t cramped.
-   Desktop width comes from the measured <pre> (see itemDrawerWidth). */
+/* Size comes from `:width` (axis size) via itemDrawerWidth — pre-sized.
+   Cap bottom sheet with max-height so CSS can’t fight a shorter content height. */
 .item-overlay-drawer.v-navigation-drawer--bottom {
-  height: 92dvh !important;
   max-height: 92dvh;
 }
 .item-overlay-drawer.v-navigation-drawer--right {

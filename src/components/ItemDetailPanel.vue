@@ -44,7 +44,11 @@ import { formatWeightSummary } from '../presets/weightedScore'
 import { useCatalogStore } from '../store'
 
 const props = defineProps<{ itemKey: string }>()
-const emit = defineEmits<{ close: []; contentWidth: [number] }>()
+const emit = defineEmits<{
+  close: []
+  contentWidth: [number]
+  contentHeight: [number]
+}>()
 
 const store = useCatalogStore()
 const router = useRouter()
@@ -70,19 +74,35 @@ const measurePreContentWidth = (el: HTMLElement, text: string): number => {
   return el.scrollWidth
 }
 
-const reportContentWidth = async () => {
+/** Intrinsic monospace height from line count (avoids height:100% parent clamp). */
+const measurePreContentHeight = (el: HTMLElement, text: string): number => {
+  const style = getComputedStyle(el)
+  const fontSize = parseFloat(style.fontSize) || 14
+  const lineHeightRaw = style.lineHeight
+  const lineHeight =
+    lineHeightRaw === 'normal' || !lineHeightRaw
+      ? fontSize * 1.25
+      : parseFloat(lineHeightRaw) || fontSize * 1.25
+  const lines = (text || el.textContent || '').split('\n').length
+  return Math.ceil(Math.max(1, lines) * lineHeight)
+}
+
+const reportContentSize = async () => {
   await nextTick()
   const el = preEl.value
   if (!el) {
     emit('contentWidth', 0)
+    emit('contentHeight', 0)
     return
   }
-  emit('contentWidth', measurePreContentWidth(el, displayBuffer.value || el.textContent || ''))
+  const text = displayBuffer.value || el.textContent || ''
+  emit('contentWidth', measurePreContentWidth(el, text))
+  emit('contentHeight', measurePreContentHeight(el, text))
 }
 
 onMounted(() => {
   if (!store.catalog) store.fetchCatalog()
-  void reportContentWidth()
+  void reportContentSize()
 })
 
 watch(
@@ -198,7 +218,7 @@ const displayBuffer = computed(() => {
 })
 
 watch(displayBuffer, () => {
-  void reportContentWidth()
+  void reportContentSize()
 })
 
 const onShare = async () => {
@@ -236,6 +256,7 @@ const onShare = async () => {
   flex-direction: column;
   min-height: 0;
   padding: 8px 12px 16px;
+  box-sizing: border-box;
 }
 
 .item-panel__toolbar {
