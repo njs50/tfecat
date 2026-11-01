@@ -97,7 +97,7 @@
 
           <template #item="{ item, index }">
             <tr
-              @click.stop="rowClicked(item)"
+              @click="rowClicked(item, $event)"
               :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
             >
               <td
@@ -382,10 +382,9 @@ const catalogScrollIntersect = computed(() => ({
   },
 }))
 
-const rowClicked = (item: any) => {
+const rowClicked = (item: any, event?: Event) => {
   const itemKey = String(item.catalogKey ?? item.name)
-  // Defer so the row click doesn’t hit the temporary drawer scrim and dismiss it.
-  openItemOverlay(itemKey)
+  openItemOverlay(itemKey, event)
 }
 
 onMounted(() => {

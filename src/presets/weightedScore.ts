@@ -1,4 +1,8 @@
-import { getItemPropertyAmount } from '../itemProperties'
+import {
+  getItemPropertyAmount,
+  getItemPropertyAmountParts,
+  type ItemPropertyAmountPart,
+} from '../itemProperties'
 import type { CharacterStats } from './types'
 
 export type WeightedScoreLine = {
@@ -6,6 +10,8 @@ export type WeightedScoreLine = {
   amount: number
   weight: number
   contribution: number
+  /** Synthetic/composite amount parts (empty for plain properties). */
+  parts: ItemPropertyAmountPart[]
 }
 
 /**
@@ -42,9 +48,22 @@ export function getWeightedScoreBreakdown(
       continue
     }
     const contribution = amount * weight
-    lines.push({ property, amount, weight, contribution })
+    const merged = new Map<string, number>()
+    for (const part of getItemPropertyAmountParts(item, property, characterStats)) {
+      if (!part.amount) continue
+      merged.set(part.label, (merged.get(part.label) ?? 0) + part.amount)
+    }
+    const parts = [...merged.entries()]
+      .map(([label, partAmount]) => ({ label, amount: partAmount }))
+      // Nested composite sources: highest amount first.
+      .sort((a, b) => b.amount - a.amount || a.label.localeCompare(b.label))
+    lines.push({ property, amount, weight, contribution, parts })
     total += contribution
   }
+  // Weight Score lines: highest contribution first.
+  lines.sort(
+    (a, b) => b.contribution - a.contribution || a.property.localeCompare(b.property),
+  )
   return { lines, total }
 }
 
@@ -57,14 +76,23 @@ export function formatWeightedScore(score: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/\.?0+$/, '')
 }
 
+/** `14 fire + 7 wisdom` / `15 deflection + 5 global armor` (parts pre-sorted). */
+function formatAmountParts(parts: ItemPropertyAmountPart[]): string {
+  return parts
+    .map((part) => `${formatWeightedScore(part.amount)} ${part.label}`)
+    .join(' + ')
+}
+
 /**
  * Item-page weight block (appended into the same `<pre>` as the ident).
- * Labels pad so `:` columns line up; values right-align, e.g.:
+ * Lines are sorted by contribution (desc). Synthetic props append an amount
+ * breakdown, e.g.:
  * ```
  *  Weight Score:
- *       Hit_points: 280
- *      Armor Class:   9
- *   weighted score: 289
+ *      Hit_points: 280
+ *          resist: 147 (14 fire + 7 wisdom)
+ *      deflection: 200 (15 deflection + 5 global armor)
+ *   weighted score: 627
  * ```
  */
 export function formatWeightSummary(
@@ -82,9 +110,13 @@ export function formatWeightSummary(
     formatWeightedScore(total),
   ]
   const valueWidth = Math.max(1, ...values.map((v) => v.length))
-  const formatLine = (label: string, value: string) =>
-    `${label.padStart(labelWidth)}: ${value.padStart(valueWidth)}`
-  const body = lines.map((line, i) => formatLine(line.property, values[i]))
+  const formatLine = (label: string, value: string, suffix = '') =>
+    `${label.padStart(labelWidth)}: ${value.padStart(valueWidth)}${suffix}`
+  const body = lines.map((line, i) => {
+    const suffix =
+      line.parts.length > 1 ? ` (${formatAmountParts(line.parts)})` : ''
+    return formatLine(line.property, values[i], suffix)
+  })
   const totalLine = formatLine(totalLabel, values[values.length - 1])
   return [' Weight Score:', ...body, totalLine].join('\n')
 }

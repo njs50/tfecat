@@ -179,11 +179,13 @@
 
     <!--
       Item detail: temporary right drawer (bottom sheet on narrow).
-      Parent route stays catalog/audit so nav + scroll/filters survive dismiss.
+      Driven by `?item=`. `persistent` blocks click-through scrim dismiss on open;
+      we close ourselves once dismiss is armed (scrim / swipe / Esc / X).
     -->
     <v-navigation-drawer
-      v-model="drawerModel"
+      :model-value="overlayOpen"
       temporary
+      persistent
       :location="itemDrawerLocation"
       :width="itemDrawerWidth"
       :mobile="false"
@@ -196,7 +198,8 @@
       <ItemDetailPanel
         v-if="overlayItemKey"
         :item-key="overlayItemKey"
-        @close="requestCloseItemOverlay"
+        @close="closeItemOverlay"
+        @content-width="onItemContentWidth"
       />
     </v-navigation-drawer>
 
@@ -222,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import BrandMark from './components/BrandMark.vue'
@@ -258,50 +261,71 @@ const auditNavTo = computed(() => {
   return { name: 'audit' as const, query }
 })
 
-/** Most of the viewport so long idents fit; bottom sheet on narrow. */
+/** Bottom sheet on narrow; right panel sized to the ident `<pre>` on desktop. */
 const itemDrawerLocation = computed(() => (smAndDown.value ? 'bottom' : 'right'))
-const itemDrawerWidth = computed(() =>
-  smAndDown.value ? '100%' : Math.max(480, Math.floor(width.value * 0.92)),
-)
 
-/**
- * Local drawer model synced from `?item=`. Temporary drawers often receive the
- * opening click as an outside-click and emit false immediately — guard that.
- */
-const drawerModel = ref(false)
-let drawerOpenedAt = 0
-const DRAWER_OPEN_GUARD_MS = 400
-
-watch(
-  overlayOpen,
-  async (open) => {
-    if (open) {
-      drawerOpenedAt = Date.now()
-      await nextTick()
-      drawerModel.value = true
-    } else {
-      drawerModel.value = false
-    }
-  },
-  { immediate: true },
-)
-
-const onItemDrawerModel = (open: boolean) => {
-  if (open) {
-    drawerModel.value = true
-    return
-  }
-  if (overlayOpen.value && Date.now() - drawerOpenedAt < DRAWER_OPEN_GUARD_MS) {
-    // Swallow click-through dismiss from the gesture that opened the drawer.
-    drawerModel.value = true
-    return
-  }
-  drawerModel.value = false
-  if (overlayOpen.value) closeItemOverlay()
+/** Measured monospace block width from ItemDetailPanel (0 until first layout). */
+const itemContentWidth = ref(0)
+const onItemContentWidth = (w: number) => {
+  itemContentWidth.value = Math.max(0, Math.floor(w))
 }
 
-const requestCloseItemOverlay = () => {
-  drawerModel.value = false
+const itemDrawerWidth = computed(() => {
+  const maxW = Math.floor(width.value * 0.92)
+  if (smAndDown.value) return Math.max(280, Math.floor(width.value))
+  // Match pre content: pad for panel chrome, cap at most of the viewport.
+  const padX = 32
+  const minW = 280
+  const content = itemContentWidth.value > 0 ? itemContentWidth.value + padX : Math.min(560, maxW)
+  return Math.min(maxW, Math.max(minW, content))
+})
+
+/**
+ * Scrim/swipe dismiss is deferred so the gesture that opened the drawer
+ * cannot immediately clear `?item=` (Vuetify temporary click-through).
+ */
+let dismissArmed = false
+let dismissArmTimer: ReturnType<typeof setTimeout> | null = null
+const DISMISS_ARM_MS = 350
+
+watch(overlayOpen, (open) => {
+  dismissArmed = false
+  if (dismissArmTimer) {
+    clearTimeout(dismissArmTimer)
+    dismissArmTimer = null
+  }
+  if (!open) {
+    itemContentWidth.value = 0
+    return
+  }
+  dismissArmTimer = setTimeout(() => {
+    dismissArmed = true
+    dismissArmTimer = null
+  }, DISMISS_ARM_MS)
+})
+
+const onItemDrawerModel = (open: boolean) => {
+  if (open) return
+  // `persistent` blocks scrim; swipe/Esc can still emit false — ignore until armed.
+  if (!dismissArmed) return
+  closeItemOverlay()
+}
+
+const onItemOverlayScrimClick = (event: Event) => {
+  const target = event.target as HTMLElement | null
+  if (!target?.classList?.contains('v-navigation-drawer__scrim')) return
+  if (!overlayOpen.value) return
+  if (!dismissArmed) {
+    event.preventDefault()
+    event.stopPropagation()
+    return
+  }
+  closeItemOverlay()
+}
+
+const onItemOverlayKeydown = (event: KeyboardEvent) => {
+  if (event.key !== 'Escape') return
+  if (!overlayOpen.value || !dismissArmed) return
   closeItemOverlay()
 }
 
@@ -329,6 +353,8 @@ onMounted(() => {
     chromeResizeObserver.observe(chromeEl.value)
   }
   ensureFilterSync()
+  document.addEventListener('click', onItemOverlayScrimClick, true)
+  window.addEventListener('keydown', onItemOverlayKeydown)
 })
 
 // Breakpoint swaps change chrome height without a resize of the same node tree.
@@ -340,6 +366,12 @@ watch([fullChrome, smAndUp], async () => {
 onBeforeUnmount(() => {
   chromeResizeObserver?.disconnect()
   chromeResizeObserver = null
+  document.removeEventListener('click', onItemOverlayScrimClick, true)
+  window.removeEventListener('keydown', onItemOverlayKeydown)
+  if (dismissArmTimer) {
+    clearTimeout(dismissArmTimer)
+    dismissArmTimer = null
+  }
 })
 
 /** Branch + short SHA; only when preview-deploy sets VITE_PREVIEW_*. */
@@ -555,7 +587,8 @@ const copyInstall = () => {
 </style>
 
 <style>
-/* Near-fullscreen sheet / panel so item idents aren’t cramped. */
+/* Near-fullscreen sheet / panel so item idents aren’t cramped.
+   Desktop width comes from the measured <pre> (see itemDrawerWidth). */
 .item-overlay-drawer.v-navigation-drawer--bottom {
   height: 92dvh !important;
   max-height: 92dvh;

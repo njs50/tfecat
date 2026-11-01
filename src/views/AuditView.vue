@@ -238,9 +238,9 @@
 
         <div v-if="slot.equipped?.catalogItem" class="equipped-row mb-2">
           <a
-            href="#"
+            :href="itemOverlayHref(String(slot.equipped.catalogItem.catalogKey))"
             class="item-link"
-            @click.prevent.stop="openItemOverlay(String(slot.equipped.catalogItem.catalogKey))"
+            @click="openItemOverlay(String(slot.equipped.catalogItem.catalogKey), $event)"
           >
             {{ slot.equipped.catalogItem.name }}
           </a>
@@ -251,9 +251,9 @@
         <ul v-if="slot.upgrades.length" class="upgrade-list">
           <li v-for="up in slot.upgrades" :key="String(up.item.catalogKey)">
             <a
-              href="#"
+              :href="itemOverlayHref(String(up.item.catalogKey))"
               class="item-link"
-              @click.prevent.stop="openItemOverlay(String(up.item.catalogKey))"
+              @click="openItemOverlay(String(up.item.catalogKey), $event)"
             >
               {{ up.item.name }}
             </a>
@@ -286,7 +286,7 @@ defineOptions({ name: 'AuditView' })
 const router = useRouter()
 const route = useRoute()
 const store = useCatalogStore()
-const { openItemOverlay } = useItemOverlay()
+const { openItemOverlay, itemOverlayHref } = useItemOverlay()
 const {
   characterProfiles,
   weightConfigs,

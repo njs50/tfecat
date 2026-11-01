@@ -26,7 +26,7 @@
     </div>
 
     <template v-if="item">
-      <pre class="item-ident-pre">{{ displayBuffer }}</pre>
+      <pre ref="preEl" class="item-ident-pre">{{ displayBuffer }}</pre>
     </template>
     <v-alert v-else-if="catalogLoaded" type="warning" variant="tonal" class="mt-2">
       Item not found.
@@ -35,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { catalogQueryToState } from '../composables/useCatalogQuery'
 import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
@@ -44,7 +44,7 @@ import { formatWeightSummary } from '../presets/weightedScore'
 import { useCatalogStore } from '../store'
 
 const props = defineProps<{ itemKey: string }>()
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits<{ close: []; contentWidth: [number] }>()
 
 const store = useCatalogStore()
 const router = useRouter()
@@ -52,8 +52,37 @@ const route = useRoute()
 const { activeCharacterProfile, activeWeightConfig } = usePresets()
 const { shareCopied, flashCopied } = useShareFeedback()
 
+const preEl = ref<HTMLElement | null>(null)
+
+/** Intrinsic monospace width (avoids parent-constrained scrollWidth feedback). */
+const measurePreContentWidth = (el: HTMLElement, text: string): number => {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    const style = getComputedStyle(el)
+    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`.trim()
+    let max = 0
+    for (const line of text.split('\n')) {
+      max = Math.max(max, ctx.measureText(line).width)
+    }
+    if (max > 0) return Math.ceil(max)
+  }
+  return el.scrollWidth
+}
+
+const reportContentWidth = async () => {
+  await nextTick()
+  const el = preEl.value
+  if (!el) {
+    emit('contentWidth', 0)
+    return
+  }
+  emit('contentWidth', measurePreContentWidth(el, displayBuffer.value || el.textContent || ''))
+}
+
 onMounted(() => {
   if (!store.catalog) store.fetchCatalog()
+  void reportContentWidth()
 })
 
 watch(
@@ -168,6 +197,10 @@ const displayBuffer = computed(() => {
   return `${parts.join('\n\n')}\n`
 })
 
+watch(displayBuffer, () => {
+  void reportContentWidth()
+})
+
 const onShare = async () => {
   const parsed = catalogQueryToState(route.query)
   const ok = await copyShareLink({
@@ -219,6 +252,9 @@ const onShare = async () => {
   margin: 0;
   color: inherit;
   font-size: 0.875rem;
+  /* Keep intrinsic monospace width so the drawer can shrink-wrap to content. */
+  width: max-content;
+  max-width: 100%;
   white-space: pre;
   overflow: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
