@@ -384,10 +384,10 @@ const catalogScrollIntersect = computed(() => ({
 }))
 
 const rowClicked = (item: any) => {
+  const itemKey = String(item.catalogKey ?? item.name)
   router.push({
-    name: 'item',
-    params: { itemKey: item.catalogKey ?? item.name },
-    query: route.query,
+    name: 'catalog',
+    query: { ...route.query, item: itemKey },
   })
 }
 

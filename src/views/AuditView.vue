@@ -239,10 +239,7 @@
         <div v-if="slot.equipped?.catalogItem" class="equipped-row mb-2">
           <router-link
             class="item-link"
-            :to="{
-              name: 'item',
-              params: { itemKey: String(slot.equipped.catalogItem.catalogKey) },
-            }"
+            :to="itemLink(String(slot.equipped.catalogItem.catalogKey))"
           >
             {{ slot.equipped.catalogItem.name }}
           </router-link>
@@ -254,10 +251,7 @@
           <li v-for="up in slot.upgrades" :key="String(up.item.catalogKey)">
             <router-link
               class="item-link"
-              :to="{
-                name: 'item',
-                params: { itemKey: String(up.item.catalogKey) },
-              }"
+              :to="itemLink(String(up.item.catalogKey))"
             >
               {{ up.item.name }}
             </router-link>
@@ -275,16 +269,23 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { parseEquipmentPaste } from '../audit/parseEquipment'
 import { runEquipmentAudit, type AuditReport } from '../audit/runAudit'
+import { itemOverlayLocation } from '../composables/useItemOverlay'
 import { LEVEL_MAX } from '../presets/constants'
 import { formatWeightedScore } from '../presets/weightedScore'
 import { usePresets } from '../presets/usePresets'
 import { useCatalogStore } from '../store'
 
+/** keep-alive include name in App.vue — preserves paste/report across item overlay. */
+defineOptions({ name: 'AuditView' })
+
 const router = useRouter()
+const route = useRoute()
 const store = useCatalogStore()
+
+const itemLink = (itemKey: string) => itemOverlayLocation(itemKey, route)
 const {
   characterProfiles,
   weightConfigs,

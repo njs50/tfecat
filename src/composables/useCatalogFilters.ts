@@ -111,6 +111,10 @@ export function useCatalogFilters() {
       activeProfile: activeCharacterProfile.value,
       activeWeights: activeWeightConfig.value,
     })
+    // Preserve item overlay query so filter sync doesn't dismiss the drawer.
+    if (typeof route.query.item === 'string' && route.query.item) {
+      query.item = route.query.item
+    }
     if (sameCatalogQuery(query, route.query)) return
     const name = FILTER_ROUTE_NAMES.has(String(route.name))
       ? (route.name as 'catalog' | 'filters' | 'audit')
@@ -384,6 +388,9 @@ export function useCatalogFilters() {
         () => {
           if (!FILTER_ROUTE_NAMES.has(String(route.name))) return
           const query = catalogStateToQuery(currentFilterState())
+          if (typeof route.query.item === 'string' && route.query.item) {
+            query.item = route.query.item
+          }
           if (sameCatalogQuery(query, route.query)) return
           applyQueryToState()
         },

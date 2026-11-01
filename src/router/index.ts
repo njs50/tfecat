@@ -10,10 +10,16 @@ const router = createRouter({
       component: CatalogView,
     },
     {
+      // Legacy shareable item URLs → catalog + overlay query (keeps filters shareable).
       path: '/item/:itemKey',
       name: 'item',
-      component: () => import('../views/ItemView.vue'),
-      props: true,
+      redirect: (to) => ({
+        name: 'catalog',
+        query: {
+          ...to.query,
+          item: String(to.params.itemKey ?? ''),
+        },
+      }),
     },
     {
       path: '/weights/:id?',

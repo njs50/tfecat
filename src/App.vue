@@ -169,13 +169,34 @@
     </v-dialog>
 
     <v-main class="app-main">
-      <!-- Keep CatalogView mounted so item ↔ search keeps filters/sort/scroll. -->
+      <!-- Keep catalog + audit mounted under the item overlay (query ?item=). -->
       <router-view v-slot="{ Component }">
-        <keep-alive :include="['CatalogView']">
+        <keep-alive :include="['CatalogView', 'AuditView']">
           <component :is="Component" />
         </keep-alive>
       </router-view>
     </v-main>
+
+    <!--
+      Item detail: temporary right drawer (bottom sheet on narrow).
+      Parent route stays catalog/audit so nav + scroll/filters survive dismiss.
+    -->
+    <v-navigation-drawer
+      :model-value="overlayOpen"
+      temporary
+      :location="itemDrawerLocation"
+      :width="itemDrawerWidth"
+      :mobile="null"
+      disable-route-watcher
+      class="item-overlay-drawer"
+      @update:model-value="onItemDrawerModel"
+    >
+      <ItemDetailPanel
+        v-if="overlayItemKey"
+        :item-key="overlayItemKey"
+        @close="closeItemOverlay"
+      />
+    </v-navigation-drawer>
 
     <div
       v-if="previewWatermark"
@@ -203,34 +224,44 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import BrandMark from './components/BrandMark.vue'
+import ItemDetailPanel from './components/ItemDetailPanel.vue'
 import { useAppUpdate } from './composables/useAppUpdate'
 import { useCatalogFilters } from './composables/useCatalogFilters'
+import { useItemOverlay } from './composables/useItemOverlay'
 
 const route = useRoute()
-const { width, smAndUp } = useDisplay()
+const { width, smAndUp, smAndDown } = useDisplay()
 const { updateAvailable, reloadToUpdate } = useAppUpdate()
 const { ensureFilterSync } = useCatalogFilters()
+const { overlayOpen, overlayItemKey, closeItemOverlay } = useItemOverlay()
 
 /** Full two-row chrome only on wide viewports — md (960) still catches landscape phones. */
 const FULL_CHROME_MIN_WIDTH = 1000
 const fullChrome = computed(() => width.value >= FULL_CHROME_MIN_WIDTH)
 
-/** Listing + item detail share the catalog section in the main nav. */
-const catalogNavActive = computed(
-  () => route.name === 'catalog' || route.name === 'item',
-)
+/** Catalog stays active on `/` even while the item overlay query is open. */
+const catalogNavActive = computed(() => route.name === 'catalog')
 
 /** Always target the search listing (keeps query → filters/sort via keep-alive). */
-const catalogNavTo = computed(() => ({
-  name: 'catalog' as const,
-  query: route.query,
-}))
+const catalogNavTo = computed(() => {
+  const query = { ...route.query }
+  delete query.item
+  return { name: 'catalog' as const, query }
+})
 
 const auditNavActive = computed(() => route.name === 'audit')
-const auditNavTo = computed(() => ({
-  name: 'audit' as const,
-  query: route.query,
-}))
+const auditNavTo = computed(() => {
+  const query = { ...route.query }
+  delete query.item
+  return { name: 'audit' as const, query }
+})
+
+const itemDrawerLocation = computed(() => (smAndDown.value ? 'bottom' : 'right'))
+const itemDrawerWidth = computed(() => (smAndDown.value ? '100%' : Math.min(560, width.value)))
+
+const onItemDrawerModel = (open: boolean) => {
+  if (!open) closeItemOverlay()
+}
 
 const isInstallModalVisible = ref(false)
 const installCode = ref(
@@ -473,6 +504,19 @@ const copyInstall = () => {
   font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: rgba(255, 255, 255, 0.4);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+.item-overlay-drawer {
+  /* Sit above main content; temporary drawers already use a scrim. */
+  z-index: 2400;
+}
+</style>
+
+<style>
+/* Bottom sheet height for narrow viewports (temporary drawer location=bottom). */
+.item-overlay-drawer.v-navigation-drawer--bottom {
+  height: min(92dvh, 920px) !important;
+  max-height: 92dvh;
 }
 </style>
 
