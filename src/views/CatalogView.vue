@@ -538,8 +538,16 @@ onMounted(() => {
 }
 
 @media (max-width: 599px) {
+  /* Stack: chips/filter row, then search spanning the full toolbar width. */
+  .catalog-toolbar-left {
+    flex: 1 1 100%;
+  }
+
   .search-field {
+    flex: 1 1 100%;
+    width: 100%;
     max-width: none;
+    margin-left: 0;
   }
 }
 </style>
