@@ -24,16 +24,8 @@
     </div>
 
     <template v-if="item">
-      <!-- Ident + weight summary share one pre so they scroll together. -->
+      <!-- Ident, weight summary, and customs share one pre so they scroll together. -->
       <pre class="item-ident-pre">{{ displayBuffer }}</pre>
-      <div v-if="item.custom && Object.keys(item.custom).length > 0" class="mt-4">
-        <div v-for="(custom, roomKey) in item.custom" :key="roomKey" class="mb-3">
-          <div class="text-subtitle-1 mb-1 text-medium-emphasis">Custom in Room #{{ roomKey }}:</div>
-          <pre class="item-ident-pre">Item                        Price  Weight  Lvl  Ingredients
-----                        -----  ------  ---  -----------
-{{ custom.raw }}</pre>
-        </div>
-      </div>
     </template>
 
     <v-alert v-else-if="catalogLoaded" type="warning" variant="tonal" class="mt-2">
