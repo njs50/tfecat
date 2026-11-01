@@ -2,7 +2,7 @@
   <v-app id="tfecat">
     <v-app-bar :height="124" app class="app-bar">
       <v-container fluid class="header-shell px-6 px-sm-8">
-        <v-toolbar color="transparent" density="compact" class="brand-toolbar">
+        <div class="brand-row">
           <v-btn :href="catalogHref" aria-label="TFEcat item catalog home" class="brand-link text-none px-0" variant="text" :ripple="false">
             <BrandMark class="brand-mark mr-3" />
             <span class="brand-wordmark" aria-hidden="true"><span class="brand-wordmark__tfe">TFE</span><span class="brand-wordmark__cat">cat</span></span>
@@ -27,7 +27,7 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
-        </v-toolbar>
+        </div>
         <nav aria-label="Primary" class="primary-nav">
           <a :href="catalogHref" aria-current="page" class="nav-link nav-link--active">Item catalog</a>
           <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
@@ -610,10 +610,13 @@ onMounted(() => {
 
 .header-shell {
   height: 100%;
+  padding-top: 20px;
 }
 
-.brand-toolbar {
-  height: 80px;
+.brand-row {
+  display: flex;
+  align-items: center;
+  height: 56px;
 }
 
 .brand-link {
@@ -655,9 +658,8 @@ onMounted(() => {
 
 .primary-nav {
   display: flex;
-  align-items: flex-end;
-  height: 44px;
   gap: 32px;
+  margin-top: 20px;
 }
 
 .nav-link {
