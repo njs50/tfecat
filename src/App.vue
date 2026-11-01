@@ -1,7 +1,8 @@
 <template>
   <v-app id="tfecat">
-    <v-app-bar :height="124" app class="app-bar">
-      <v-container fluid class="header-shell px-6 px-sm-8">
+    <!-- Brand scrolls away; primary nav sticks. -->
+    <header class="site-header">
+      <v-container fluid class="header-shell px-6 px-sm-8 brand-block">
         <div class="brand-row">
           <v-btn
             :to="{ name: 'catalog' }"
@@ -82,22 +83,27 @@
             </v-card>
           </v-dialog>
         </div>
-        <nav aria-label="Primary" class="primary-nav">
-          <router-link
-            :to="{ name: 'catalog' }"
-            class="nav-link"
-            active-class="nav-link--active"
-            aria-current="page"
-          >
-            Item catalog
-          </router-link>
-          <!-- Coming soon — keep for upcoming trainers / item-audit pages
-          <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
-          <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
-          -->
-        </nav>
       </v-container>
-    </v-app-bar>
+
+      <div class="nav-sticky">
+        <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
+          <nav aria-label="Primary" class="primary-nav">
+            <router-link
+              :to="{ name: 'catalog' }"
+              class="nav-link"
+              active-class="nav-link--active"
+              aria-current="page"
+            >
+              Item catalog
+            </router-link>
+            <!-- Coming soon — keep for upcoming trainers / item-audit pages
+            <a :href="`${catalogHref}trainers`" class="nav-link">Trainers</a>
+            <a :href="`${catalogHref}item-audit`" class="nav-link">Item audit</a>
+            -->
+          </nav>
+        </v-container>
+      </div>
+    </header>
 
     <v-main>
       <router-view />
@@ -155,14 +161,15 @@ const copyInstall = () => {
 </script>
 
 <style scoped>
-.app-bar {
-  border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
-  background: rgb(var(--v-theme-surface)) !important;
+.site-header {
+  background: rgb(var(--v-theme-surface));
 }
 
 .header-shell {
   max-width: 1280px;
-  height: 100%;
+}
+
+.brand-block {
   padding-top: 20px;
 }
 
@@ -218,10 +225,21 @@ const copyInstall = () => {
   text-transform: uppercase;
 }
 
+.nav-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
+}
+
+.nav-shell {
+  padding-top: 20px;
+}
+
 .primary-nav {
   display: flex;
   gap: 32px;
-  margin-top: 20px;
 }
 
 .nav-link {

@@ -1,9 +1,42 @@
 <template>
-  <v-container fluid class="content-shell px-6 px-sm-8 py-10">
-        <v-expansion-panels class="filter-panel">
-          <v-expansion-panel>
-            <v-expansion-panel-title>Filter Items</v-expansion-panel-title>
-            <v-expansion-panel-text class="pa-1">
+  <!-- pt-4 matches former filter→table gap (mt-4); brand scrolls, sticky nav stays. -->
+  <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
+        <v-card class="catalog-card" elevation="0">
+          <v-card-title class="catalog-toolbar pa-3 ga-2">
+            <v-btn
+              variant="tonal"
+              density="compact"
+              :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
+              @click="onShare"
+            >
+              {{ shareCopied ? 'Copied' : 'Share' }}
+            </v-btn>
+            <v-spacer></v-spacer>
+            <v-btn
+              icon
+              variant="tonal"
+              density="comfortable"
+              :color="filtersOpen ? 'primary' : undefined"
+              :aria-pressed="filtersOpen"
+              aria-label="Toggle filters"
+              @click="filtersOpen = !filtersOpen"
+            >
+              <v-icon>mdi-filter-variant</v-icon>
+            </v-btn>
+            <v-text-field
+              v-model="searchText"
+              append-inner-icon="mdi-magnify"
+              label="Search items"
+              single-line
+              hide-details
+              clearable
+              density="compact"
+              variant="outlined"
+              class="search-field"
+            ></v-text-field>
+          </v-card-title>
+
+          <div v-show="filtersOpen" class="filter-panel pa-2">
               <v-row class="align-center mb-0">
                 <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
                   <v-select
@@ -162,33 +195,8 @@
                   ></v-autocomplete>
                 </v-col>
               </v-row>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+          </div>
 
-        <v-card class="catalog-card mt-4" elevation="0">
-          <v-card-title class="catalog-toolbar pa-3 ga-2">
-            <v-btn
-              variant="tonal"
-              density="compact"
-              :prepend-icon="shareCopied ? 'mdi-check' : 'mdi-share-variant'"
-              @click="onShare"
-            >
-              {{ shareCopied ? 'Copied' : 'Share' }}
-            </v-btn>
-            <v-spacer></v-spacer>
-            <v-text-field
-              v-model="searchText"
-              append-inner-icon="mdi-magnify"
-              label="Search items"
-              single-line
-              hide-details
-              clearable
-              density="compact"
-              variant="outlined"
-              class="search-field"
-            ></v-text-field>
-          </v-card-title>
           <v-divider></v-divider>
           <v-data-table
             :headers="headers"
@@ -262,6 +270,9 @@ const route = useRoute()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 const { shareCopied, flashCopied } = useShareFeedback()
+
+/** Filters start collapsed; toolbar filter icon toggles. */
+const filtersOpen = ref(false)
 
 const {
   activeWeightConfigId,
@@ -671,15 +682,9 @@ onMounted(() => {
   max-width: 1280px;
 }
 
-.filter-panel :deep(.v-expansion-panel) {
-  border: 1px solid rgb(var(--v-theme-surface-variant));
+.filter-panel {
+  border-top: 1px solid rgb(var(--v-theme-surface-variant));
   background: rgb(var(--v-theme-surface));
-  box-shadow: none;
-}
-
-.filter-panel :deep(.v-expansion-panel-title) {
-  min-height: 52px;
-  font-weight: 500;
 }
 
 .catalog-card {
