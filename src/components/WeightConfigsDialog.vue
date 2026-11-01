@@ -237,19 +237,37 @@ watch(
   { deep: true },
 )
 
-watch(editingId, (id) => {
-  if (!id || isNew.value) return
-  const config = props.configs.find((c) => c.id === id)
-  if (config) {
-    isNew.value = false
-    loadDraft(config)
-  }
-})
+/** True when a New draft has any property assigned (would be lost on switch). */
+const newDraftHasPropertyChanges = () =>
+  draftRows.value.some((row) => !!row.property)
 
-/** Placeholder name — clear on focus so the user can type without deleting first. */
+/** Pick an existing config from the selector; confirm if leaving a dirty New draft. */
+const onSelectConfig = (id: string | null) => {
+  if (!id) {
+    editingId.value = null
+    return
+  }
+  if (isNew.value && newDraftHasPropertyChanges()) {
+    const ok = window.confirm(
+      'Switching configurations will discard unsaved changes on this new weight set. Continue?',
+    )
+    if (!ok) {
+      // Keep editingId null so the New draft stays selected / editable.
+      return
+    }
+  }
+  const config = props.configs.find((c) => c.id === id)
+  if (!config) return
+  isNew.value = false
+  editingId.value = id
+  loadDraft(config)
+}
+
+/** Placeholder names — clear on focus so the user can type without deleting first. */
 const clearUnsavedNameOnFocus = () => {
-  if (draft.value?.name === UNSAVED_PRESET_LABEL) {
-    draft.value.name = ''
+  const name = draft.value?.name
+  if (name === UNSAVED_PRESET_LABEL || name === 'New weights') {
+    draft.value!.name = ''
   }
 }
 
