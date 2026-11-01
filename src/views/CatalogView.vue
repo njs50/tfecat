@@ -1,253 +1,279 @@
 <template>
-  <!-- pt-4 matches former filter→table gap (mt-4); brand scrolls, sticky nav stays. -->
-  <v-container fluid class="content-shell px-6 px-sm-8 pt-4 pb-10">
-        <v-card class="catalog-card" elevation="0">
-          <v-card-title class="catalog-toolbar pa-3 ga-2">
-            <div class="filter-chips">
-              <v-chip
-                v-for="chip in activeFilterChips"
-                :key="chip.id"
-                size="small"
-                variant="tonal"
-                closable
-                @click:close="chip.clear()"
-              >
-                {{ chip.label }}
-              </v-chip>
-            </div>
-            <v-spacer></v-spacer>
-            <v-btn
-              icon
-              variant="tonal"
-              density="comfortable"
-              :color="filtersOpen ? 'primary' : undefined"
-              :aria-pressed="filtersOpen"
-              aria-label="Toggle filters"
-              @click="filtersOpen = !filtersOpen"
-            >
-              <v-icon>mdi-filter-variant</v-icon>
-            </v-btn>
-            <v-text-field
-              v-model="searchText"
-              append-inner-icon="mdi-magnify"
-              label="Search items"
-              single-line
-              hide-details
-              clearable
-              density="compact"
-              variant="outlined"
-              class="search-field"
-            ></v-text-field>
-          </v-card-title>
-
-          <div v-show="filtersOpen" class="filter-panel pa-2">
-              <v-row class="align-center mb-0">
-                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
-                  <v-select
-                    v-model="activeCharacterProfileId"
-                    :items="characterProfileSelectItems"
-                    label="Character profile"
-                    density="compact"
-                    clearable
-                    hide-details
-                    class="flex-grow-1"
-                    @update:model-value="applyCharacterProfile"
-                  ></v-select>
-                  <v-btn
-                    icon
-                    variant="tonal"
-                    density="compact"
-                    aria-label="Edit character profiles"
-                    @click="openCharactersManager"
-                  >
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
-                  <v-select
-                    v-model="activeWeightConfigId"
-                    :items="weightConfigSelectItems"
-                    label="Weighted search"
-                    density="compact"
-                    clearable
-                    hide-details
-                    class="flex-grow-1"
-                    @update:model-value="onWeightConfigSelected"
-                  ></v-select>
-                  <v-btn
-                    icon
-                    variant="tonal"
-                    density="compact"
-                    aria-label="Edit weight configurations"
-                    @click="openWeightsManager"
-                  >
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-text-field
-                    v-model.number="levelMin"
-                    type="number"
-                    min="0"
-                    :max="LEVEL_MAX"
-                    step="1"
-                    label="Level min"
-                    density="compact"
-                    hide-details
-                  ></v-text-field>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-text-field
-                    v-model.number="levelMax"
-                    type="number"
-                    min="0"
-                    :max="LEVEL_MAX"
-                    step="1"
-                    label="Level max"
-                    density="compact"
-                    hide-details
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-
-              <v-row class="align-center mb-0">
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select
-                    v-model="charAlignment"
-                    :items="charAlignments"
-                    label="Alignment"
-                    density="compact"
-                    clearable
-                    hide-details
-                    :disabled="characterFiltersLocked"
-                  ></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select
-                    v-model="charRace"
-                    :items="charRaces"
-                    label="Race"
-                    density="compact"
-                    clearable
-                    hide-details
-                    :disabled="characterFiltersLocked"
-                  ></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select
-                    v-model="charClass"
-                    :items="charClasses"
-                    label="Class"
-                    density="compact"
-                    clearable
-                    hide-details
-                    :disabled="characterFiltersLocked"
-                  ></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="3">
-                  <v-select
-                    v-model="charGender"
-                    :items="charGenders"
-                    label="Gender"
-                    density="compact"
-                    clearable
-                    hide-details
-                    :disabled="characterFiltersLocked"
-                  ></v-select>
-                </v-col>
-              </v-row>
-
-              <v-row class="align-center mb-0">
-                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
-                </v-col>
-
-                <v-col class="filter-col d-flex pa-1" cols="6" md="4">
-                  <v-autocomplete
-                    :model-value="itemPropertyDisplay"
-                    :items="itemPropertyItems"
-                    label="Item Property"
-                    density="compact"
-                    :clearable="!activeWeightConfig"
-                    hide-details
-                    :disabled="!!activeWeightConfig"
-                    @update:model-value="onItemPropertyUpdate"
-                  ></v-autocomplete>
-                </v-col>
-              </v-row>
-          </div>
-
-          <v-divider></v-divider>
-          <v-data-table
-            :headers="headers"
-            :items="catalog"
-            :items-per-page-options="itemsPerPageOptions"
-            v-model:sort-by="sortBy"
-            class="catalog-table"
-            hover
+  <!-- Fills viewport under sticky nav; brand above can still scroll away. -->
+  <v-container fluid class="content-shell catalog-shell px-6 px-sm-8 pt-4 pb-0">
+    <v-card class="catalog-card" elevation="0">
+      <v-card-title class="catalog-toolbar pa-3 ga-2">
+        <div class="filter-chips">
+          <v-chip
+            v-for="chip in activeFilterChips"
+            :key="chip.id"
+            size="small"
+            variant="tonal"
+            closable
+            @click:close="chip.clear()"
           >
-            <template #item="{ item, index }">
-              <tr
-                @click="rowClicked(item)"
-                :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
+            {{ chip.label }}
+          </v-chip>
+        </div>
+        <v-spacer></v-spacer>
+        <v-btn
+          icon
+          variant="tonal"
+          density="comfortable"
+          :color="filtersOpen ? 'primary' : undefined"
+          :aria-pressed="filtersOpen"
+          aria-label="Toggle filters"
+          @click="filtersOpen = !filtersOpen"
+        >
+          <v-icon>mdi-filter-variant</v-icon>
+        </v-btn>
+        <v-text-field
+          v-model="searchText"
+          append-inner-icon="mdi-magnify"
+          label="Search items"
+          single-line
+          hide-details
+          clearable
+          density="compact"
+          variant="outlined"
+          class="search-field"
+        ></v-text-field>
+      </v-card-title>
+
+      <div
+        ref="catalogScrollBody"
+        class="catalog-scroll-body"
+      >
+        <div
+          v-show="filtersOpen"
+          v-intersect="filterPanelIntersect"
+          class="filter-panel pa-2"
+        >
+          <v-row class="align-center mb-0">
+            <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
+              <v-select
+                v-model="activeCharacterProfileId"
+                :items="characterProfileSelectItems"
+                label="Character profile"
+                density="compact"
+                clearable
+                hide-details
+                class="flex-grow-1"
+                @update:model-value="applyCharacterProfile"
+              ></v-select>
+              <v-btn
+                icon
+                variant="tonal"
+                density="compact"
+                aria-label="Edit character profiles"
+                @click="openCharactersManager"
               >
-                <td
-                  v-for="header in headers"
-                  :key="header.key"
-                  :style="{
-                    'text-align': header.align || 'start',
-                    ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
-                  }"
-                >
-                  <template v-if="header.key === 'Weight'">
-                    <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
-                  </template>
-                  <template v-else-if="header.key === 'propertyAmount'">
-                    <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
-                  </template>
-                  <template v-else-if="header.key === 'weightedScore'">
-                    <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
-                  </template>
-                  <template v-else-if="header.key === 'damageOrAc'">
-                    <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
-                    <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
-                  </template>
-                  <template v-else-if="header.key === 'Wear Loc.'">
-                    <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
-                  </template>
-                  <template v-else-if="header.key === 'Layer'">
-                    <span v-if="item.Layer">{{ Array.isArray(item.Layer) ? item.Layer.join(', ') : item.Layer }}</span>
-                  </template>
-                  <template v-else>
-                    {{ item[header.key] }}
-                  </template>
-                </td>
-              </tr>
-            </template>
-          </v-data-table>
-        </v-card>
+                <v-icon>mdi-pencil</v-icon>
+              </v-btn>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1 align-center ga-1" cols="12" sm="6" md="3">
+              <v-select
+                v-model="activeWeightConfigId"
+                :items="weightConfigSelectItems"
+                label="Weighted search"
+                density="compact"
+                clearable
+                hide-details
+                class="flex-grow-1"
+                @update:model-value="onWeightConfigSelected"
+              ></v-select>
+              <v-btn
+                icon
+                variant="tonal"
+                density="compact"
+                aria-label="Edit weight configurations"
+                @click="openWeightsManager"
+              >
+                <v-icon>mdi-pencil</v-icon>
+              </v-btn>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+              <v-text-field
+                v-model.number="levelMin"
+                type="number"
+                min="0"
+                :max="LEVEL_MAX"
+                step="1"
+                label="Level min"
+                density="compact"
+                hide-details
+              ></v-text-field>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+              <v-text-field
+                v-model.number="levelMax"
+                type="number"
+                min="0"
+                :max="LEVEL_MAX"
+                step="1"
+                label="Level max"
+                density="compact"
+                hide-details
+              ></v-text-field>
+            </v-col>
+          </v-row>
+
+          <v-row class="align-center mb-0">
+            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+              <v-select
+                v-model="charAlignment"
+                :items="charAlignments"
+                label="Alignment"
+                density="compact"
+                clearable
+                hide-details
+                :disabled="characterFiltersLocked"
+              ></v-select>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+              <v-select
+                v-model="charRace"
+                :items="charRaces"
+                label="Race"
+                density="compact"
+                clearable
+                hide-details
+                :disabled="characterFiltersLocked"
+              ></v-select>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+              <v-select
+                v-model="charClass"
+                :items="charClasses"
+                label="Class"
+                density="compact"
+                clearable
+                hide-details
+                :disabled="characterFiltersLocked"
+              ></v-select>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="3">
+              <v-select
+                v-model="charGender"
+                :items="charGenders"
+                label="Gender"
+                density="compact"
+                clearable
+                hide-details
+                :disabled="characterFiltersLocked"
+              ></v-select>
+            </v-col>
+          </v-row>
+
+          <v-row class="align-center mb-0">
+            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+              <v-select v-model="itemType" :items="itemTypes" label="Item Type" density="compact" clearable hide-details></v-select>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+              <v-select v-model="itemClass" :items="itemClasses" label="Item Class" density="compact" clearable hide-details></v-select>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+              <v-autocomplete v-model="itemAffect" :items="itemAffects" label="Item Affect" density="compact" clearable hide-details></v-autocomplete>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+              <v-select v-model="itemSlot" :items="itemSlots" label="Wear Location" density="compact" clearable hide-details></v-select>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+              <v-select v-model="itemLayer" :items="itemLayers" label="Layer" density="compact" clearable hide-details></v-select>
+            </v-col>
+
+            <v-col class="filter-col d-flex pa-1" cols="6" md="4">
+              <v-autocomplete
+                :model-value="itemPropertyDisplay"
+                :items="itemPropertyItems"
+                label="Item Property"
+                density="compact"
+                :clearable="!activeWeightConfig"
+                hide-details
+                :disabled="!!activeWeightConfig"
+                @update:model-value="onItemPropertyUpdate"
+              ></v-autocomplete>
+            </v-col>
+          </v-row>
+        </div>
+
+        <v-divider></v-divider>
+        <!-- Server mode: sort full filter set, reveal more rows as the pane scrolls. -->
+        <v-data-table-server
+          :headers="headers"
+          :items="visibleCatalog"
+          :items-length="sortedCatalog.length"
+          :items-per-page="-1"
+          hide-default-footer
+          v-model:sort-by="sortBy"
+          class="catalog-table"
+          hover
+        >
+          <template #item="{ item, index }">
+            <tr
+              @click="rowClicked(item)"
+              :class="['catalog-row', { 'catalog-row--alternate': index % 2 === 0 }]"
+            >
+              <td
+                v-for="header in headers"
+                :key="header.key"
+                :style="{
+                  'text-align': header.align || 'start',
+                  ...(header.width ? { width: header.width, maxWidth: header.width, whiteSpace: 'nowrap' } : {}),
+                }"
+              >
+                <template v-if="header.key === 'Weight'">
+                  <span v-if="item.Weight">{{ item.Weight.toFixed(2) }} lbs</span>
+                </template>
+                <template v-else-if="header.key === 'propertyAmount'">
+                  <span v-if="item.propertyAmount != null">{{ item.propertyAmount }}</span>
+                </template>
+                <template v-else-if="header.key === 'weightedScore'">
+                  <span v-if="item.weightedScore != null">{{ formatWeightedScore(item.weightedScore) }}</span>
+                </template>
+                <template v-else-if="header.key === 'damageOrAc'">
+                  <span v-if="item.averageDamage">{{ item.averageDamage.toFixed(1) }} Av.D</span>
+                  <span v-else-if="item['Armor Class'] != null && item['Armor Class'] !== ''">{{ item['Armor Class'] }} AC</span>
+                </template>
+                <template v-else-if="header.key === 'Wear Loc.'">
+                  <span v-if="item['Wear Loc.']">{{ Array.isArray(item['Wear Loc.']) ? item['Wear Loc.'].join(', ') : item['Wear Loc.'] }}</span>
+                </template>
+                <template v-else-if="header.key === 'Layer'">
+                  <span v-if="item.Layer">{{ Array.isArray(item.Layer) ? item.Layer.join(', ') : item.Layer }}</span>
+                </template>
+                <template v-else>
+                  {{ item[header.key] }}
+                </template>
+              </td>
+            </tr>
+          </template>
+          <template #bottom>
+            <div class="catalog-scroll-status text-caption text-medium-emphasis text-center pa-2">
+              <span v-if="sortedCatalog.length">
+                Showing {{ visibleCatalog.length }} of {{ sortedCatalog.length }}
+              </span>
+              <span v-else>No items match</span>
+            </div>
+            <div
+              v-if="visibleCatalog.length < sortedCatalog.length"
+              v-intersect="catalogScrollIntersect"
+              class="catalog-scroll-sentinel"
+              aria-hidden="true"
+            ></div>
+          </template>
+        </v-data-table-server>
+      </div>
+    </v-card>
   </v-container>
 </template>
 
@@ -258,6 +284,9 @@ import { useDisplay } from 'vuetify'
 
 /** keep-alive include name in App.vue — preserves filters/sort across item nav. */
 defineOptions({ name: 'CatalogView' })
+
+/** Scroll root for filters + infinite-load table body. */
+const catalogScrollBody = ref<HTMLElement | null>(null)
 import {
   catalogQueryToState,
   catalogStateToQuery,
@@ -274,8 +303,31 @@ const route = useRoute()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
 
-/** Filters start collapsed; toolbar filter icon toggles. */
+/** Filters start collapsed; toolbar toggle + auto-collapse when scrolled away. */
 const filtersOpen = ref(false)
+
+/** Collapse filters once the panel leaves the catalog scroll pane (same as toggle off). */
+const onFilterPanelIntersect = (isIntersecting: boolean) => {
+  if (!isIntersecting && filtersOpen.value) {
+    filtersOpen.value = false
+  }
+}
+
+const filterPanelIntersect = computed(() => ({
+  handler: onFilterPanelIntersect,
+  options: {
+    root: catalogScrollBody.value,
+    threshold: 0,
+    rootMargin: '0px',
+  },
+}))
+
+watch(filtersOpen, (open) => {
+  if (open) {
+    // Bring the panel into view under the sticky toolbar.
+    catalogScrollBody.value?.scrollTo({ top: 0 })
+  }
+})
 
 const {
   activeWeightConfigId,
@@ -531,11 +583,13 @@ const headers = computed(() => {
   return cols
 })
 
-const itemsPerPageOptions = [5, 10, 15, 20, 25, 30, -1]
-
 const sortBy = ref<{ key: string; order: 'asc' | 'desc' }[]>([
   { key: 'datetime', order: 'desc' },
 ])
+
+/** Rows revealed per scroll chunk (replaces paginated pages). */
+const CATALOG_PAGE_SIZE = 40
+const visibleCount = ref(CATALOG_PAGE_SIZE)
 
 const sortByScoreOrPropertyDesc = () => {
   if (activeWeightConfig.value) {
@@ -626,6 +680,68 @@ const catalog = computed<any[]>(() => {
     damageOrAc: item.averageDamage ?? item['Armor Class'] ?? null,
   }))
 })
+
+const sortValue = (item: any, key: string): string | number | null => {
+  const raw = item?.[key]
+  if (raw == null || raw === '') return null
+  if (Array.isArray(raw)) return raw.join(', ')
+  if (typeof raw === 'number') return raw
+  if (typeof raw === 'string') {
+    const asNum = Number(raw)
+    if (raw.trim() !== '' && Number.isFinite(asNum) && key !== 'name') return asNum
+    return raw.toLowerCase()
+  }
+  return String(raw)
+}
+
+/** Full filtered set in current header sort order (server-table owns the slice). */
+const sortedCatalog = computed(() => {
+  const items = catalog.value.slice()
+  const spec = sortBy.value[0]
+  if (!spec?.key) return items
+  const dir = spec.order === 'desc' ? -1 : 1
+  items.sort((a, b) => {
+    const av = sortValue(a, spec.key)
+    const bv = sortValue(b, spec.key)
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+    return String(av).localeCompare(String(bv), undefined, { sensitivity: 'base' }) * dir
+  })
+  return items
+})
+
+const visibleCatalog = computed(() => sortedCatalog.value.slice(0, visibleCount.value))
+
+const resetVisibleCatalog = () => {
+  visibleCount.value = CATALOG_PAGE_SIZE
+}
+
+watch(sortBy, resetVisibleCatalog, { deep: true })
+watch(catalog, resetVisibleCatalog)
+
+const loadMoreCatalog = () => {
+  if (visibleCount.value >= sortedCatalog.value.length) return
+  visibleCount.value = Math.min(
+    visibleCount.value + CATALOG_PAGE_SIZE,
+    sortedCatalog.value.length,
+  )
+}
+
+/** v-intersect: reveal the next chunk when the sentinel enters the scroll pane. */
+const onCatalogScrollSentinel = (isIntersecting: boolean) => {
+  if (isIntersecting) loadMoreCatalog()
+}
+
+const catalogScrollIntersect = computed(() => ({
+  handler: onCatalogScrollSentinel,
+  options: {
+    root: catalogScrollBody.value,
+    threshold: 0,
+    rootMargin: '120px 0px',
+  },
+}))
 
 /** Clear weighted search and fields it owns (item property). */
 const clearWeightSelection = () => {
@@ -853,12 +969,20 @@ onMounted(() => {
   max-width: 1280px;
 }
 
-.filter-panel {
-  border-top: 1px solid rgb(var(--v-theme-surface-variant));
-  background: rgb(var(--v-theme-surface));
+/* Fill under sticky nav; brand above scrolls away independently. */
+.catalog-shell {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: calc(100dvh - var(--tfecat-nav-height, 57px));
+  max-height: calc(100dvh - var(--tfecat-nav-height, 57px));
 }
 
 .catalog-card {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgb(var(--v-theme-surface-variant));
   border-radius: 12px !important;
@@ -867,8 +991,20 @@ onMounted(() => {
 
 .catalog-toolbar {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   flex-wrap: wrap;
+  background: rgb(var(--v-theme-surface));
+}
+
+.catalog-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.filter-panel {
+  border-top: 1px solid rgb(var(--v-theme-surface-variant));
   background: rgb(var(--v-theme-surface));
 }
 
@@ -887,6 +1023,9 @@ onMounted(() => {
 }
 
 .catalog-table :deep(thead th) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   height: 52px;
   border-bottom-color: rgb(var(--v-theme-surface-variant)) !important;
   background: rgb(var(--v-theme-surface-variant));
@@ -918,10 +1057,15 @@ onMounted(() => {
   color: rgb(var(--v-theme-on-surface));
 }
 
-.catalog-table :deep(.v-data-table-footer) {
+.catalog-scroll-status {
   border-top: 1px solid rgb(var(--v-theme-surface-variant));
   background: rgb(var(--v-theme-surface));
-  color: rgb(var(--v-theme-secondary));
+}
+
+.catalog-scroll-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
 }
 
 .v-icon {

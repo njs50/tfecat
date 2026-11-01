@@ -87,7 +87,7 @@
     </div>
 
     <!-- Only this row sticks; brand scrolls away. No small-breakpoint overflow menu yet. -->
-    <div class="nav-sticky">
+    <div ref="navStickyEl" class="nav-sticky">
       <v-container fluid class="header-shell px-6 px-sm-8 nav-shell">
         <nav aria-label="Primary" class="primary-nav">
           <router-link
@@ -137,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import BrandMark from './components/BrandMark.vue'
 import { useAppUpdate } from './composables/useAppUpdate'
@@ -160,6 +160,28 @@ const isInstallModalVisible = ref(false)
 const installCode = ref(
   `lua postPMInstall='tfecat'; uninstallPackage('njs50-package-manager'); installPackage('https://raw.githubusercontent.com/njs50/njs50-package-manager/main/njs50-package-manager.xml')`,
 )
+
+/** Publish sticky-nav height for catalog viewport-fill layout. */
+const navStickyEl = ref<HTMLElement | null>(null)
+let navResizeObserver: ResizeObserver | null = null
+
+const syncNavHeightVar = () => {
+  const h = navStickyEl.value?.offsetHeight ?? 0
+  document.documentElement.style.setProperty('--tfecat-nav-height', `${h}px`)
+}
+
+onMounted(() => {
+  syncNavHeightVar()
+  if (navStickyEl.value && typeof ResizeObserver !== 'undefined') {
+    navResizeObserver = new ResizeObserver(syncNavHeightVar)
+    navResizeObserver.observe(navStickyEl.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  navResizeObserver?.disconnect()
+  navResizeObserver = null
+})
 
 /** Branch + short SHA; only when preview-deploy sets VITE_PREVIEW_*. */
 const previewWatermark = computed(() => {
