@@ -7,6 +7,7 @@ import {
   UNSAVED_PRESET_ID,
 } from './constants'
 import type {
+  CharacterGearSet,
   CharacterProfile,
   CharacterStats,
   PresetsState,
@@ -174,6 +175,39 @@ function sanitizeCharacterStats(raw: unknown): CharacterStats {
   }
 }
 
+function sanitizeGearSet(raw: unknown): CharacterGearSet | null {
+  if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.name !== 'string') {
+    return null
+  }
+  const paste = typeof raw.paste === 'string' ? raw.paste : ''
+  if (!paste.trim()) return null
+  return {
+    id: raw.id,
+    name: raw.name.trim() || 'Untitled gear',
+    paste,
+  }
+}
+
+/** Prefer `gearSets`; migrate legacy `equipmentPaste` into a single Default set. */
+export function normalizeGearSets(raw: {
+  gearSets?: unknown
+  equipmentPaste?: unknown
+}): CharacterGearSet[] {
+  if (Array.isArray(raw.gearSets)) {
+    return raw.gearSets.map(sanitizeGearSet).filter((g): g is CharacterGearSet => !!g)
+  }
+  if (typeof raw.equipmentPaste === 'string' && raw.equipmentPaste.trim()) {
+    return [
+      {
+        id: newId(),
+        name: 'Default',
+        paste: raw.equipmentPaste.trim(),
+      },
+    ]
+  }
+  return []
+}
+
 function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
   if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.name !== 'string') {
     return null
@@ -187,10 +221,12 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
   }
   const nullableString = (v: unknown): string | null =>
     typeof v === 'string' && v.length ? v : null
-  const equipmentPaste =
-    typeof raw.equipmentPaste === 'string' && raw.equipmentPaste.length
-      ? raw.equipmentPaste
-      : undefined
+  const gearSets = normalizeGearSets(raw)
+  const activeGearSetId =
+    typeof raw.activeGearSetId === 'string' &&
+    gearSets.some((g) => g.id === raw.activeGearSetId)
+      ? raw.activeGearSetId
+      : gearSets[0]?.id ?? null
   return {
     id: raw.id,
     name: raw.name,
@@ -200,7 +236,8 @@ function sanitizeCharacterProfile(raw: unknown): CharacterProfile | null {
     class: nullableString(raw.class),
     gender: nullableString(raw.gender),
     stats: sanitizeCharacterStats(raw.stats),
-    ...(equipmentPaste ? { equipmentPaste } : {}),
+    gearSets,
+    activeGearSetId,
   }
 }
 

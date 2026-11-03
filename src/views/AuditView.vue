@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="content-shell px-4 px-sm-6 px-md-8 pt-4 pb-10">
     <v-row dense class="mb-1">
-      <v-col class="d-flex align-center ga-1" cols="12" md="6">
+      <v-col class="d-flex align-center ga-1" cols="12" md="4">
         <v-select
           :model-value="activeCharacterProfileId"
           :items="characterProfileSelectItems"
@@ -23,7 +23,21 @@
         </v-btn>
       </v-col>
 
-      <v-col class="d-flex align-center ga-1" cols="12" md="6">
+      <v-col class="d-flex align-center ga-1" cols="12" md="4">
+        <v-select
+          :model-value="activeGearSetId"
+          :items="gearSetSelectItems"
+          label="Gear set"
+          density="compact"
+          clearable
+          hide-details
+          class="flex-grow-1"
+          :disabled="!selectedProfile"
+          @update:model-value="onGearSetChange"
+        ></v-select>
+      </v-col>
+
+      <v-col class="d-flex align-center ga-1" cols="12" md="4">
         <v-select
           :model-value="activeWeightConfigId"
           :items="weightConfigSelectItems"
@@ -56,6 +70,12 @@
       <v-checkbox
         v-model="manualWeight"
         label="Manually configure scoring"
+        density="compact"
+        hide-details
+      ></v-checkbox>
+      <v-checkbox
+        v-model="pasteNewGearSet"
+        label="Paste new gear set"
         density="compact"
         hide-details
       ></v-checkbox>
@@ -131,44 +151,102 @@
       </v-col>
     </v-row>
 
-    <v-textarea
-      v-model="pasteText"
-      label="Equipment paste"
-      auto-grow
-      rows="8"
-      max-rows="20"
-      density="compact"
-      hide-details="auto"
-      spellcheck="false"
-      class="mono-field mb-3"
-      :placeholder="placeholder"
-    ></v-textarea>
+    <template v-if="pasteNewGearSet">
+      <v-textarea
+        v-model="pasteText"
+        label="Equipment paste"
+        auto-grow
+        rows="8"
+        max-rows="20"
+        density="compact"
+        hide-details="auto"
+        spellcheck="false"
+        class="mono-field mb-2"
+        :placeholder="placeholder"
+      ></v-textarea>
+
+      <div class="d-flex flex-wrap align-center ga-2 mb-3">
+        <v-text-field
+          v-model="gearSetName"
+          label="Gear set name"
+          density="compact"
+          hide-details
+          class="gear-set-name-field"
+          :disabled="!selectedProfile"
+        ></v-text-field>
+        <v-btn
+          color="primary"
+          variant="tonal"
+          :disabled="!canSaveGearSet"
+          @click="saveGearSet"
+        >
+          Save gear set
+        </v-btn>
+      </div>
+    </template>
+
+    <div
+      v-show="showAuditOptions"
+      class="audit-options-panel mb-3"
+      role="region"
+      aria-label="Audit options"
+    >
+      <div class="d-flex flex-wrap ga-4 mb-2">
+        <v-checkbox
+          v-model="verbose"
+          label="Show empty slots"
+          density="compact"
+          hide-details
+        ></v-checkbox>
+        <v-checkbox
+          v-model="sidegrades"
+          label="Include sidegrades (±10%)"
+          density="compact"
+          hide-details
+        ></v-checkbox>
+      </div>
+      <div class="d-flex flex-wrap ga-2">
+        <v-select
+          v-model="filterSlots"
+          :items="configSlotOptions"
+          label="Wear location"
+          density="compact"
+          multiple
+          clearable
+          hide-details
+          chips
+          closable-chips
+          class="result-filter-field"
+        ></v-select>
+        <v-select
+          v-model="filterLayers"
+          :items="configLayerOptions"
+          label="Layer"
+          density="compact"
+          multiple
+          clearable
+          hide-details
+          chips
+          closable-chips
+          class="result-filter-field"
+        ></v-select>
+      </div>
+    </div>
 
     <div ref="runAuditRow" class="audit-run-row d-flex flex-wrap align-center ga-2 mb-4">
+      <v-btn
+        icon
+        variant="tonal"
+        density="comfortable"
+        :aria-label="showAuditOptions ? 'Hide audit options' : 'Show audit options'"
+        :aria-pressed="showAuditOptions"
+        @click="showAuditOptions = !showAuditOptions"
+      >
+        <v-icon>mdi-cog</v-icon>
+      </v-btn>
       <v-btn color="primary" variant="elevated" :disabled="!canRun" @click="onRunAuditClick">
         Run audit
       </v-btn>
-      <v-btn
-        v-if="activeCharacterProfileId"
-        variant="tonal"
-        :disabled="!pasteText.trim()"
-        @click="savePasteToProfile"
-      >
-        Save paste to profile
-      </v-btn>
-      <v-checkbox
-        v-model="verbose"
-        label="Show empty slots"
-        density="compact"
-        hide-details
-        class="ml-sm-2"
-      ></v-checkbox>
-      <v-checkbox
-        v-model="sidegrades"
-        label="Include sidegrades (±10%)"
-        density="compact"
-        hide-details
-      ></v-checkbox>
     </div>
 
     <v-alert
@@ -179,6 +257,16 @@
       class="mb-4"
     >
       Select a weight config, or enable manual scoring and pick an item property.
+    </v-alert>
+
+    <v-alert
+      v-if="!effectivePaste.trim() && attempted && !pasteNewGearSet"
+      type="info"
+      variant="tonal"
+      density="compact"
+      class="mb-4"
+    >
+      Select a saved gear set, or enable “Paste new gear set”.
     </v-alert>
 
     <v-alert
@@ -196,37 +284,10 @@
 
     <template v-if="report">
       <div class="results-header mb-3">
-        <p v-if="report.gearTotal != null" class="text-body-2 mb-3">
+        <p v-if="report.gearTotal != null" class="text-body-2 mb-0">
           Total equipped {{ report.propertyLabel }}:
           <strong class="mono-num">{{ formatScore(report.gearTotal) }}</strong>
         </p>
-
-        <div class="result-filters d-flex flex-wrap ga-2 mb-1">
-          <v-select
-            v-model="filterSlots"
-            :items="resultSlotOptions"
-            label="Wear location"
-            density="compact"
-            multiple
-            clearable
-            hide-details
-            chips
-            closable-chips
-            class="result-filter-field"
-          ></v-select>
-          <v-select
-            v-model="filterLayers"
-            :items="resultLayerOptions"
-            label="Layer"
-            density="compact"
-            multiple
-            clearable
-            hide-details
-            chips
-            closable-chips
-            class="result-filter-field"
-          ></v-select>
-        </div>
       </div>
 
       <v-alert
@@ -320,9 +381,10 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import {
   EQUIPMENT_LAYERS,
+  EQUIPMENT_SLOTS,
   parseEquipmentPaste,
   type EquipmentLayer,
 } from '../audit/parseEquipment'
@@ -333,6 +395,8 @@ import {
 } from '../audit/runAudit'
 import { useItemOverlay } from '../composables/useItemOverlay'
 import { LEVEL_MAX } from '../presets/constants'
+import { newId } from '../presets/storage'
+import type { CharacterGearSet } from '../presets/types'
 import { formatWeightedScore } from '../presets/weightedScore'
 import { usePresets } from '../presets/usePresets'
 import { useCatalogStore } from '../store'
@@ -341,7 +405,6 @@ import { useCatalogStore } from '../store'
 defineOptions({ name: 'AuditView' })
 
 const router = useRouter()
-const route = useRoute()
 const store = useCatalogStore()
 const { openItemOverlay, itemOverlayHref } = useItemOverlay()
 const {
@@ -361,6 +424,7 @@ const {
 const itemProperty = ref<string | null>(null)
 const manualCharacter = ref(false)
 const manualWeight = ref(false)
+const pasteNewGearSet = ref(false)
 const levelMax = ref(90)
 const charAlignment = ref<string | null>(null)
 const charRace = ref<string | null>(null)
@@ -368,8 +432,11 @@ const charClass = ref<string | null>(null)
 const charGender = ref<string | null>(null)
 
 const pasteText = ref('')
-const verbose = ref(false)
-const sidegrades = ref(false)
+const gearSetName = ref('')
+const activeGearSetId = ref<string | null>(null)
+const verbose = ref(true)
+const sidegrades = ref(true)
+const showAuditOptions = ref(false)
 const attempted = ref(false)
 const report = ref<AuditReport | null>(null)
 const parseErrors = ref<string[]>([])
@@ -407,6 +474,28 @@ const selectedWeight = computed(
 )
 const characterStats = computed(() => selectedProfile.value?.stats ?? null)
 
+const profileGearSets = computed((): CharacterGearSet[] => {
+  const sets = selectedProfile.value?.gearSets
+  return Array.isArray(sets) ? sets : []
+})
+
+const gearSetSelectItems = computed(() =>
+  profileGearSets.value
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .map((g) => ({ title: g.name, value: g.id })),
+)
+
+const selectedGearSet = computed(
+  () => profileGearSets.value.find((g) => g.id === activeGearSetId.value) ?? null,
+)
+
+/** Paste used for audit: typed paste when creating, otherwise the selected set. */
+const effectivePaste = computed(() => {
+  if (pasteNewGearSet.value) return pasteText.value
+  return selectedGearSet.value?.paste ?? ''
+})
+
 const itemPropertyDisplay = computed(() =>
   selectedWeight.value ? 'weighted' : itemProperty.value,
 )
@@ -420,7 +509,33 @@ const scoringMode = computed(() => {
   return 'none'
 })
 
-const canRun = computed(() => !!pasteText.value.trim() && !!store.catalog?.length)
+const canRun = computed(
+  () => !!effectivePaste.value.trim() && !!store.catalog?.length,
+)
+
+const canSaveGearSet = computed(
+  () =>
+    !!selectedProfile.value &&
+    !!pasteText.value.trim() &&
+    !!gearSetName.value.trim(),
+)
+
+/** Wear/layer pickers in the options panel — prefer report slots when available. */
+const configSlotOptions = computed(() => {
+  if (report.value?.slots.length) {
+    const seen = new Set<string>()
+    const opts: string[] = []
+    for (const s of report.value.slots) {
+      if (seen.has(s.slot)) continue
+      seen.add(s.slot)
+      opts.push(s.slot)
+    }
+    return opts
+  }
+  return [...EQUIPMENT_SLOTS]
+})
+
+const configLayerOptions = computed(() => [...EQUIPMENT_LAYERS])
 
 const formatSlotTitle = (slot: string, layer: string) => `${slot} - ${layer}`
 
@@ -428,24 +543,6 @@ const bestDelta = (slot: AuditSlotReport): number | null => {
   if (!slot.upgrades.length) return null
   return slot.upgrades[0].delta
 }
-
-const resultSlotOptions = computed(() => {
-  if (!report.value) return []
-  const seen = new Set<string>()
-  const opts: string[] = []
-  for (const s of report.value.slots) {
-    if (seen.has(s.slot)) continue
-    seen.add(s.slot)
-    opts.push(s.slot)
-  }
-  return opts
-})
-
-const resultLayerOptions = computed(() => {
-  if (!report.value) return [...EQUIPMENT_LAYERS]
-  const present = new Set(report.value.slots.map((s) => s.layer))
-  return EQUIPMENT_LAYERS.filter((l) => present.has(l))
-})
 
 /** Filtered + sorted by biggest upgrade delta (equipped → best). */
 const sortedSlots = computed((): AuditSlotReport[] => {
@@ -488,9 +585,22 @@ const openWeightsEditor = () => {
   })
 }
 
-/** Seed local manual fields + empty paste from the shared active profile. */
+const persistProfileGearSelection = (gearSetId: string | null) => {
+  const profile = selectedProfile.value
+  if (!profile) return
+  if (profile.activeGearSetId === gearSetId) return
+  upsertCharacterProfile({
+    ...profile,
+    activeGearSetId: gearSetId,
+  })
+}
+
+/** Seed local manual fields + gear set selection from the shared active profile. */
 const hydrateFromProfile = (id: string | null) => {
-  if (!id) return
+  if (!id) {
+    activeGearSetId.value = null
+    return
+  }
   const profile = characterProfiles.value.find((p) => p.id === id)
   if (!profile) return
   if (!manualCharacter.value) {
@@ -500,26 +610,41 @@ const hydrateFromProfile = (id: string | null) => {
     charClass.value = profile.class
     charGender.value = profile.gender
   }
-  if (profile.equipmentPaste && !pasteText.value.trim()) {
-    pasteText.value = profile.equipmentPaste
+  const sets = profile.gearSets ?? []
+  const preferred =
+    (profile.activeGearSetId && sets.find((g) => g.id === profile.activeGearSetId)?.id) ||
+    sets[0]?.id ||
+    null
+  activeGearSetId.value = preferred
+  if (!pasteNewGearSet.value) {
+    pasteText.value = sets.find((g) => g.id === preferred)?.paste ?? ''
+    gearSetName.value = sets.find((g) => g.id === preferred)?.name ?? ''
   }
 }
 
 const onProfileChange = (id: string | null) => {
   activeCharacterProfileId.value = id
-  if (id) {
-    const profile = characterProfiles.value.find((p) => p.id === id)
-    if (profile) {
-      levelMax.value = profile.level
-      charAlignment.value = profile.alignment
-      charRace.value = profile.race
-      charClass.value = profile.class
-      charGender.value = profile.gender
-      if (profile.equipmentPaste) {
-        pasteText.value = profile.equipmentPaste
-      }
-    }
+  if (!id) {
+    activeGearSetId.value = null
+    return
   }
+  const profile = characterProfiles.value.find((p) => p.id === id)
+  if (!profile) return
+  levelMax.value = profile.level
+  charAlignment.value = profile.alignment
+  charRace.value = profile.race
+  charClass.value = profile.class
+  charGender.value = profile.gender
+  hydrateFromProfile(id)
+}
+
+const onGearSetChange = (id: string | null) => {
+  activeGearSetId.value = id
+  persistProfileGearSelection(id)
+  if (pasteNewGearSet.value) return
+  const set = profileGearSets.value.find((g) => g.id === id)
+  pasteText.value = set?.paste ?? ''
+  gearSetName.value = set?.name ?? ''
 }
 
 const onWeightChange = (id: string | null) => {
@@ -581,7 +706,8 @@ const currentFilterState = () => {
 const runAudit = () => {
   attempted.value = true
   if (!store.catalog) return
-  const parse = parseEquipmentPaste(pasteText.value)
+  const paste = effectivePaste.value
+  const parse = parseEquipmentPaste(paste)
   parseErrors.value = parse.errors
   if (!parse.pieces.length) {
     report.value = null
@@ -599,32 +725,76 @@ const runAudit = () => {
     sidegrades: sidegrades.value,
   })
   // Keep filters valid for the new report; leave user picks when still present.
-  const slotSet = new Set(resultSlotOptions.value)
+  const slotSet = new Set(configSlotOptions.value)
   filterSlots.value = filterSlots.value.filter((s) => slotSet.has(s))
-  const layerSet = new Set(resultLayerOptions.value)
+  const layerSet = new Set(configLayerOptions.value)
   filterLayers.value = filterLayers.value.filter((l) => layerSet.has(l))
 }
 
-/** Button click: run + scroll so the control sits under the sticky nav. */
+/** Button click: run, collapse options, scroll under sticky nav. */
 const onRunAuditClick = () => {
+  showAuditOptions.value = false
   runAudit()
   void scrollRunAuditUnderNav()
 }
 
-const savePasteToProfile = () => {
+const saveGearSet = () => {
   const profile = selectedProfile.value
   if (!profile) return
   const paste = pasteText.value.trim()
+  const name = gearSetName.value.trim()
+  if (!paste || !name) return
+
+  const existing = (profile.gearSets ?? []).slice()
+  const matchById = activeGearSetId.value
+    ? existing.findIndex((g) => g.id === activeGearSetId.value)
+    : -1
+  const matchByName = existing.findIndex(
+    (g) => g.name.toLowerCase() === name.toLowerCase(),
+  )
+  let next: CharacterGearSet[]
+  let savedId: string
+  if (matchById >= 0) {
+    savedId = existing[matchById].id
+    next = existing.slice()
+    next[matchById] = { id: savedId, name, paste }
+  } else if (matchByName >= 0) {
+    savedId = existing[matchByName].id
+    next = existing.slice()
+    next[matchByName] = { id: savedId, name, paste }
+  } else {
+    savedId = newId()
+    next = [...existing, { id: savedId, name, paste }]
+  }
+
   upsertCharacterProfile({
     ...profile,
-    ...(paste ? { equipmentPaste: paste } : { equipmentPaste: undefined }),
+    gearSets: next,
+    activeGearSetId: savedId,
+    equipmentPaste: undefined,
   })
+  activeGearSetId.value = savedId
+  pasteNewGearSet.value = false
 }
+
+watch(pasteNewGearSet, (on) => {
+  if (on) {
+    // Start a fresh paste; keep name empty unless editing the active set.
+    if (!gearSetName.value && selectedGearSet.value) {
+      gearSetName.value = selectedGearSet.value.name
+    }
+    return
+  }
+  // Leaving paste mode — restore selected gear set paste into the working buffer.
+  pasteText.value = selectedGearSet.value?.paste ?? ''
+  gearSetName.value = selectedGearSet.value?.name ?? ''
+})
 
 watch(
   [
     activeWeightConfigId,
     activeCharacterProfileId,
+    activeGearSetId,
     itemProperty,
     levelMax,
     charAlignment,
@@ -633,6 +803,9 @@ watch(
     charGender,
     manualCharacter,
     manualWeight,
+    verbose,
+    sidegrades,
+    pasteNewGearSet,
   ],
   () => {
     if (report.value) runAudit()
@@ -668,6 +841,18 @@ onMounted(() => {
 .mono-num {
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.gear-set-name-field {
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
+.audit-options-panel {
+  border: 1px solid rgb(var(--v-theme-surface-variant));
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+  padding: 0.75rem 1rem 1rem;
 }
 
 /* Sit “Run audit” just under the sticky chrome after a run. */

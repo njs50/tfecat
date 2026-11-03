@@ -103,22 +103,10 @@
         </v-col>
       </v-row>
 
-      <div class="text-subtitle-2 mt-4 mb-1">Equipment</div>
+      <div class="text-subtitle-2 mt-4 mb-1">Gear sets</div>
       <p class="text-body-2 text-medium-emphasis mb-2">
-        Paste a Mudlet <code>equipment</code> dump for Item Audit. Saved with this profile.
+        {{ gearSetSummary }} — manage named equipment dumps on Item Audit.
       </p>
-      <v-textarea
-        v-model="draft.equipmentPaste"
-        label="Equipment paste"
-        auto-grow
-        rows="6"
-        max-rows="16"
-        density="compact"
-        hide-details="auto"
-        spellcheck="false"
-        class="equipment-paste"
-        :placeholder="equipmentPlaceholder"
-      ></v-textarea>
 
       <div class="d-flex flex-wrap ga-2 mt-4">
         <v-btn
@@ -194,13 +182,17 @@ const loadDraft = (profile: CharacterProfile) => {
   draft.value = {
     ...profile,
     stats: { ...DEFAULT_CHARACTER_STATS, ...(profile.stats ?? {}) },
-    equipmentPaste: profile.equipmentPaste ?? '',
+    gearSets: profile.gearSets ? profile.gearSets.map((g) => ({ ...g })) : [],
+    activeGearSetId: profile.activeGearSetId ?? null,
   }
 }
 
-const equipmentPlaceholder = `     +++ Equipment +++
-worn on body              under  a deerhunter's dark silk torso pad   excellent
-worn around neck          base   a shell necklace                    perfect`
+const gearSetSummary = computed(() => {
+  const n = draft.value?.gearSets?.length ?? 0
+  if (n === 0) return 'No gear sets yet'
+  if (n === 1) return '1 gear set saved'
+  return `${n} gear sets saved`
+})
 
 const startNew = () => {
   isNew.value = true
@@ -214,7 +206,8 @@ const startNew = () => {
     class: null,
     gender: null,
     stats: { ...DEFAULT_CHARACTER_STATS },
-    equipmentPaste: '',
+    gearSets: [],
+    activeGearSetId: null,
   })
 }
 
@@ -275,7 +268,17 @@ const save = () => {
   if (name === UNSAVED_PRESET_LABEL) {
     name = 'Untitled'
   }
-  const paste = (draft.value.equipmentPaste ?? '').trim()
+  const gearSets = (draft.value.gearSets ?? [])
+    .map((g) => ({
+      id: g.id,
+      name: g.name.trim() || 'Untitled gear',
+      paste: g.paste,
+    }))
+    .filter((g) => g.paste.trim())
+  const activeGearSetId =
+    draft.value.activeGearSetId && gearSets.some((g) => g.id === draft.value!.activeGearSetId)
+      ? draft.value.activeGearSetId
+      : gearSets[0]?.id ?? null
   const saved: CharacterProfile = {
     ...draft.value,
     name,
@@ -287,7 +290,9 @@ const save = () => {
       Dex: sanitizeStat(draft.value.stats?.Dex),
       Con: sanitizeStat(draft.value.stats?.Con),
     },
-    ...(paste ? { equipmentPaste: paste } : { equipmentPaste: undefined }),
+    gearSets,
+    activeGearSetId,
+    equipmentPaste: undefined,
   }
   emit('save', saved)
   isNew.value = false
@@ -310,9 +315,4 @@ const remove = () => {
 </script>
 
 <style scoped>
-.equipment-paste :deep(textarea) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.8125rem;
-  line-height: 1.35;
-}
 </style>

@@ -34,6 +34,14 @@ export const DEFAULT_CHARACTER_STATS: CharacterStats = {
 /** @deprecated use DEFAULT_CHARACTER_STATS */
 export const EMPTY_CHARACTER_STATS = DEFAULT_CHARACTER_STATS
 
+/** Named Mudlet equipment dump belonging to a character profile (Item Audit). */
+export type CharacterGearSet = {
+  id: string
+  name: string
+  /** Raw Mudlet `equipment` paste (`+++ Equipment +++` dump). */
+  paste: string
+}
+
 /** Named character filter preset. */
 export type CharacterProfile = {
   id: string
@@ -46,9 +54,12 @@ export type CharacterProfile = {
   gender: string | null
   /** Null entries resolve to DEFAULT_STAT_VALUE for softcaps. */
   stats: CharacterStats
+  /** Named gear dumps for Item Audit (multiple per profile). */
+  gearSets?: CharacterGearSet[]
+  /** Last gear set selected on Item Audit for this profile. */
+  activeGearSetId?: string | null
   /**
-   * Raw Mudlet `equipment` paste (`+++ Equipment +++` dump).
-   * Used by Item Audit; optional so older saved profiles stay valid.
+   * @deprecated Migrated into `gearSets` on load. Kept optional for old localStorage.
    */
   equipmentPaste?: string
 }
