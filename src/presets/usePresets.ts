@@ -39,7 +39,7 @@ const activeCharacterProfileId = ref<string | null>(
   resolveStickyId(state.activeCharacterProfileId, characterProfiles.value),
 )
 
-/** See PresetsState.weightSelectionExplicit — gates sticky restore. */
+/** Tracks that the sticky active was a user choice (or legacy sticky migrate). */
 const weightSelectionExplicit = ref(state.weightSelectionExplicit === true)
 const characterSelectionExplicit = ref(state.characterSelectionExplicit === true)
 

@@ -256,21 +256,24 @@ function parsePresetsRaw(raw: string | null): PresetsState | null {
           .map(sanitizeCharacterProfile)
           .filter((c): c is CharacterProfile => !!c)
       : []
-    const weightSelectionExplicit = parsed.weightSelectionExplicit === true
-    const characterSelectionExplicit = parsed.characterSelectionExplicit === true
     const rawWeightId =
       typeof parsed.activeWeightConfigId === 'string' ? parsed.activeWeightConfigId : null
     const rawCharacterId =
       typeof parsed.activeCharacterProfileId === 'string'
         ? parsed.activeCharacterProfileId
         : null
-    // Pre-flag sticky actives (e.g. tip builds that wrote default-fighter) are
-    // not treated as user choices — first load stays unselected until they pick.
+    // Sticky actives from prior visits are restored as-is (user had them saved).
+    // Fresh installs stay null via emptyState — never invent a built-in default.
+    // Legacy sticky without the flag still restores; treat presence as explicit.
+    const weightSelectionExplicit =
+      parsed.weightSelectionExplicit === true || !!rawWeightId
+    const characterSelectionExplicit =
+      parsed.characterSelectionExplicit === true || !!rawCharacterId
     return {
       weightConfigs: mergeBuiltinWeightConfigs(weightConfigs),
       characterProfiles,
-      activeWeightConfigId: weightSelectionExplicit ? rawWeightId : null,
-      activeCharacterProfileId: characterSelectionExplicit ? rawCharacterId : null,
+      activeWeightConfigId: rawWeightId,
+      activeCharacterProfileId: rawCharacterId,
       weightSelectionExplicit,
       characterSelectionExplicit,
     }
