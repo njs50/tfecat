@@ -144,8 +144,8 @@
       :placeholder="placeholder"
     ></v-textarea>
 
-    <div class="d-flex flex-wrap align-center ga-2 mb-4">
-      <v-btn color="primary" variant="elevated" :disabled="!canRun" @click="runAudit">
+    <div ref="runAuditRow" class="audit-run-row d-flex flex-wrap align-center ga-2 mb-4">
+      <v-btn color="primary" variant="elevated" :disabled="!canRun" @click="onRunAuditClick">
         Run audit
       </v-btn>
       <v-btn
@@ -165,7 +165,7 @@
       ></v-checkbox>
       <v-checkbox
         v-model="sidegrades"
-        label="Include sidegrades"
+        label="Include sidegrades (±10%)"
         density="compact"
         hide-details
       ></v-checkbox>
@@ -195,10 +195,39 @@
     </v-alert>
 
     <template v-if="report">
-      <p v-if="report.gearTotal != null" class="text-body-2 mb-3">
-        Total equipped {{ report.propertyLabel }}:
-        <strong>{{ formatScore(report.gearTotal) }}</strong>
-      </p>
+      <div class="results-header mb-3">
+        <p v-if="report.gearTotal != null" class="text-body-2 mb-3">
+          Total equipped {{ report.propertyLabel }}:
+          <strong class="mono-num">{{ formatScore(report.gearTotal) }}</strong>
+        </p>
+
+        <div class="result-filters d-flex flex-wrap ga-2 mb-1">
+          <v-select
+            v-model="filterSlots"
+            :items="resultSlotOptions"
+            label="Wear location"
+            density="compact"
+            multiple
+            clearable
+            hide-details
+            chips
+            closable-chips
+            class="result-filter-field"
+          ></v-select>
+          <v-select
+            v-model="filterLayers"
+            :items="resultLayerOptions"
+            label="Layer"
+            density="compact"
+            multiple
+            clearable
+            hide-details
+            chips
+            closable-chips
+            class="result-filter-field"
+          ></v-select>
+        </div>
+      </div>
 
       <v-alert
         v-if="report.unmatched.length"
@@ -212,29 +241,43 @@
         </div>
         <ul class="mb-0 pl-4">
           <li v-for="(p, i) in report.unmatched" :key="i">
-            {{ p.slot }}.{{ p.layer }} — {{ p.raw }}
+            {{ formatSlotTitle(p.slot, p.layer) }} — {{ p.raw }}
           </li>
         </ul>
       </v-alert>
 
-      <div v-if="!report.slots.length" class="text-body-2 text-medium-emphasis">
+      <div v-if="!sortedSlots.length" class="text-body-2 text-medium-emphasis">
         No slot upgrades found for the current filters.
       </div>
 
-      <section
-        v-for="slot in report.slots"
+      <article
+        v-for="slot in sortedSlots"
         :key="`${slot.slot}.${slot.layer}`"
-        class="slot-block mb-5"
+        class="slot-card mb-3"
+        :class="{
+          'slot-card--empty-options': slot.empty && slot.upgrades.length > 0,
+          'slot-card--unmatched': !!slot.unmatchedRaw,
+        }"
       >
-        <h2 class="text-subtitle-1 mb-2">
-          [{{ slot.slot }}.{{ slot.layer }}]
-          <span v-if="slot.empty" class="text-medium-emphasis font-weight-regular">
-            — nothing equipped
+        <header class="slot-card__header">
+          <h2 class="slot-card__title">
+            {{ formatSlotTitle(slot.slot, slot.layer) }}
+          </h2>
+          <span v-if="slot.empty" class="slot-card__meta">nothing equipped</span>
+          <span v-else-if="slot.unmatchedRaw" class="slot-card__meta slot-card__meta--warn">
+            not in catalog
           </span>
-          <span v-else-if="slot.unmatchedRaw" class="text-warning font-weight-regular">
-            — not in catalog: {{ slot.unmatchedRaw }}
+          <span
+            v-else-if="bestDelta(slot) != null"
+            class="slot-card__meta mono-num"
+          >
+            best Δ{{ formatScore(bestDelta(slot)) }}
           </span>
-        </h2>
+        </header>
+
+        <div v-if="slot.unmatchedRaw" class="slot-card__unmatched text-body-2 mb-2">
+          {{ slot.unmatchedRaw }}
+        </div>
 
         <div v-if="slot.equipped?.catalogItem" class="equipped-row mb-2">
           <a
@@ -245,35 +288,49 @@
             {{ slot.equipped.catalogItem.name }}
           </a>
           <span class="score-chip equipped">{{ formatScore(slot.equipped.score) }}</span>
-          <span class="text-caption text-medium-emphasis ml-2">equipped</span>
+          <span class="equipped-label">equipped</span>
         </div>
 
-        <ul v-if="slot.upgrades.length" class="upgrade-list">
-          <li v-for="up in slot.upgrades" :key="String(up.item.catalogKey)">
-            <a
-              :href="itemOverlayHref(String(up.item.catalogKey))"
-              class="item-link"
-              @click="openItemOverlay(String(up.item.catalogKey), $event)"
-            >
-              {{ up.item.name }}
-            </a>
-            <span class="score-chip">{{ formatScore(up.score) }}</span>
-            <span class="text-caption text-medium-emphasis">
-              level {{ up.item.Level }} · Δ{{ formatScore(up.delta) }}
-            </span>
-          </li>
-        </ul>
-        <p v-else class="text-body-2 text-medium-emphasis mb-0">No upgrades for this slot.</p>
-      </section>
+        <div
+          v-if="slot.upgrades.length"
+          class="upgrade-scroll"
+          :class="{ 'upgrade-scroll--clip': slot.upgrades.length > 5 }"
+        >
+          <ul class="upgrade-list">
+            <li v-for="up in slot.upgrades" :key="String(up.item.catalogKey)">
+              <a
+                :href="itemOverlayHref(String(up.item.catalogKey))"
+                class="item-link"
+                @click="openItemOverlay(String(up.item.catalogKey), $event)"
+              >
+                {{ up.item.name }}
+              </a>
+              <span class="score-chip">{{ formatScore(up.score) }}</span>
+              <span class="upgrade-meta">
+                level {{ up.item.Level }} · Δ{{ formatScore(up.delta) }}
+              </span>
+            </li>
+          </ul>
+        </div>
+        <p v-else class="text-body-2 text-medium-emphasis mb-0">No options for this slot.</p>
+      </article>
     </template>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { parseEquipmentPaste } from '../audit/parseEquipment'
-import { runEquipmentAudit, type AuditReport } from '../audit/runAudit'
+import {
+  EQUIPMENT_LAYERS,
+  parseEquipmentPaste,
+  type EquipmentLayer,
+} from '../audit/parseEquipment'
+import {
+  runEquipmentAudit,
+  type AuditReport,
+  type AuditSlotReport,
+} from '../audit/runAudit'
 import { useItemOverlay } from '../composables/useItemOverlay'
 import { LEVEL_MAX } from '../presets/constants'
 import { formatWeightedScore } from '../presets/weightedScore'
@@ -316,6 +373,11 @@ const sidegrades = ref(false)
 const attempted = ref(false)
 const report = ref<AuditReport | null>(null)
 const parseErrors = ref<string[]>([])
+const runAuditRow = ref<HTMLElement | null>(null)
+
+/** Result filters — empty = no restriction (show all). */
+const filterSlots = ref<string[]>([])
+const filterLayers = ref<EquipmentLayer[]>([])
 
 const placeholder = `     +++ Equipment +++
 ---- --------      -----   ----                                       ---------
@@ -360,7 +422,55 @@ const scoringMode = computed(() => {
 
 const canRun = computed(() => !!pasteText.value.trim() && !!store.catalog?.length)
 
+const formatSlotTitle = (slot: string, layer: string) => `${slot} - ${layer}`
+
+const bestDelta = (slot: AuditSlotReport): number | null => {
+  if (!slot.upgrades.length) return null
+  return slot.upgrades[0].delta
+}
+
+const resultSlotOptions = computed(() => {
+  if (!report.value) return []
+  const seen = new Set<string>()
+  const opts: string[] = []
+  for (const s of report.value.slots) {
+    if (seen.has(s.slot)) continue
+    seen.add(s.slot)
+    opts.push(s.slot)
+  }
+  return opts
+})
+
+const resultLayerOptions = computed(() => {
+  if (!report.value) return [...EQUIPMENT_LAYERS]
+  const present = new Set(report.value.slots.map((s) => s.layer))
+  return EQUIPMENT_LAYERS.filter((l) => present.has(l))
+})
+
+/** Filtered + sorted by biggest upgrade delta (equipped → best). */
+const sortedSlots = computed((): AuditSlotReport[] => {
+  if (!report.value) return []
+  const slots = filterSlots.value
+  const layers = filterLayers.value
+  const filtered = report.value.slots.filter((s) => {
+    if (slots.length && !slots.includes(s.slot)) return false
+    if (layers.length && !layers.includes(s.layer)) return false
+    return true
+  })
+  return filtered.slice().sort((a, b) => {
+    const da = bestDelta(a) ?? Number.NEGATIVE_INFINITY
+    const db = bestDelta(b) ?? Number.NEGATIVE_INFINITY
+    if (db !== da) return db - da
+    return formatSlotTitle(a.slot, a.layer).localeCompare(formatSlotTitle(b.slot, b.layer))
+  })
+})
+
 const auditReturnQuery = { returnTo: 'audit' }
+
+const scrollRunAuditUnderNav = async () => {
+  await nextTick()
+  runAuditRow.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 const openCharactersEditor = () => {
   router.push({
@@ -488,6 +598,17 @@ const runAudit = () => {
     verbose: verbose.value,
     sidegrades: sidegrades.value,
   })
+  // Keep filters valid for the new report; leave user picks when still present.
+  const slotSet = new Set(resultSlotOptions.value)
+  filterSlots.value = filterSlots.value.filter((s) => slotSet.has(s))
+  const layerSet = new Set(resultLayerOptions.value)
+  filterLayers.value = filterLayers.value.filter((l) => layerSet.has(l))
+}
+
+/** Button click: run + scroll so the control sits under the sticky nav. */
+const onRunAuditClick = () => {
+  runAudit()
+  void scrollRunAuditUnderNav()
 }
 
 const savePasteToProfile = () => {
@@ -544,9 +665,66 @@ onMounted(() => {
   line-height: 1.35;
 }
 
-.slot-block {
-  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.12);
-  padding-top: 0.75rem;
+.mono-num {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Sit “Run audit” just under the sticky chrome after a run. */
+.audit-run-row {
+  scroll-margin-top: calc(var(--tfecat-chrome-height, var(--tfecat-nav-height, 80px)) + 8px);
+}
+
+.result-filter-field {
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
+.slot-card {
+  border: 1px solid rgb(var(--v-theme-surface-variant));
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+  padding: 0.875rem 1rem 1rem;
+}
+
+.slot-card--empty-options {
+  border-color: rgba(212, 184, 106, 0.55);
+  box-shadow: inset 3px 0 0 #d4b86a;
+}
+
+.slot-card--unmatched {
+  border-color: rgba(212, 184, 106, 0.35);
+}
+
+.slot-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.slot-card__title {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: rgb(var(--v-theme-secondary));
+}
+
+.slot-card__meta {
+  font-size: 0.75rem;
+  color: rgb(var(--v-theme-secondary));
+}
+
+.slot-card__meta--warn {
+  color: #d4b86a;
+}
+
+.slot-card__unmatched {
+  color: #d4b86a;
 }
 
 .upgrade-list {
@@ -560,8 +738,25 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.5rem 0.75rem;
-  padding: 0.25rem 0;
+  gap: 0.35rem 0.75rem;
+  min-height: 2rem;
+  padding: 0.2rem 0;
+}
+
+.equipped-row {
+  padding: 0.35rem 0.55rem;
+  margin: 0 -0.15rem 0.35rem;
+  border-radius: 8px;
+  background: rgba(212, 184, 106, 0.12);
+  border: 1px solid rgba(212, 184, 106, 0.28);
+}
+
+.equipped-label {
+  font-size: 0.7rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d4b86a;
 }
 
 .item-link {
@@ -576,8 +771,35 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.8125rem;
+  color: rgb(var(--v-theme-on-surface));
 }
 .score-chip.equipped {
-  color: rgb(var(--v-theme-error));
+  color: #d4b86a;
+  font-weight: 600;
+}
+
+.upgrade-meta {
+  font-size: 0.75rem;
+  color: rgb(var(--v-theme-secondary));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ~5 rows visible; fade + inset shadow cue that the list scrolls. */
+.upgrade-scroll--clip {
+  max-height: 10.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.25rem;
+  border-bottom: 1px solid rgb(var(--v-theme-surface-variant));
+  box-shadow: inset 0 -12px 10px -10px rgba(0, 0, 0, 0.45);
+  scrollbar-gutter: stable;
+}
+
+.upgrade-scroll--clip::-webkit-scrollbar {
+  width: 8px;
+}
+.upgrade-scroll--clip::-webkit-scrollbar-thumb {
+  background: rgb(var(--v-theme-surface-variant));
+  border-radius: 4px;
 }
 </style>
