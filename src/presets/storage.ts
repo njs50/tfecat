@@ -113,6 +113,8 @@ const emptyState = (): PresetsState => ({
   characterProfiles: [],
   activeWeightConfigId: null,
   activeCharacterProfileId: null,
+  weightSelectionExplicit: false,
+  characterSelectionExplicit: false,
 })
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -254,15 +256,23 @@ function parsePresetsRaw(raw: string | null): PresetsState | null {
           .map(sanitizeCharacterProfile)
           .filter((c): c is CharacterProfile => !!c)
       : []
+    const weightSelectionExplicit = parsed.weightSelectionExplicit === true
+    const characterSelectionExplicit = parsed.characterSelectionExplicit === true
+    const rawWeightId =
+      typeof parsed.activeWeightConfigId === 'string' ? parsed.activeWeightConfigId : null
+    const rawCharacterId =
+      typeof parsed.activeCharacterProfileId === 'string'
+        ? parsed.activeCharacterProfileId
+        : null
+    // Pre-flag sticky actives (e.g. tip builds that wrote default-fighter) are
+    // not treated as user choices — first load stays unselected until they pick.
     return {
       weightConfigs: mergeBuiltinWeightConfigs(weightConfigs),
       characterProfiles,
-      activeWeightConfigId:
-        typeof parsed.activeWeightConfigId === 'string' ? parsed.activeWeightConfigId : null,
-      activeCharacterProfileId:
-        typeof parsed.activeCharacterProfileId === 'string'
-          ? parsed.activeCharacterProfileId
-          : null,
+      activeWeightConfigId: weightSelectionExplicit ? rawWeightId : null,
+      activeCharacterProfileId: characterSelectionExplicit ? rawCharacterId : null,
+      weightSelectionExplicit,
+      characterSelectionExplicit,
     }
   } catch {
     return null

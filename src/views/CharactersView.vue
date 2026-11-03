@@ -44,6 +44,7 @@ const {
   activeCharacterProfileId,
   upsertCharacterProfile,
   deleteCharacterProfile,
+  markCharacterSelectionExplicit,
 } = usePresets()
 
 const charClasses = [
@@ -75,6 +76,7 @@ const goBack = () => {
 
 const onSave = (profile: CharacterProfile) => {
   const saved = upsertCharacterProfile(profile)
+  markCharacterSelectionExplicit()
   activeCharacterProfileId.value = saved.id
   goBack()
 }

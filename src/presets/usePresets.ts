@@ -39,8 +39,29 @@ const activeCharacterProfileId = ref<string | null>(
   resolveStickyId(state.activeCharacterProfileId, characterProfiles.value),
 )
 
+/** See PresetsState.weightSelectionExplicit — gates sticky restore. */
+const weightSelectionExplicit = ref(state.weightSelectionExplicit === true)
+const characterSelectionExplicit = ref(state.characterSelectionExplicit === true)
+
+/** Call when the user picks/clears a weight config (Filters, Audit, manager save). */
+const markWeightSelectionExplicit = () => {
+  weightSelectionExplicit.value = true
+}
+
+/** Call when the user picks/clears a character profile. */
+const markCharacterSelectionExplicit = () => {
+  characterSelectionExplicit.value = true
+}
+
 watch(
-  [weightConfigs, characterProfiles, activeWeightConfigId, activeCharacterProfileId],
+  [
+    weightConfigs,
+    characterProfiles,
+    activeWeightConfigId,
+    activeCharacterProfileId,
+    weightSelectionExplicit,
+    characterSelectionExplicit,
+  ],
   () => {
     savePresetsState({
       weightConfigs: weightConfigs.value.filter((c) => c.id !== UNSAVED_PRESET_ID),
@@ -53,6 +74,8 @@ watch(
         activeCharacterProfileId.value === UNSAVED_PRESET_ID
           ? null
           : activeCharacterProfileId.value,
+      weightSelectionExplicit: weightSelectionExplicit.value,
+      characterSelectionExplicit: characterSelectionExplicit.value,
     })
   },
   { deep: true },
@@ -126,6 +149,7 @@ export function usePresets() {
     weightConfigs.value = weightConfigs.value.filter((c) => c.id !== id)
     if (activeWeightConfigId.value === id) {
       activeWeightConfigId.value = null
+      markWeightSelectionExplicit()
     }
   }
 
@@ -148,6 +172,7 @@ export function usePresets() {
     characterProfiles.value = characterProfiles.value.filter((c) => c.id !== id)
     if (activeCharacterProfileId.value === id) {
       activeCharacterProfileId.value = null
+      markCharacterSelectionExplicit()
     }
   }
 
@@ -164,6 +189,7 @@ export function usePresets() {
       weightConfigs.value.push(config)
     }
     activeWeightConfigId.value = UNSAVED_PRESET_ID
+    markWeightSelectionExplicit()
     return config
   }
 
@@ -199,6 +225,7 @@ export function usePresets() {
       characterProfiles.value.push(profile)
     }
     activeCharacterProfileId.value = UNSAVED_PRESET_ID
+    markCharacterSelectionExplicit()
     return profile
   }
 
@@ -254,5 +281,7 @@ export function usePresets() {
     clearUnsavedCharacterProfile,
     createEmptyWeightConfig,
     createEmptyCharacterProfile,
+    markWeightSelectionExplicit,
+    markCharacterSelectionExplicit,
   }
 }

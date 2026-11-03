@@ -219,10 +219,8 @@ const openEditor = () => {
   if (start) {
     editingId.value = start.id
     loadDraft(start)
-  } else if (props.configs.length) {
-    editingId.value = props.configs[0].id
-    loadDraft(props.configs[0])
   } else {
+    // No active selection — don't land on Fighter (first built-in) as if it were chosen.
     startNew()
   }
 }

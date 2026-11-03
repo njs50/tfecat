@@ -59,6 +59,7 @@ const {
   activeWeightConfigId,
   upsertWeightConfig,
   deleteWeightConfig,
+  markWeightSelectionExplicit,
 } = usePresets()
 const { shareCopied, flashCopied } = useShareFeedback()
 
@@ -80,6 +81,7 @@ const goBack = () => {
 
 const onSave = (config: WeightConfig) => {
   const saved = upsertWeightConfig(config)
+  markWeightSelectionExplicit()
   activeWeightConfigId.value = saved.id
   goBack()
 }

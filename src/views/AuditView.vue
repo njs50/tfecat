@@ -460,6 +460,8 @@ const {
   characterProfileSelectItems,
   weightConfigSelectItems,
   upsertCharacterProfile,
+  markWeightSelectionExplicit,
+  markCharacterSelectionExplicit,
 } = usePresets()
 
 /**
@@ -690,6 +692,7 @@ const hydrateFromProfile = (id: string | null) => {
 }
 
 const onProfileChange = (id: string | null) => {
+  markCharacterSelectionExplicit()
   activeCharacterProfileId.value = id
   if (!id) {
     activeGearSetId.value = null
@@ -715,6 +718,7 @@ const onGearSetChange = (id: string | null) => {
 }
 
 const onWeightChange = (id: string | null) => {
+  markWeightSelectionExplicit()
   activeWeightConfigId.value = id
   if (id) {
     itemProperty.value = null

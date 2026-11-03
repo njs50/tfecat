@@ -69,4 +69,11 @@ export type PresetsState = {
   characterProfiles: CharacterProfile[]
   activeWeightConfigId: string | null
   activeCharacterProfileId: string | null
+  /**
+   * True only after the user picks/clears a weight or profile in Filters/Audit
+   * (or saves from the manager). Without this flag, sticky actives are ignored
+   * so built-ins like Fighter are never the implicit first-load selection.
+   */
+  weightSelectionExplicit?: boolean
+  characterSelectionExplicit?: boolean
 }
