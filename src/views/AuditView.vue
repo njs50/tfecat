@@ -316,7 +316,9 @@
         :key="`${slot.slot}.${slot.layer}`"
         class="slot-card mb-3"
         :class="{
-          'slot-card--empty-options': slot.empty && slot.upgrades.length > 0,
+          'slot-card--empty-options':
+            !slot.unequippable && slot.empty && slot.upgrades.length > 0,
+          'slot-card--unequippable': slot.unequippable,
           'slot-card--unmatched': !!slot.unmatchedRaw,
         }"
       >
@@ -324,7 +326,10 @@
           <h2 class="slot-card__title">
             {{ formatSlotTitle(slot.slot, slot.layer) }}
           </h2>
-          <span v-if="slot.empty" class="slot-card__meta">nothing equipped</span>
+          <span v-if="slot.unequippable" class="slot-card__meta slot-card__meta--danger">
+            not equippable
+          </span>
+          <span v-else-if="slot.empty" class="slot-card__meta">nothing equipped</span>
           <span v-else-if="slot.unmatchedRaw" class="slot-card__meta slot-card__meta--warn">
             not in catalog
           </span>
@@ -340,7 +345,11 @@
           {{ slot.unmatchedRaw }}
         </div>
 
-        <div v-if="slot.equipped?.catalogItem" class="equipped-row mb-2">
+        <div
+          v-if="slot.equipped?.catalogItem"
+          class="equipped-row mb-2"
+          :class="{ 'equipped-row--unequippable': slot.unequippable }"
+        >
           <a
             :href="itemOverlayHref(String(slot.equipped.catalogItem.catalogKey))"
             class="item-link"
@@ -348,8 +357,22 @@
           >
             {{ slot.equipped.catalogItem.name }}
           </a>
-          <span class="score-chip equipped">{{ formatScore(slot.equipped.score) }}</span>
-          <span class="equipped-label">equipped</span>
+          <span
+            class="score-chip"
+            :class="slot.unequippable ? 'unequippable' : 'equipped'"
+          >
+            {{ formatScore(slot.unequippable ? null : slot.equipped.score) }}
+          </span>
+          <span
+            class="equipped-label"
+            :class="{ 'equipped-label--danger': slot.unequippable }"
+          >
+            {{
+              slot.unequippable
+                ? 'Not equippable by currently configured character'
+                : 'equipped'
+            }}
+          </span>
         </div>
 
         <div
@@ -877,6 +900,11 @@ onMounted(() => {
   box-shadow: inset 3px 0 0 #d4b86a;
 }
 
+.slot-card--unequippable {
+  border-color: rgba(224, 110, 100, 0.55);
+  box-shadow: inset 3px 0 0 #e06e64;
+}
+
 .slot-card--unmatched {
   border-color: rgba(212, 184, 106, 0.35);
 }
@@ -908,6 +936,10 @@ onMounted(() => {
   color: #d4b86a;
 }
 
+.slot-card__meta--danger {
+  color: #e06e64;
+}
+
 .slot-card__unmatched {
   color: #d4b86a;
 }
@@ -936,12 +968,24 @@ onMounted(() => {
   border: 1px solid rgba(212, 184, 106, 0.28);
 }
 
+.equipped-row--unequippable {
+  background: rgba(224, 110, 100, 0.12);
+  border-color: rgba(224, 110, 100, 0.32);
+}
+
 .equipped-label {
   font-size: 0.7rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #d4b86a;
+}
+
+.equipped-label--danger {
+  color: #e06e64;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.75rem;
 }
 
 .item-link {
@@ -960,6 +1004,10 @@ onMounted(() => {
 }
 .score-chip.equipped {
   color: #d4b86a;
+  font-weight: 600;
+}
+.score-chip.unequippable {
+  color: #e06e64;
   font-weight: 600;
 }
 

@@ -2,6 +2,7 @@ import { getItemPropertyAmount } from '../itemProperties'
 import { getWeightedScore } from '../presets/weightedScore'
 import {
   applyCatalogFilters,
+  catalogItemAllowedByCharacter,
   type CatalogFilterState,
   type ScoredCatalogItem,
 } from '../catalog/applyFilters'
@@ -34,6 +35,11 @@ export type AuditSlotReport = {
   unmatchedRaw: string | null
   upgrades: AuditUpgrade[]
   empty: boolean
+  /**
+   * Equipped catalog item exists but is blocked by the configured character
+   * (align/race/class/gender/level). Scored as if the slot were empty.
+   */
+  unequippable: boolean
 }
 
 export type AuditReport = {
@@ -159,8 +165,14 @@ export function runEquipmentAudit(options: {
   }
 
   let usingTwoHandedWeapon = false
-  const rightBase = resolvedBySlot['right hand']?.base?.catalogItem
-  if (rightBase && rightBase.itemType === 'weapon' && hasAffect(rightBase, 'Requires two hands.')) {
+  const rightBasePiece = resolvedBySlot['right hand']?.base
+  const rightBase = rightBasePiece?.catalogItem
+  if (
+    rightBase &&
+    catalogItemAllowedByCharacter(rightBase, filterState) &&
+    rightBase.itemType === 'weapon' &&
+    hasAffect(rightBase, 'Requires two hands.')
+  ) {
     usingTwoHandedWeapon = true
   }
 
@@ -183,16 +195,21 @@ export function runEquipmentAudit(options: {
       }
 
       const equipped = resolvedBySlot[slot]?.[layer] ?? null
-      const empty = !equipped
-      const equippedScore = equipped?.score ?? 0
+      const unequippable = !!(
+        equipped?.catalogItem &&
+        !catalogItemAllowedByCharacter(equipped.catalogItem, filterState)
+      )
+      // Blocked gear counts as an empty slot for upgrade ranking / totals.
+      const empty = !equipped || unequippable
+      const equippedScore = empty ? 0 : (equipped?.score ?? 0)
 
-      if (equipped?.score != null) {
+      if (!unequippable && equipped?.score != null) {
         gearTotal += equipped.score
         gearCounted = true
       }
 
       if (scoringMode === 'none') {
-        if (verbose || (equipped && !equipped.catalogItem)) {
+        if (verbose || (equipped && !equipped.catalogItem) || unequippable) {
           slots.push({
             slot,
             wearLoc,
@@ -200,7 +217,8 @@ export function runEquipmentAudit(options: {
             equipped,
             unmatchedRaw: equipped && !equipped.catalogItem ? equipped.raw : null,
             upgrades: [],
-            empty,
+            empty: !equipped,
+            unequippable,
           })
         }
         continue
@@ -218,7 +236,11 @@ export function runEquipmentAudit(options: {
       for (const item of candidates) {
         const score = scoreItem(item, filterState)
         if (score == null) continue
-        if (equipped?.catalogItem && item.catalogKey === equipped.catalogItem.catalogKey) {
+        if (
+          !unequippable &&
+          equipped?.catalogItem &&
+          item.catalogKey === equipped.catalogItem.catalogKey
+        ) {
           continue
         }
         if (!isAuditScoreEligible(score, equippedScore, empty, sidegrades)) continue
@@ -237,9 +259,11 @@ export function runEquipmentAudit(options: {
           ? slot.replace('left', 'right')
           : slot.replace('right', 'left')
         const alt = resolvedBySlot[altSlot]?.[layer]
-        if (alt?.catalogItem && !hasAffect(alt.catalogItem, 'Effects are additive.')) {
+        const altAllowed =
+          !!alt?.catalogItem && catalogItemAllowedByCharacter(alt.catalogItem, filterState)
+        if (altAllowed && !hasAffect(alt!.catalogItem, 'Effects are additive.')) {
           for (let i = trimmed.length - 1; i >= 0; i--) {
-            if (trimmed[i].item.catalogKey === alt.catalogItem!.catalogKey) {
+            if (trimmed[i].item.catalogKey === alt!.catalogItem!.catalogKey) {
               trimmed.splice(i, 1)
             }
           }
@@ -247,9 +271,9 @@ export function runEquipmentAudit(options: {
       }
 
       // Hide slots with no options unless “show empty slots”, but always surface
-      // unmatched equipped gear so the paste can be fixed.
+      // unmatched / unequippable equipped gear so the paste can be fixed.
       const unmatchedRaw = equipped && !equipped.catalogItem ? equipped.raw : null
-      if (verbose || trimmed.length > 0 || unmatchedRaw) {
+      if (verbose || trimmed.length > 0 || unmatchedRaw || unequippable) {
         slots.push({
           slot,
           wearLoc,
@@ -257,7 +281,8 @@ export function runEquipmentAudit(options: {
           equipped,
           unmatchedRaw,
           upgrades: trimmed,
-          empty,
+          empty: !equipped,
+          unequippable,
         })
       }
     }
