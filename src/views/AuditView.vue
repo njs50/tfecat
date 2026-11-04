@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="content-shell px-4 px-sm-6 px-md-8 pt-4 pb-10">
-    <v-row dense class="mb-1 align-center">
+    <v-row dense class="mb-3 align-center">
       <v-col class="d-flex align-center ga-1" cols="12" md="4">
         <v-select
           :model-value="activeCharacterProfileId"
@@ -67,178 +67,8 @@
         >
           <v-icon>mdi-pencil</v-icon>
         </v-btn>
-        <v-btn
-          icon
-          variant="tonal"
-          density="compact"
-          :aria-label="showAuditOptions ? 'Hide audit options' : 'Show audit options'"
-          :aria-pressed="showAuditOptions"
-          @click="showAuditOptions = !showAuditOptions"
-        >
-          <v-icon>mdi-cog</v-icon>
-        </v-btn>
       </v-col>
     </v-row>
-
-    <div
-      v-show="showAuditOptions"
-      class="audit-options-panel mb-3"
-      role="region"
-      aria-label="Audit options"
-    >
-      <div class="d-flex flex-wrap ga-4 mb-2">
-        <v-checkbox
-          :model-value="manualCharacterEffective"
-          label="Manually configure character"
-          density="compact"
-          hide-details
-          :disabled="!selectedProfile"
-          @update:model-value="onManualCharacterToggle"
-        ></v-checkbox>
-        <v-checkbox
-          :model-value="manualWeightEffective"
-          label="Manually configure scoring"
-          density="compact"
-          hide-details
-          :disabled="!selectedWeight"
-          @update:model-value="onManualWeightToggle"
-        ></v-checkbox>
-        <v-checkbox
-          v-if="selectedProfile"
-          v-model="pasteNewGearSet"
-          label="Paste new gear set"
-          density="compact"
-          hide-details
-        ></v-checkbox>
-      </div>
-
-      <v-row v-if="manualCharacterEffective" dense class="mb-1">
-        <v-col cols="6" sm="4" md="2">
-          <v-text-field
-            v-model.number="levelMax"
-            type="number"
-            :min="1"
-            :max="LEVEL_MAX"
-            step="1"
-            label="Level"
-            density="compact"
-            hide-details
-          ></v-text-field>
-        </v-col>
-        <v-col cols="6" sm="4" md="2">
-          <v-select
-            v-model="charAlignment"
-            :items="charAlignments"
-            label="Alignment"
-            density="compact"
-            clearable
-            hide-details
-          ></v-select>
-        </v-col>
-        <v-col cols="6" sm="4" md="2">
-          <v-select
-            v-model="charRace"
-            :items="charRaces"
-            label="Race"
-            density="compact"
-            clearable
-            hide-details
-          ></v-select>
-        </v-col>
-        <v-col cols="6" sm="4" md="3">
-          <v-select
-            v-model="charClass"
-            :items="charClasses"
-            label="Class"
-            density="compact"
-            clearable
-            hide-details
-          ></v-select>
-        </v-col>
-        <v-col cols="6" sm="4" md="3">
-          <v-select
-            v-model="charGender"
-            :items="charGenders"
-            label="Gender"
-            density="compact"
-            clearable
-            hide-details
-          ></v-select>
-        </v-col>
-      </v-row>
-
-      <v-row v-if="manualWeightEffective" dense class="mb-2">
-        <v-col cols="12" md="6">
-          <v-autocomplete
-            :model-value="itemPropertyDisplay"
-            :items="itemPropertyItems"
-            label="Item property"
-            density="compact"
-            :clearable="!selectedWeight"
-            hide-details
-            :disabled="!!selectedWeight && !manualWeight"
-            @update:model-value="onItemPropertyUpdate"
-          ></v-autocomplete>
-        </v-col>
-      </v-row>
-
-      <div class="d-flex flex-wrap align-center ga-4 mb-2">
-        <v-checkbox
-          v-model="verbose"
-          label="Show empty slots"
-          density="compact"
-          hide-details
-        ></v-checkbox>
-        <div class="d-flex align-center ga-2 flex-wrap">
-          <v-checkbox
-            v-model="sidegrades"
-            label="Include sidegrades"
-            density="compact"
-            hide-details
-          ></v-checkbox>
-          <v-text-field
-            v-model.number="sidegradePercent"
-            type="number"
-            min="0"
-            max="100"
-            step="1"
-            suffix="%"
-            label="Variance"
-            density="compact"
-            hide-details
-            class="sidegrade-percent-field"
-            :disabled="!sidegrades"
-          ></v-text-field>
-        </div>
-      </div>
-
-      <div class="d-flex flex-wrap ga-2">
-        <v-select
-          v-model="filterSlots"
-          :items="configSlotOptions"
-          label="Wear location"
-          density="compact"
-          multiple
-          clearable
-          hide-details
-          chips
-          closable-chips
-          class="result-filter-field"
-        ></v-select>
-        <v-select
-          v-model="filterLayers"
-          :items="configLayerOptions"
-          label="Layer"
-          density="compact"
-          multiple
-          clearable
-          hide-details
-          chips
-          closable-chips
-          class="result-filter-field"
-        ></v-select>
-      </div>
-    </div>
 
     <template v-if="showPasteInput">
       <v-textarea
@@ -309,14 +139,178 @@
       </ul>
     </v-alert>
 
-    <template v-if="report">
-      <div class="results-header mb-3">
-        <p v-if="report.gearTotal != null" class="text-body-2 mb-0">
-          Total equipped {{ report.propertyLabel }}:
-          <strong class="mono-num">{{ formatScore(report.gearTotal) }}</strong>
-        </p>
-      </div>
+    <div class="results-toolbar d-flex flex-wrap align-center ga-2 mb-3">
+      <p v-if="report?.gearTotal != null" class="text-body-2 mb-0">
+        Total equipped {{ report.propertyLabel }}:
+        <strong class="mono-num">{{ formatScore(report.gearTotal) }}</strong>
+      </p>
+      <v-spacer></v-spacer>
+      <v-btn
+        icon
+        variant="tonal"
+        density="compact"
+        :aria-label="showAuditOptions ? 'Hide audit options' : 'Show audit options'"
+        :aria-pressed="showAuditOptions"
+        @click="showAuditOptions = !showAuditOptions"
+      >
+        <v-icon>mdi-cog</v-icon>
+      </v-btn>
+    </div>
 
+    <div
+      v-show="showAuditOptions"
+      class="audit-options-panel mb-3"
+      role="region"
+      aria-label="Audit options"
+    >
+      <v-row dense>
+        <v-col cols="12" md="4" class="audit-options-col">
+          <v-checkbox
+            :model-value="manualCharacterEffective"
+            label="Manually configure character"
+            density="compact"
+            hide-details
+            class="mb-2"
+            :disabled="!selectedProfile"
+            @update:model-value="onManualCharacterToggle"
+          ></v-checkbox>
+          <template v-if="manualCharacterEffective">
+            <v-text-field
+              v-model.number="levelMax"
+              type="number"
+              :min="1"
+              :max="LEVEL_MAX"
+              step="1"
+              label="Level"
+              density="compact"
+              hide-details
+              class="mb-2"
+            ></v-text-field>
+            <v-select
+              v-model="charAlignment"
+              :items="charAlignments"
+              label="Alignment"
+              density="compact"
+              clearable
+              hide-details
+              class="mb-2"
+            ></v-select>
+            <v-select
+              v-model="charRace"
+              :items="charRaces"
+              label="Race"
+              density="compact"
+              clearable
+              hide-details
+              class="mb-2"
+            ></v-select>
+            <v-select
+              v-model="charClass"
+              :items="charClasses"
+              label="Class"
+              density="compact"
+              clearable
+              hide-details
+              class="mb-2"
+            ></v-select>
+            <v-select
+              v-model="charGender"
+              :items="charGenders"
+              label="Gender"
+              density="compact"
+              clearable
+              hide-details
+            ></v-select>
+          </template>
+        </v-col>
+
+        <v-col cols="12" md="4" class="audit-options-col">
+          <v-checkbox
+            :model-value="manualWeightEffective"
+            label="Manually configure scoring"
+            density="compact"
+            hide-details
+            class="mb-2"
+            :disabled="!selectedWeight"
+            @update:model-value="onManualWeightToggle"
+          ></v-checkbox>
+          <v-autocomplete
+            v-if="manualWeightEffective"
+            :model-value="itemPropertyDisplay"
+            :items="itemPropertyItems"
+            label="Item property"
+            density="compact"
+            :clearable="!selectedWeight || manualWeight"
+            hide-details
+            class="mb-2"
+            :disabled="!!selectedWeight && !manualWeight"
+            @update:model-value="onItemPropertyUpdate"
+          ></v-autocomplete>
+          <v-checkbox
+            v-if="selectedProfile"
+            v-model="pasteNewGearSet"
+            label="Paste new gear set"
+            density="compact"
+            hide-details
+          ></v-checkbox>
+        </v-col>
+
+        <v-col cols="12" md="4" class="audit-options-col">
+          <v-checkbox
+            v-model="verbose"
+            label="Show empty slots"
+            density="compact"
+            hide-details
+            class="mb-2"
+          ></v-checkbox>
+          <v-checkbox
+            v-model="sidegrades"
+            label="Include sidegrades"
+            density="compact"
+            hide-details
+            class="mb-2"
+          ></v-checkbox>
+          <v-text-field
+            v-model.number="sidegradePercent"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            suffix="%"
+            label="Sidegrade within"
+            density="compact"
+            hide-details
+            class="sidegrade-percent-field mb-2"
+            :disabled="!sidegrades"
+          ></v-text-field>
+          <v-select
+            v-model="filterSlots"
+            :items="configSlotOptions"
+            label="Wear location"
+            density="compact"
+            multiple
+            clearable
+            hide-details
+            chips
+            closable-chips
+            class="mb-2"
+          ></v-select>
+          <v-select
+            v-model="filterLayers"
+            :items="configLayerOptions"
+            label="Layer"
+            density="compact"
+            multiple
+            clearable
+            hide-details
+            chips
+            closable-chips
+          ></v-select>
+        </v-col>
+      </v-row>
+    </div>
+
+    <template v-if="report">
       <v-alert
         v-if="report.unmatched.length"
         type="warning"
@@ -363,6 +357,7 @@
           <span
             v-else-if="bestDelta(slot) != null"
             class="slot-card__meta mono-num"
+            :class="{ 'delta--neg': (bestDelta(slot) ?? 0) < 0 }"
           >
             best Δ{{ formatScore(bestDelta(slot)) }}
           </span>
@@ -417,7 +412,7 @@
                 {{ up.item.name }}
               </a>
               <span class="score-chip">{{ formatScore(up.score) }}</span>
-              <span class="upgrade-meta">
+              <span class="upgrade-meta" :class="{ 'delta--neg': up.delta < 0 }">
                 level {{ up.item.Level }} · Δ{{ formatScore(up.delta) }}
               </span>
             </li>
@@ -937,8 +932,7 @@ onMounted(() => {
 }
 
 .sidegrade-percent-field {
-  width: 7.5rem;
-  flex: 0 0 7.5rem;
+  max-width: 10rem;
 }
 
 .audit-options-panel {
@@ -948,9 +942,12 @@ onMounted(() => {
   padding: 0.75rem 1rem 1rem;
 }
 
-.result-filter-field {
-  flex: 1 1 220px;
-  max-width: 360px;
+.audit-options-col {
+  min-width: 0;
+}
+
+.delta--neg {
+  color: #e06e64;
 }
 
 .slot-card {
