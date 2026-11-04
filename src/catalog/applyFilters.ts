@@ -1,6 +1,7 @@
 import { getItemPropertyAmount } from '../itemProperties'
 import { getWeightedScore } from '../presets/weightedScore'
 import type { CharacterStats } from '../presets/types'
+import { catalogItemAllowedByExtras } from './itemExtras'
 
 /** Filter state shared by Item catalog and Item audit. */
 export type CatalogFilterState = {
@@ -67,11 +68,17 @@ export function applyCatalogFilters(
     if (state.itemLayer) {
       if (!item.Layer || item.Layer.indexOf(state.itemLayer) < 0) return false
     }
-    if (state.charAlignment && !item.charAlignments?.[state.charAlignment]) return false
-    if (state.charRace && !item.charRaces?.[state.charRace.toLowerCase()]) return false
-    if (state.charClass && !item.charClasses?.[state.charClass.toLowerCase()]) return false
-    if (state.charGender && !item.charGenders?.[state.charGender.toLowerCase()]) return false
-    if (item.Level < state.levelRange[0] || item.Level > state.levelRange[1]) return false
+    if (
+      !catalogItemAllowedByCharacter(item, {
+        charAlignment: state.charAlignment,
+        charClass: state.charClass,
+        charRace: state.charRace,
+        charGender: state.charGender,
+        levelRange: state.levelRange,
+      })
+    ) {
+      return false
+    }
     return true
   })
 
@@ -102,7 +109,8 @@ export function catalogScore(
 }
 
 /**
- * True when the item is usable by the configured character (align/race/class/gender/level).
+ * True when the item is usable by the configured character
+ * (align/race/class/gender/level + sidecar equipable/size).
  * Used by Item Audit to treat worn-but-blocked gear as unequipped for scoring.
  */
 export function catalogItemAllowedByCharacter(
@@ -117,6 +125,7 @@ export function catalogItemAllowedByCharacter(
   if (state.charRace && !item.charRaces?.[state.charRace.toLowerCase()]) return false
   if (state.charClass && !item.charClasses?.[state.charClass.toLowerCase()]) return false
   if (state.charGender && !item.charGenders?.[state.charGender.toLowerCase()]) return false
+  if (!catalogItemAllowedByExtras(item, state.charRace)) return false
   const level = typeof item.Level === 'number' ? item.Level : Number(item.Level)
   if (Number.isFinite(level)) {
     if (level < state.levelRange[0] || level > state.levelRange[1]) return false
