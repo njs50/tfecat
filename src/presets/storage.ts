@@ -113,6 +113,8 @@ const emptyState = (): PresetsState => ({
   characterProfiles: [],
   activeWeightConfigId: null,
   activeCharacterProfileId: null,
+  weightSelectionExplicit: false,
+  characterSelectionExplicit: false,
 })
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -254,15 +256,26 @@ function parsePresetsRaw(raw: string | null): PresetsState | null {
           .map(sanitizeCharacterProfile)
           .filter((c): c is CharacterProfile => !!c)
       : []
+    const rawWeightId =
+      typeof parsed.activeWeightConfigId === 'string' ? parsed.activeWeightConfigId : null
+    const rawCharacterId =
+      typeof parsed.activeCharacterProfileId === 'string'
+        ? parsed.activeCharacterProfileId
+        : null
+    // Sticky actives from prior visits are restored as-is (user had them saved).
+    // Fresh installs stay null via emptyState — never invent a built-in default.
+    // Legacy sticky without the flag still restores; treat presence as explicit.
+    const weightSelectionExplicit =
+      parsed.weightSelectionExplicit === true || !!rawWeightId
+    const characterSelectionExplicit =
+      parsed.characterSelectionExplicit === true || !!rawCharacterId
     return {
       weightConfigs: mergeBuiltinWeightConfigs(weightConfigs),
       characterProfiles,
-      activeWeightConfigId:
-        typeof parsed.activeWeightConfigId === 'string' ? parsed.activeWeightConfigId : null,
-      activeCharacterProfileId:
-        typeof parsed.activeCharacterProfileId === 'string'
-          ? parsed.activeCharacterProfileId
-          : null,
+      activeWeightConfigId: rawWeightId,
+      activeCharacterProfileId: rawCharacterId,
+      weightSelectionExplicit,
+      characterSelectionExplicit,
     }
   } catch {
     return null

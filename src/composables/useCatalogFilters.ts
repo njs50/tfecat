@@ -63,6 +63,8 @@ export function useCatalogFilters() {
     setUnsavedCharacterProfile,
     clearUnsavedWeightConfig,
     clearUnsavedCharacterProfile,
+    markWeightSelectionExplicit,
+    markCharacterSelectionExplicit,
   } = usePresets()
 
   const levelMin = computed({
@@ -122,7 +124,9 @@ export function useCatalogFilters() {
     router.replace({ name, query })
   }
 
-  const applyCharacterProfile = (id: string | null) => {
+  /** Apply profile fields to filter state. Pass `explicit` when the user picked/cleared the select. */
+  const applyCharacterProfile = (id: string | null, explicit = false) => {
+    if (explicit) markCharacterSelectionExplicit()
     if (!id) {
       clearUnsavedCharacterProfile()
       const min = levelRange.value[0]
@@ -147,9 +151,11 @@ export function useCatalogFilters() {
     activeWeightConfigId.value = null
     clearUnsavedWeightConfig()
     itemProperty.value = null
+    markWeightSelectionExplicit()
   }
 
   const onWeightConfigSelected = (id: string | null) => {
+    markWeightSelectionExplicit()
     if (id) {
       itemProperty.value = null
       return
@@ -185,6 +191,7 @@ export function useCatalogFilters() {
     } else if (hasWeightKeys) {
       clearUnsavedWeightConfig()
       activeWeightConfigId.value = partial.activeWeightConfigId ?? null
+      markWeightSelectionExplicit()
       itemProperty.value = activeWeightConfigId.value ? null : (partial.itemProperty ?? null)
     } else if (hasPropertyKey) {
       clearUnsavedWeightConfig()
@@ -210,6 +217,7 @@ export function useCatalogFilters() {
     } else if (queryHas('character')) {
       clearUnsavedCharacterProfile()
       activeCharacterProfileId.value = partial.activeCharacterProfileId ?? null
+      markCharacterSelectionExplicit()
       if (activeCharacterProfileId.value) {
         applyCharacterProfile(activeCharacterProfileId.value)
       }
@@ -232,7 +240,7 @@ export function useCatalogFilters() {
         label: activeCharacterProfile.value.name,
         clear: () => {
           activeCharacterProfileId.value = null
-          applyCharacterProfile(null)
+          applyCharacterProfile(null, true)
         },
       })
     }

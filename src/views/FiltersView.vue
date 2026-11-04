@@ -25,7 +25,7 @@
           clearable
           hide-details
           class="flex-grow-1"
-          @update:model-value="applyCharacterProfile"
+          @update:model-value="(id) => applyCharacterProfile(id, true)"
         ></v-select>
         <v-btn
           icon

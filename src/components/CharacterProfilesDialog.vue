@@ -332,10 +332,8 @@ const openEditor = () => {
   if (start) {
     editingId.value = start.id
     loadDraft(start)
-  } else if (props.profiles.length) {
-    editingId.value = props.profiles[0].id
-    loadDraft(props.profiles[0])
   } else {
+    // No active selection — don't imply the first saved profile is selected.
     startNew()
   }
 }

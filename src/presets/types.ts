@@ -69,4 +69,11 @@ export type PresetsState = {
   characterProfiles: CharacterProfile[]
   activeWeightConfigId: string | null
   activeCharacterProfileId: string | null
+  /**
+   * True after the user picks/clears a weight or profile (Filters/Audit/manager),
+   * or when a sticky active was already present (legacy localStorage). Fresh
+   * installs leave actives null — built-ins are never invented as a default.
+   */
+  weightSelectionExplicit?: boolean
+  characterSelectionExplicit?: boolean
 }
