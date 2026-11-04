@@ -231,6 +231,8 @@ export function usePresets() {
     class: null,
     gender: null,
     stats: { ...DEFAULT_CHARACTER_STATS },
+    gearSets: [],
+    activeGearSetId: null,
   })
 
   return {

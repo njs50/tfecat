@@ -103,22 +103,69 @@
         </v-col>
       </v-row>
 
-      <div class="text-subtitle-2 mt-4 mb-1">Equipment</div>
+      <div class="text-subtitle-2 mt-4 mb-1">Gear sets</div>
       <p class="text-body-2 text-medium-emphasis mb-2">
-        Paste a Mudlet <code>equipment</code> dump for Item Audit. Saved with this profile.
+        Named Mudlet <code>equipment</code> dumps for Item Audit.
+        {{ gearSetSummary }}.
       </p>
-      <v-textarea
-        v-model="draft.equipmentPaste"
-        label="Equipment paste"
-        auto-grow
-        rows="6"
-        max-rows="16"
-        density="compact"
-        hide-details="auto"
-        spellcheck="false"
-        class="equipment-paste"
-        :placeholder="equipmentPlaceholder"
-      ></v-textarea>
+
+      <v-row class="align-center mb-2" dense>
+        <v-col cols="12" sm="8" md="7">
+          <v-select
+            :model-value="editingGearSetId"
+            :items="gearSetItems"
+            label="Edit gear set"
+            density="compact"
+            hide-details
+            :disabled="!(draft.gearSets && draft.gearSets.length)"
+            @update:model-value="onSelectGearSet"
+          ></v-select>
+        </v-col>
+        <v-col cols="12" sm="4" md="5" class="d-flex flex-wrap justify-sm-end ga-2">
+          <v-btn
+            variant="tonal"
+            density="compact"
+            prepend-icon="mdi-plus"
+            @click="startNewGearSet"
+          >
+            New gear set
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="text"
+            density="compact"
+            :disabled="!editingGearSetId"
+            @click="removeGearSet"
+          >
+            Delete set
+          </v-btn>
+        </v-col>
+      </v-row>
+
+      <template v-if="gearSetDraft">
+        <v-text-field
+          v-model="gearSetDraft.name"
+          label="Gear set name"
+          density="compact"
+          class="mb-2"
+          hide-details
+        ></v-text-field>
+        <v-textarea
+          v-model="gearSetDraft.paste"
+          label="Equipment paste"
+          auto-grow
+          rows="6"
+          max-rows="16"
+          density="compact"
+          hide-details="auto"
+          spellcheck="false"
+          class="equipment-paste mb-2"
+          :placeholder="equipmentPlaceholder"
+        ></v-textarea>
+      </template>
+      <p v-else class="text-body-2 text-medium-emphasis mb-2">
+        No gear set selected — add one with New gear set.
+      </p>
 
       <div class="d-flex flex-wrap ga-2 mt-4">
         <v-btn
@@ -151,7 +198,7 @@ import {
   UNSAVED_PRESET_LABEL,
 } from '../presets/constants'
 import { DEFAULT_CHARACTER_STATS } from '../presets/types'
-import type { CharacterProfile, CharacterStats } from '../presets/types'
+import type { CharacterGearSet, CharacterProfile, CharacterStats } from '../presets/types'
 import { clampProfileLevel } from '../composables/useCatalogQuery'
 
 const statKeys: (keyof CharacterStats)[] = ['Str', 'Int', 'Wis', 'Dex', 'Con']
@@ -174,6 +221,11 @@ const emit = defineEmits<{
 const editingId = ref<string | null>(null)
 const isNew = ref(false)
 const draft = ref<CharacterProfile | null>(null)
+const editingGearSetId = ref<string | null>(null)
+
+const equipmentPlaceholder = `     +++ Equipment +++
+worn on body              under  a deerhunter's dark silk torso pad   excellent
+worn around neck          base   a shell necklace                    perfect`
 
 const profileItems = computed(() =>
   props.profiles
@@ -190,17 +242,70 @@ const canDelete = computed(
   () => !!editingId.value && !isNew.value && editingId.value !== UNSAVED_PRESET_ID,
 )
 
-const loadDraft = (profile: CharacterProfile) => {
-  draft.value = {
-    ...profile,
-    stats: { ...DEFAULT_CHARACTER_STATS, ...(profile.stats ?? {}) },
-    equipmentPaste: profile.equipmentPaste ?? '',
+const gearSetItems = computed(() =>
+  (draft.value?.gearSets ?? [])
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .map((g) => ({ title: g.name || 'Untitled gear', value: g.id })),
+)
+
+/** Live reference into draft.gearSets — name/paste edits mutate in place. */
+const gearSetDraft = computed((): CharacterGearSet | null => {
+  if (!draft.value || !editingGearSetId.value) return null
+  return draft.value.gearSets?.find((g) => g.id === editingGearSetId.value) ?? null
+})
+
+const gearSetSummary = computed(() => {
+  const n = draft.value?.gearSets?.length ?? 0
+  if (n === 0) return 'None saved yet'
+  if (n === 1) return '1 saved'
+  return `${n} saved`
+})
+
+const selectGearSet = (id: string | null) => {
+  editingGearSetId.value = id
+  if (draft.value) {
+    draft.value.activeGearSetId = id
   }
 }
 
-const equipmentPlaceholder = `     +++ Equipment +++
-worn on body              under  a deerhunter's dark silk torso pad   excellent
-worn around neck          base   a shell necklace                    perfect`
+const onSelectGearSet = (id: string | null) => {
+  selectGearSet(id)
+}
+
+const startNewGearSet = () => {
+  if (!draft.value) return
+  const set: CharacterGearSet = {
+    id: newId(),
+    name: 'New gear set',
+    paste: '',
+  }
+  draft.value.gearSets = [...(draft.value.gearSets ?? []), set]
+  selectGearSet(set.id)
+}
+
+const removeGearSet = () => {
+  if (!draft.value || !editingGearSetId.value) return
+  const id = editingGearSetId.value
+  const next = (draft.value.gearSets ?? []).filter((g) => g.id !== id)
+  draft.value.gearSets = next
+  selectGearSet(next[0]?.id ?? null)
+}
+
+const loadDraft = (profile: CharacterProfile) => {
+  const gearSets = profile.gearSets ? profile.gearSets.map((g) => ({ ...g })) : []
+  const active =
+    (profile.activeGearSetId && gearSets.find((g) => g.id === profile.activeGearSetId)?.id) ||
+    gearSets[0]?.id ||
+    null
+  draft.value = {
+    ...profile,
+    stats: { ...DEFAULT_CHARACTER_STATS, ...(profile.stats ?? {}) },
+    gearSets,
+    activeGearSetId: active,
+  }
+  editingGearSetId.value = active
+}
 
 const startNew = () => {
   isNew.value = true
@@ -214,7 +319,8 @@ const startNew = () => {
     class: null,
     gender: null,
     stats: { ...DEFAULT_CHARACTER_STATS },
-    equipmentPaste: '',
+    gearSets: [],
+    activeGearSetId: null,
   })
 }
 
@@ -275,7 +381,17 @@ const save = () => {
   if (name === UNSAVED_PRESET_LABEL) {
     name = 'Untitled'
   }
-  const paste = (draft.value.equipmentPaste ?? '').trim()
+  const gearSets = (draft.value.gearSets ?? [])
+    .map((g) => ({
+      id: g.id,
+      name: g.name.trim() || 'Untitled gear',
+      paste: g.paste,
+    }))
+    .filter((g) => g.paste.trim())
+  const activeGearSetId =
+    draft.value.activeGearSetId && gearSets.some((g) => g.id === draft.value!.activeGearSetId)
+      ? draft.value.activeGearSetId
+      : gearSets[0]?.id ?? null
   const saved: CharacterProfile = {
     ...draft.value,
     name,
@@ -287,7 +403,9 @@ const save = () => {
       Dex: sanitizeStat(draft.value.stats?.Dex),
       Con: sanitizeStat(draft.value.stats?.Con),
     },
-    ...(paste ? { equipmentPaste: paste } : { equipmentPaste: undefined }),
+    gearSets,
+    activeGearSetId,
+    equipmentPaste: undefined,
   }
   emit('save', saved)
   isNew.value = false

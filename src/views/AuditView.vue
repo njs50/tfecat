@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="content-shell px-4 px-sm-6 px-md-8 pt-4 pb-10">
-    <v-row dense class="mb-1">
-      <v-col class="d-flex align-center ga-1" cols="12" md="6">
+    <v-row dense class="mb-3 align-center">
+      <v-col class="d-flex align-center ga-1" cols="12" md="4">
         <v-select
           :model-value="activeCharacterProfileId"
           :items="characterProfileSelectItems"
@@ -23,7 +23,31 @@
         </v-btn>
       </v-col>
 
-      <v-col class="d-flex align-center ga-1" cols="12" md="6">
+      <v-col class="d-flex align-center ga-1" cols="12" md="4">
+        <v-select
+          :model-value="activeGearSetId"
+          :items="gearSetSelectItems"
+          label="Gear set"
+          density="compact"
+          clearable
+          hide-details
+          class="flex-grow-1"
+          :disabled="!selectedProfile"
+          @update:model-value="onGearSetChange"
+        ></v-select>
+        <v-btn
+          icon
+          variant="tonal"
+          density="compact"
+          aria-label="Edit gear sets on character profile"
+          :disabled="!selectedProfile"
+          @click="openCharactersEditor"
+        >
+          <v-icon>mdi-pencil</v-icon>
+        </v-btn>
+      </v-col>
+
+      <v-col class="d-flex align-center ga-1" cols="12" md="4">
         <v-select
           :model-value="activeWeightConfigId"
           :items="weightConfigSelectItems"
@@ -46,139 +70,60 @@
       </v-col>
     </v-row>
 
-    <div class="d-flex flex-wrap ga-4 mb-2">
-      <v-checkbox
-        v-model="manualCharacter"
-        label="Manually configure character"
+    <template v-if="showPasteInput">
+      <v-textarea
+        v-model="pasteText"
+        label="Equipment paste"
+        auto-grow
+        rows="8"
+        max-rows="20"
         density="compact"
-        hide-details
-      ></v-checkbox>
-      <v-checkbox
-        v-model="manualWeight"
-        label="Manually configure scoring"
-        density="compact"
-        hide-details
-      ></v-checkbox>
-    </div>
+        hide-details="auto"
+        spellcheck="false"
+        class="mono-field mb-2"
+        :placeholder="placeholder"
+      ></v-textarea>
 
-    <v-row v-if="manualCharacter" dense class="mb-1">
-      <v-col cols="6" sm="4" md="2">
-        <v-text-field
-          v-model.number="levelMax"
-          type="number"
-          :min="1"
-          :max="LEVEL_MAX"
-          step="1"
-          label="Level"
-          density="compact"
-          hide-details
-        ></v-text-field>
-      </v-col>
-      <v-col cols="6" sm="4" md="2">
-        <v-select
-          v-model="charAlignment"
-          :items="charAlignments"
-          label="Alignment"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-      <v-col cols="6" sm="4" md="2">
-        <v-select
-          v-model="charRace"
-          :items="charRaces"
-          label="Race"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-      <v-col cols="6" sm="4" md="3">
-        <v-select
-          v-model="charClass"
-          :items="charClasses"
-          label="Class"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-      <v-col cols="6" sm="4" md="3">
-        <v-select
-          v-model="charGender"
-          :items="charGenders"
-          label="Gender"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-    </v-row>
-
-    <v-row v-if="manualWeight" dense class="mb-2">
-      <v-col cols="12" md="6">
-        <v-autocomplete
-          :model-value="itemPropertyDisplay"
-          :items="itemPropertyItems"
-          label="Item property"
-          density="compact"
-          :clearable="!selectedWeight"
-          hide-details
-          :disabled="!!selectedWeight"
-          @update:model-value="onItemPropertyUpdate"
-        ></v-autocomplete>
-      </v-col>
-    </v-row>
-
-    <v-textarea
-      v-model="pasteText"
-      label="Equipment paste"
-      auto-grow
-      rows="8"
-      max-rows="20"
-      density="compact"
-      hide-details="auto"
-      spellcheck="false"
-      class="mono-field mb-3"
-      :placeholder="placeholder"
-    ></v-textarea>
-
-    <div ref="runAuditRow" class="audit-run-row d-flex flex-wrap align-center ga-2 mb-4">
-      <v-btn color="primary" variant="elevated" :disabled="!canRun" @click="onRunAuditClick">
-        Run audit
-      </v-btn>
-      <v-btn
-        v-if="activeCharacterProfileId"
-        variant="tonal"
-        :disabled="!pasteText.trim()"
-        @click="savePasteToProfile"
+      <div
+        v-if="selectedProfile && pasteNewGearSet"
+        class="d-flex flex-wrap align-center ga-2 mb-3"
       >
-        Save paste to profile
-      </v-btn>
-      <v-checkbox
-        v-model="verbose"
-        label="Show empty slots"
-        density="compact"
-        hide-details
-        class="ml-sm-2"
-      ></v-checkbox>
-      <v-checkbox
-        v-model="sidegrades"
-        label="Include sidegrades (±10%)"
-        density="compact"
-        hide-details
-      ></v-checkbox>
-    </div>
+        <v-text-field
+          v-model="gearSetName"
+          label="Gear set name"
+          density="compact"
+          hide-details
+          class="gear-set-name-field"
+        ></v-text-field>
+        <v-btn
+          color="primary"
+          variant="tonal"
+          :disabled="!canSaveGearSet"
+          @click="saveGearSet"
+        >
+          Save gear set
+        </v-btn>
+      </div>
+    </template>
 
     <v-alert
-      v-if="scoringMode === 'none' && attempted"
+      v-if="scoringMode === 'none' && readyForAudit"
       type="warning"
       variant="tonal"
       density="compact"
       class="mb-4"
     >
       Select a weight config, or enable manual scoring and pick an item property.
+    </v-alert>
+
+    <v-alert
+      v-if="!effectivePaste.trim() && selectedProfile && !pasteNewGearSet"
+      type="info"
+      variant="tonal"
+      density="compact"
+      class="mb-4"
+    >
+      Select a saved gear set, or enable “Paste new gear set” in options.
     </v-alert>
 
     <v-alert
@@ -194,17 +139,153 @@
       </ul>
     </v-alert>
 
-    <template v-if="report">
-      <div class="results-header mb-3">
-        <p v-if="report.gearTotal != null" class="text-body-2 mb-3">
-          Total equipped {{ report.propertyLabel }}:
-          <strong class="mono-num">{{ formatScore(report.gearTotal) }}</strong>
-        </p>
+    <div class="results-toolbar d-flex flex-wrap align-center ga-2 mb-3">
+      <p v-if="report?.gearTotal != null" class="text-body-2 mb-0">
+        Total equipped {{ report.propertyLabel }}:
+        <strong class="mono-num">{{ formatScore(report.gearTotal) }}</strong>
+      </p>
+      <v-spacer></v-spacer>
+      <v-btn
+        icon
+        variant="tonal"
+        density="compact"
+        :aria-label="showAuditOptions ? 'Hide audit options' : 'Show audit options'"
+        :aria-pressed="showAuditOptions"
+        @click="showAuditOptions = !showAuditOptions"
+      >
+        <v-icon>mdi-cog</v-icon>
+      </v-btn>
+    </div>
 
-        <div class="result-filters d-flex flex-wrap ga-2 mb-1">
+    <div
+      v-show="showAuditOptions"
+      class="audit-options-panel mb-3"
+      role="region"
+      aria-label="Audit options"
+    >
+      <v-row dense>
+        <v-col cols="12" md="4" class="audit-options-col">
+          <v-checkbox
+            :model-value="manualCharacterEffective"
+            label="Manually configure character"
+            density="compact"
+            hide-details
+            class="mb-2"
+            :disabled="!selectedProfile"
+            @update:model-value="onManualCharacterToggle"
+          ></v-checkbox>
+          <template v-if="manualCharacterEffective">
+            <v-text-field
+              v-model.number="levelMax"
+              type="number"
+              :min="1"
+              :max="LEVEL_MAX"
+              step="1"
+              label="Level"
+              density="compact"
+              hide-details
+              class="mb-2"
+            ></v-text-field>
+            <v-select
+              v-model="charAlignment"
+              :items="charAlignments"
+              label="Alignment"
+              density="compact"
+              clearable
+              hide-details
+              class="mb-2"
+            ></v-select>
+            <v-select
+              v-model="charRace"
+              :items="charRaces"
+              label="Race"
+              density="compact"
+              clearable
+              hide-details
+              class="mb-2"
+            ></v-select>
+            <v-select
+              v-model="charClass"
+              :items="charClasses"
+              label="Class"
+              density="compact"
+              clearable
+              hide-details
+              class="mb-2"
+            ></v-select>
+            <v-select
+              v-model="charGender"
+              :items="charGenders"
+              label="Gender"
+              density="compact"
+              clearable
+              hide-details
+            ></v-select>
+          </template>
+        </v-col>
+
+        <v-col cols="12" md="4" class="audit-options-col">
+          <v-checkbox
+            :model-value="manualWeightEffective"
+            label="Manually configure scoring"
+            density="compact"
+            hide-details
+            class="mb-2"
+            :disabled="!selectedWeight"
+            @update:model-value="onManualWeightToggle"
+          ></v-checkbox>
+          <v-autocomplete
+            v-if="manualWeightEffective"
+            :model-value="itemPropertyDisplay"
+            :items="itemPropertyItems"
+            label="Item property"
+            density="compact"
+            :clearable="!selectedWeight || manualWeight"
+            hide-details
+            class="mb-2"
+            :disabled="!!selectedWeight && !manualWeight"
+            @update:model-value="onItemPropertyUpdate"
+          ></v-autocomplete>
+          <v-checkbox
+            v-if="selectedProfile"
+            v-model="pasteNewGearSet"
+            label="Paste new gear set"
+            density="compact"
+            hide-details
+          ></v-checkbox>
+        </v-col>
+
+        <v-col cols="12" md="4" class="audit-options-col">
+          <v-checkbox
+            v-model="verbose"
+            label="Show empty slots"
+            density="compact"
+            hide-details
+            class="mb-2"
+          ></v-checkbox>
+          <v-checkbox
+            v-model="sidegrades"
+            label="Include sidegrades"
+            density="compact"
+            hide-details
+            class="mb-2"
+          ></v-checkbox>
+          <v-text-field
+            v-model.number="sidegradePercent"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            suffix="%"
+            label="Sidegrade within"
+            density="compact"
+            hide-details
+            class="sidegrade-percent-field mb-2"
+            :disabled="!sidegrades"
+          ></v-text-field>
           <v-select
             v-model="filterSlots"
-            :items="resultSlotOptions"
+            :items="configSlotOptions"
             label="Wear location"
             density="compact"
             multiple
@@ -212,11 +293,11 @@
             hide-details
             chips
             closable-chips
-            class="result-filter-field"
+            class="mb-2"
           ></v-select>
           <v-select
             v-model="filterLayers"
-            :items="resultLayerOptions"
+            :items="configLayerOptions"
             label="Layer"
             density="compact"
             multiple
@@ -224,11 +305,12 @@
             hide-details
             chips
             closable-chips
-            class="result-filter-field"
           ></v-select>
-        </div>
-      </div>
+        </v-col>
+      </v-row>
+    </div>
 
+    <template v-if="report">
       <v-alert
         v-if="report.unmatched.length"
         type="warning"
@@ -255,7 +337,9 @@
         :key="`${slot.slot}.${slot.layer}`"
         class="slot-card mb-3"
         :class="{
-          'slot-card--empty-options': slot.empty && slot.upgrades.length > 0,
+          'slot-card--empty-options':
+            !slot.unequippable && slot.empty && slot.upgrades.length > 0,
+          'slot-card--unequippable': slot.unequippable,
           'slot-card--unmatched': !!slot.unmatchedRaw,
         }"
       >
@@ -263,13 +347,17 @@
           <h2 class="slot-card__title">
             {{ formatSlotTitle(slot.slot, slot.layer) }}
           </h2>
-          <span v-if="slot.empty" class="slot-card__meta">nothing equipped</span>
+          <span v-if="slot.unequippable" class="slot-card__meta slot-card__meta--danger">
+            not equippable
+          </span>
+          <span v-else-if="slot.empty" class="slot-card__meta">nothing equipped</span>
           <span v-else-if="slot.unmatchedRaw" class="slot-card__meta slot-card__meta--warn">
             not in catalog
           </span>
           <span
             v-else-if="bestDelta(slot) != null"
             class="slot-card__meta mono-num"
+            :class="{ 'delta--neg': (bestDelta(slot) ?? 0) < 0 }"
           >
             best Δ{{ formatScore(bestDelta(slot)) }}
           </span>
@@ -279,7 +367,11 @@
           {{ slot.unmatchedRaw }}
         </div>
 
-        <div v-if="slot.equipped?.catalogItem" class="equipped-row mb-2">
+        <div
+          v-if="slot.equipped?.catalogItem"
+          class="equipped-row mb-2"
+          :class="{ 'equipped-row--unequippable': slot.unequippable }"
+        >
           <a
             :href="itemOverlayHref(String(slot.equipped.catalogItem.catalogKey))"
             class="item-link"
@@ -287,8 +379,22 @@
           >
             {{ slot.equipped.catalogItem.name }}
           </a>
-          <span class="score-chip equipped">{{ formatScore(slot.equipped.score) }}</span>
-          <span class="equipped-label">equipped</span>
+          <span
+            class="score-chip"
+            :class="slot.unequippable ? 'unequippable' : 'equipped'"
+          >
+            {{ formatScore(slot.unequippable ? null : slot.equipped.score) }}
+          </span>
+          <span
+            class="equipped-label"
+            :class="{ 'equipped-label--danger': slot.unequippable }"
+          >
+            {{
+              slot.unequippable
+                ? 'Not equippable by currently configured character'
+                : 'equipped'
+            }}
+          </span>
         </div>
 
         <div
@@ -306,7 +412,7 @@
                 {{ up.item.name }}
               </a>
               <span class="score-chip">{{ formatScore(up.score) }}</span>
-              <span class="upgrade-meta">
+              <span class="upgrade-meta" :class="{ 'delta--neg': up.delta < 0 }">
                 level {{ up.item.Level }} · Δ{{ formatScore(up.delta) }}
               </span>
             </li>
@@ -319,10 +425,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   EQUIPMENT_LAYERS,
+  EQUIPMENT_SLOTS,
   parseEquipmentPaste,
   type EquipmentLayer,
 } from '../audit/parseEquipment'
@@ -333,6 +440,8 @@ import {
 } from '../audit/runAudit'
 import { useItemOverlay } from '../composables/useItemOverlay'
 import { LEVEL_MAX } from '../presets/constants'
+import { newId } from '../presets/storage'
+import type { CharacterGearSet } from '../presets/types'
 import { formatWeightedScore } from '../presets/weightedScore'
 import { usePresets } from '../presets/usePresets'
 import { useCatalogStore } from '../store'
@@ -341,7 +450,6 @@ import { useCatalogStore } from '../store'
 defineOptions({ name: 'AuditView' })
 
 const router = useRouter()
-const route = useRoute()
 const store = useCatalogStore()
 const { openItemOverlay, itemOverlayHref } = useItemOverlay()
 const {
@@ -361,6 +469,7 @@ const {
 const itemProperty = ref<string | null>(null)
 const manualCharacter = ref(false)
 const manualWeight = ref(false)
+const pasteNewGearSet = ref(false)
 const levelMax = ref(90)
 const charAlignment = ref<string | null>(null)
 const charRace = ref<string | null>(null)
@@ -368,12 +477,14 @@ const charClass = ref<string | null>(null)
 const charGender = ref<string | null>(null)
 
 const pasteText = ref('')
-const verbose = ref(false)
-const sidegrades = ref(false)
-const attempted = ref(false)
+const gearSetName = ref('')
+const activeGearSetId = ref<string | null>(null)
+const verbose = ref(true)
+const sidegrades = ref(true)
+const sidegradePercent = ref(10)
+const showAuditOptions = ref(false)
 const report = ref<AuditReport | null>(null)
 const parseErrors = ref<string[]>([])
-const runAuditRow = ref<HTMLElement | null>(null)
 
 /** Result filters — empty = no restriction (show all). */
 const filterSlots = ref<string[]>([])
@@ -407,20 +518,96 @@ const selectedWeight = computed(
 )
 const characterStats = computed(() => selectedProfile.value?.stats ?? null)
 
+const profileGearSets = computed((): CharacterGearSet[] => {
+  const sets = selectedProfile.value?.gearSets
+  return Array.isArray(sets) ? sets : []
+})
+
+const gearSetSelectItems = computed(() =>
+  profileGearSets.value
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+    .map((g) => ({ title: g.name, value: g.id })),
+)
+
+const selectedGearSet = computed(
+  () => profileGearSets.value.find((g) => g.id === activeGearSetId.value) ?? null,
+)
+
+/** No profile → always paste; with profile → only when “paste new” is on. */
+const showPasteInput = computed(() => !selectedProfile.value || pasteNewGearSet.value)
+
+/** Paste used for audit: typed paste when shown, otherwise the selected set. */
+const effectivePaste = computed(() => {
+  if (showPasteInput.value) return pasteText.value
+  return selectedGearSet.value?.paste ?? ''
+})
+
+/** No profile selected → treat manual character as on. */
+const manualCharacterEffective = computed(
+  () => !selectedProfile.value || manualCharacter.value,
+)
+
+/** No weight selected → treat manual scoring as on. */
+const manualWeightEffective = computed(
+  () => !selectedWeight.value || manualWeight.value,
+)
+
 const itemPropertyDisplay = computed(() =>
-  selectedWeight.value ? 'weighted' : itemProperty.value,
+  selectedWeight.value && !manualWeight.value ? 'weighted' : itemProperty.value,
 )
 const itemPropertyItems = computed(() =>
-  selectedWeight.value ? ['weighted'] : (store.itemProperties ?? []),
+  selectedWeight.value && !manualWeight.value
+    ? ['weighted']
+    : (store.itemProperties ?? []),
 )
 
 const scoringMode = computed(() => {
-  if (selectedWeight.value) return 'weighted'
+  if (selectedWeight.value && !manualWeight.value) return 'weighted'
   if (itemProperty.value) return 'property'
   return 'none'
 })
 
-const canRun = computed(() => !!pasteText.value.trim() && !!store.catalog?.length)
+/** Ready to evaluate once paste + catalog exist (scoring may still be missing). */
+const readyForAudit = computed(
+  () => !!effectivePaste.value.trim() && !!store.catalog?.length,
+)
+
+const canSaveGearSet = computed(
+  () =>
+    !!selectedProfile.value &&
+    !!pasteText.value.trim() &&
+    !!gearSetName.value.trim(),
+)
+
+const onManualCharacterToggle = (on: boolean | null) => {
+  if (!selectedProfile.value) return
+  manualCharacter.value = !!on
+}
+
+const onManualWeightToggle = (on: boolean | null) => {
+  if (!selectedWeight.value) return
+  manualWeight.value = !!on
+  if (on) return
+  itemProperty.value = null
+}
+
+/** Wear/layer pickers in the options panel — prefer report slots when available. */
+const configSlotOptions = computed(() => {
+  if (report.value?.slots.length) {
+    const seen = new Set<string>()
+    const opts: string[] = []
+    for (const s of report.value.slots) {
+      if (seen.has(s.slot)) continue
+      seen.add(s.slot)
+      opts.push(s.slot)
+    }
+    return opts
+  }
+  return [...EQUIPMENT_SLOTS]
+})
+
+const configLayerOptions = computed(() => [...EQUIPMENT_LAYERS])
 
 const formatSlotTitle = (slot: string, layer: string) => `${slot} - ${layer}`
 
@@ -428,24 +615,6 @@ const bestDelta = (slot: AuditSlotReport): number | null => {
   if (!slot.upgrades.length) return null
   return slot.upgrades[0].delta
 }
-
-const resultSlotOptions = computed(() => {
-  if (!report.value) return []
-  const seen = new Set<string>()
-  const opts: string[] = []
-  for (const s of report.value.slots) {
-    if (seen.has(s.slot)) continue
-    seen.add(s.slot)
-    opts.push(s.slot)
-  }
-  return opts
-})
-
-const resultLayerOptions = computed(() => {
-  if (!report.value) return [...EQUIPMENT_LAYERS]
-  const present = new Set(report.value.slots.map((s) => s.layer))
-  return EQUIPMENT_LAYERS.filter((l) => present.has(l))
-})
 
 /** Filtered + sorted by biggest upgrade delta (equipped → best). */
 const sortedSlots = computed((): AuditSlotReport[] => {
@@ -467,11 +636,6 @@ const sortedSlots = computed((): AuditSlotReport[] => {
 
 const auditReturnQuery = { returnTo: 'audit' }
 
-const scrollRunAuditUnderNav = async () => {
-  await nextTick()
-  runAuditRow.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
-
 const openCharactersEditor = () => {
   router.push({
     name: 'characters',
@@ -488,9 +652,22 @@ const openWeightsEditor = () => {
   })
 }
 
-/** Seed local manual fields + empty paste from the shared active profile. */
+const persistProfileGearSelection = (gearSetId: string | null) => {
+  const profile = selectedProfile.value
+  if (!profile) return
+  if (profile.activeGearSetId === gearSetId) return
+  upsertCharacterProfile({
+    ...profile,
+    activeGearSetId: gearSetId,
+  })
+}
+
+/** Seed local manual fields + gear set selection from the shared active profile. */
 const hydrateFromProfile = (id: string | null) => {
-  if (!id) return
+  if (!id) {
+    activeGearSetId.value = null
+    return
+  }
   const profile = characterProfiles.value.find((p) => p.id === id)
   if (!profile) return
   if (!manualCharacter.value) {
@@ -500,26 +677,41 @@ const hydrateFromProfile = (id: string | null) => {
     charClass.value = profile.class
     charGender.value = profile.gender
   }
-  if (profile.equipmentPaste && !pasteText.value.trim()) {
-    pasteText.value = profile.equipmentPaste
+  const sets = profile.gearSets ?? []
+  const preferred =
+    (profile.activeGearSetId && sets.find((g) => g.id === profile.activeGearSetId)?.id) ||
+    sets[0]?.id ||
+    null
+  activeGearSetId.value = preferred
+  if (!pasteNewGearSet.value) {
+    pasteText.value = sets.find((g) => g.id === preferred)?.paste ?? ''
+    gearSetName.value = sets.find((g) => g.id === preferred)?.name ?? ''
   }
 }
 
 const onProfileChange = (id: string | null) => {
   activeCharacterProfileId.value = id
-  if (id) {
-    const profile = characterProfiles.value.find((p) => p.id === id)
-    if (profile) {
-      levelMax.value = profile.level
-      charAlignment.value = profile.alignment
-      charRace.value = profile.race
-      charClass.value = profile.class
-      charGender.value = profile.gender
-      if (profile.equipmentPaste) {
-        pasteText.value = profile.equipmentPaste
-      }
-    }
+  if (!id) {
+    activeGearSetId.value = null
+    return
   }
+  const profile = characterProfiles.value.find((p) => p.id === id)
+  if (!profile) return
+  levelMax.value = profile.level
+  charAlignment.value = profile.alignment
+  charRace.value = profile.race
+  charClass.value = profile.class
+  charGender.value = profile.gender
+  hydrateFromProfile(id)
+}
+
+const onGearSetChange = (id: string | null) => {
+  activeGearSetId.value = id
+  persistProfileGearSelection(id)
+  if (pasteNewGearSet.value) return
+  const set = profileGearSets.value.find((g) => g.id === id)
+  pasteText.value = set?.paste ?? ''
+  gearSetName.value = set?.name ?? ''
 }
 
 const onWeightChange = (id: string | null) => {
@@ -530,7 +722,7 @@ const onWeightChange = (id: string | null) => {
 }
 
 const onItemPropertyUpdate = (value: string | null) => {
-  if (selectedWeight.value) return
+  if (selectedWeight.value && !manualWeight.value) return
   itemProperty.value = value
 }
 
@@ -540,7 +732,7 @@ const formatScore = (n: number | null | undefined) => {
 }
 
 const effectiveCharacterFilters = () => {
-  if (manualCharacter.value || !selectedProfile.value) {
+  if (manualCharacterEffective.value) {
     return {
       levelRange: [1, levelMax.value] as [number, number],
       charAlignment: charAlignment.value,
@@ -549,17 +741,19 @@ const effectiveCharacterFilters = () => {
       charGender: charGender.value,
     }
   }
+  const profile = selectedProfile.value!
   return {
-    levelRange: [1, selectedProfile.value.level] as [number, number],
-    charAlignment: selectedProfile.value.alignment,
-    charClass: selectedProfile.value.class,
-    charRace: selectedProfile.value.race,
-    charGender: selectedProfile.value.gender,
+    levelRange: [1, profile.level] as [number, number],
+    charAlignment: profile.alignment,
+    charClass: profile.class,
+    charRace: profile.race,
+    charGender: profile.gender,
   }
 }
 
 const currentFilterState = () => {
   const chars = effectiveCharacterFilters()
+  const useWeights = !!selectedWeight.value && !manualWeight.value
   return {
     searchText: '',
     levelRange: chars.levelRange,
@@ -570,18 +764,33 @@ const currentFilterState = () => {
     itemType: null,
     itemClass: null,
     itemAffect: null,
-    itemProperty: selectedWeight.value ? null : itemProperty.value,
+    itemProperty: useWeights ? null : itemProperty.value,
     itemSlot: null,
     itemLayer: null,
-    weights: selectedWeight.value?.weights ?? null,
+    weights: useWeights ? selectedWeight.value!.weights : null,
     characterStats: characterStats.value,
   }
 }
 
+const clampSidegradePercent = () => {
+  const n = Number(sidegradePercent.value)
+  if (!Number.isFinite(n)) {
+    sidegradePercent.value = 10
+    return
+  }
+  sidegradePercent.value = Math.min(100, Math.max(0, Math.round(n)))
+}
+
+/** Auto-run whenever paste + catalog are ready; clear results otherwise. */
 const runAudit = () => {
-  attempted.value = true
-  if (!store.catalog) return
-  const parse = parseEquipmentPaste(pasteText.value)
+  if (!readyForAudit.value || !store.catalog) {
+    report.value = null
+    if (!effectivePaste.value.trim()) parseErrors.value = []
+    return
+  }
+  clampSidegradePercent()
+  const paste = effectivePaste.value
+  const parse = parseEquipmentPaste(paste)
   parseErrors.value = parse.errors
   if (!parse.pieces.length) {
     report.value = null
@@ -597,34 +806,83 @@ const runAudit = () => {
     filterState: currentFilterState(),
     verbose: verbose.value,
     sidegrades: sidegrades.value,
+    sidegradePercent: sidegradePercent.value,
   })
   // Keep filters valid for the new report; leave user picks when still present.
-  const slotSet = new Set(resultSlotOptions.value)
+  const slotSet = new Set(configSlotOptions.value)
   filterSlots.value = filterSlots.value.filter((s) => slotSet.has(s))
-  const layerSet = new Set(resultLayerOptions.value)
+  const layerSet = new Set(configLayerOptions.value)
   filterLayers.value = filterLayers.value.filter((l) => layerSet.has(l))
 }
 
-/** Button click: run + scroll so the control sits under the sticky nav. */
-const onRunAuditClick = () => {
-  runAudit()
-  void scrollRunAuditUnderNav()
-}
-
-const savePasteToProfile = () => {
+const saveGearSet = () => {
   const profile = selectedProfile.value
   if (!profile) return
   const paste = pasteText.value.trim()
+  const name = gearSetName.value.trim()
+  if (!paste || !name) return
+
+  const existing = (profile.gearSets ?? []).slice()
+  const matchById = activeGearSetId.value
+    ? existing.findIndex((g) => g.id === activeGearSetId.value)
+    : -1
+  const matchByName = existing.findIndex(
+    (g) => g.name.toLowerCase() === name.toLowerCase(),
+  )
+  let next: CharacterGearSet[]
+  let savedId: string
+  if (matchById >= 0) {
+    savedId = existing[matchById].id
+    next = existing.slice()
+    next[matchById] = { id: savedId, name, paste }
+  } else if (matchByName >= 0) {
+    savedId = existing[matchByName].id
+    next = existing.slice()
+    next[matchByName] = { id: savedId, name, paste }
+  } else {
+    savedId = newId()
+    next = [...existing, { id: savedId, name, paste }]
+  }
+
   upsertCharacterProfile({
     ...profile,
-    ...(paste ? { equipmentPaste: paste } : { equipmentPaste: undefined }),
+    gearSets: next,
+    activeGearSetId: savedId,
+    equipmentPaste: undefined,
   })
+  activeGearSetId.value = savedId
+  pasteNewGearSet.value = false
 }
+
+watch(pasteNewGearSet, (on) => {
+  if (on) {
+    if (!gearSetName.value && selectedGearSet.value) {
+      gearSetName.value = selectedGearSet.value.name
+    }
+    return
+  }
+  // Leaving paste mode — restore selected gear set paste into the working buffer.
+  pasteText.value = selectedGearSet.value?.paste ?? ''
+  gearSetName.value = selectedGearSet.value?.name ?? ''
+})
+
+watch(activeCharacterProfileId, (id) => {
+  hydrateFromProfile(id)
+  if (!id) {
+    // No profile → paste mode for a one-off dump (no save controls).
+    pasteNewGearSet.value = false
+  }
+})
+
+watch(activeWeightConfigId, (id) => {
+  if (id && !manualWeight.value) itemProperty.value = null
+})
 
 watch(
   [
     activeWeightConfigId,
     activeCharacterProfileId,
+    activeGearSetId,
     itemProperty,
     levelMax,
     charAlignment,
@@ -633,24 +891,22 @@ watch(
     charGender,
     manualCharacter,
     manualWeight,
+    verbose,
+    sidegrades,
+    sidegradePercent,
+    pasteNewGearSet,
+    pasteText,
+    () => store.catalog?.length ?? 0,
   ],
   () => {
-    if (report.value) runAudit()
+    runAudit()
   },
 )
-
-// Shared selection changed elsewhere (e.g. filters page) — refresh paste/manual seeds.
-watch(activeCharacterProfileId, (id) => {
-  hydrateFromProfile(id)
-})
-
-watch(activeWeightConfigId, (id) => {
-  if (id) itemProperty.value = null
-})
 
 onMounted(() => {
   if (!store.catalog) store.fetchCatalog()
   hydrateFromProfile(activeCharacterProfileId.value)
+  runAudit()
 })
 </script>
 
@@ -670,14 +926,28 @@ onMounted(() => {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Sit “Run audit” just under the sticky chrome after a run. */
-.audit-run-row {
-  scroll-margin-top: calc(var(--tfecat-chrome-height, var(--tfecat-nav-height, 80px)) + 8px);
-}
-
-.result-filter-field {
+.gear-set-name-field {
   flex: 1 1 220px;
   max-width: 360px;
+}
+
+.sidegrade-percent-field {
+  max-width: 10rem;
+}
+
+.audit-options-panel {
+  border: 1px solid rgb(var(--v-theme-surface-variant));
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+  padding: 0.75rem 1rem 1rem;
+}
+
+.audit-options-col {
+  min-width: 0;
+}
+
+.delta--neg {
+  color: #e06e64;
 }
 
 .slot-card {
@@ -690,6 +960,11 @@ onMounted(() => {
 .slot-card--empty-options {
   border-color: rgba(212, 184, 106, 0.55);
   box-shadow: inset 3px 0 0 #d4b86a;
+}
+
+.slot-card--unequippable {
+  border-color: rgba(224, 110, 100, 0.55);
+  box-shadow: inset 3px 0 0 #e06e64;
 }
 
 .slot-card--unmatched {
@@ -723,6 +998,10 @@ onMounted(() => {
   color: #d4b86a;
 }
 
+.slot-card__meta--danger {
+  color: #e06e64;
+}
+
 .slot-card__unmatched {
   color: #d4b86a;
 }
@@ -751,12 +1030,24 @@ onMounted(() => {
   border: 1px solid rgba(212, 184, 106, 0.28);
 }
 
+.equipped-row--unequippable {
+  background: rgba(224, 110, 100, 0.12);
+  border-color: rgba(224, 110, 100, 0.32);
+}
+
 .equipped-label {
   font-size: 0.7rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #d4b86a;
+}
+
+.equipped-label--danger {
+  color: #e06e64;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.75rem;
 }
 
 .item-link {
@@ -775,6 +1066,10 @@ onMounted(() => {
 }
 .score-chip.equipped {
   color: #d4b86a;
+  font-weight: 600;
+}
+.score-chip.unequippable {
+  color: #e06e64;
   font-weight: 600;
 }
 

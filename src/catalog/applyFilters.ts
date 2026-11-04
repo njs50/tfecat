@@ -100,3 +100,26 @@ export function catalogScore(
   }
   return null
 }
+
+/**
+ * True when the item is usable by the configured character (align/race/class/gender/level).
+ * Used by Item Audit to treat worn-but-blocked gear as unequipped for scoring.
+ */
+export function catalogItemAllowedByCharacter(
+  item: any,
+  state: Pick<
+    CatalogFilterState,
+    'charAlignment' | 'charClass' | 'charRace' | 'charGender' | 'levelRange'
+  >,
+): boolean {
+  if (!item) return false
+  if (state.charAlignment && !item.charAlignments?.[state.charAlignment]) return false
+  if (state.charRace && !item.charRaces?.[state.charRace.toLowerCase()]) return false
+  if (state.charClass && !item.charClasses?.[state.charClass.toLowerCase()]) return false
+  if (state.charGender && !item.charGenders?.[state.charGender.toLowerCase()]) return false
+  const level = typeof item.Level === 'number' ? item.Level : Number(item.Level)
+  if (Number.isFinite(level)) {
+    if (level < state.levelRange[0] || level > state.levelRange[1]) return false
+  }
+  return true
+}
