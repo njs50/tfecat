@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="content-shell px-4 px-sm-6 px-md-8 pt-4 pb-10">
-    <v-row dense class="mb-1">
+    <v-row dense class="mb-1 align-center">
       <v-col class="d-flex align-center ga-1" cols="12" md="4">
         <v-select
           :model-value="activeCharacterProfileId"
@@ -35,6 +35,16 @@
           :disabled="!selectedProfile"
           @update:model-value="onGearSetChange"
         ></v-select>
+        <v-btn
+          icon
+          variant="tonal"
+          density="compact"
+          aria-label="Edit gear sets on character profile"
+          :disabled="!selectedProfile"
+          @click="openCharactersEditor"
+        >
+          <v-icon>mdi-pencil</v-icon>
+        </v-btn>
       </v-col>
 
       <v-col class="d-flex align-center ga-1" cols="12" md="4">
@@ -57,133 +67,18 @@
         >
           <v-icon>mdi-pencil</v-icon>
         </v-btn>
-      </v-col>
-    </v-row>
-
-    <div class="d-flex flex-wrap ga-4 mb-2">
-      <v-checkbox
-        v-model="manualCharacter"
-        label="Manually configure character"
-        density="compact"
-        hide-details
-      ></v-checkbox>
-      <v-checkbox
-        v-model="manualWeight"
-        label="Manually configure scoring"
-        density="compact"
-        hide-details
-      ></v-checkbox>
-      <v-checkbox
-        v-model="pasteNewGearSet"
-        label="Paste new gear set"
-        density="compact"
-        hide-details
-      ></v-checkbox>
-    </div>
-
-    <v-row v-if="manualCharacter" dense class="mb-1">
-      <v-col cols="6" sm="4" md="2">
-        <v-text-field
-          v-model.number="levelMax"
-          type="number"
-          :min="1"
-          :max="LEVEL_MAX"
-          step="1"
-          label="Level"
-          density="compact"
-          hide-details
-        ></v-text-field>
-      </v-col>
-      <v-col cols="6" sm="4" md="2">
-        <v-select
-          v-model="charAlignment"
-          :items="charAlignments"
-          label="Alignment"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-      <v-col cols="6" sm="4" md="2">
-        <v-select
-          v-model="charRace"
-          :items="charRaces"
-          label="Race"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-      <v-col cols="6" sm="4" md="3">
-        <v-select
-          v-model="charClass"
-          :items="charClasses"
-          label="Class"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-      <v-col cols="6" sm="4" md="3">
-        <v-select
-          v-model="charGender"
-          :items="charGenders"
-          label="Gender"
-          density="compact"
-          clearable
-          hide-details
-        ></v-select>
-      </v-col>
-    </v-row>
-
-    <v-row v-if="manualWeight" dense class="mb-2">
-      <v-col cols="12" md="6">
-        <v-autocomplete
-          :model-value="itemPropertyDisplay"
-          :items="itemPropertyItems"
-          label="Item property"
-          density="compact"
-          :clearable="!selectedWeight"
-          hide-details
-          :disabled="!!selectedWeight"
-          @update:model-value="onItemPropertyUpdate"
-        ></v-autocomplete>
-      </v-col>
-    </v-row>
-
-    <template v-if="pasteNewGearSet">
-      <v-textarea
-        v-model="pasteText"
-        label="Equipment paste"
-        auto-grow
-        rows="8"
-        max-rows="20"
-        density="compact"
-        hide-details="auto"
-        spellcheck="false"
-        class="mono-field mb-2"
-        :placeholder="placeholder"
-      ></v-textarea>
-
-      <div class="d-flex flex-wrap align-center ga-2 mb-3">
-        <v-text-field
-          v-model="gearSetName"
-          label="Gear set name"
-          density="compact"
-          hide-details
-          class="gear-set-name-field"
-          :disabled="!selectedProfile"
-        ></v-text-field>
         <v-btn
-          color="primary"
+          icon
           variant="tonal"
-          :disabled="!canSaveGearSet"
-          @click="saveGearSet"
+          density="compact"
+          :aria-label="showAuditOptions ? 'Hide audit options' : 'Show audit options'"
+          :aria-pressed="showAuditOptions"
+          @click="showAuditOptions = !showAuditOptions"
         >
-          Save gear set
+          <v-icon>mdi-cog</v-icon>
         </v-btn>
-      </div>
-    </template>
+      </v-col>
+    </v-row>
 
     <div
       v-show="showAuditOptions"
@@ -193,18 +88,130 @@
     >
       <div class="d-flex flex-wrap ga-4 mb-2">
         <v-checkbox
+          :model-value="manualCharacterEffective"
+          label="Manually configure character"
+          density="compact"
+          hide-details
+          :disabled="!selectedProfile"
+          @update:model-value="onManualCharacterToggle"
+        ></v-checkbox>
+        <v-checkbox
+          :model-value="manualWeightEffective"
+          label="Manually configure scoring"
+          density="compact"
+          hide-details
+          :disabled="!selectedWeight"
+          @update:model-value="onManualWeightToggle"
+        ></v-checkbox>
+        <v-checkbox
+          v-if="selectedProfile"
+          v-model="pasteNewGearSet"
+          label="Paste new gear set"
+          density="compact"
+          hide-details
+        ></v-checkbox>
+      </div>
+
+      <v-row v-if="manualCharacterEffective" dense class="mb-1">
+        <v-col cols="6" sm="4" md="2">
+          <v-text-field
+            v-model.number="levelMax"
+            type="number"
+            :min="1"
+            :max="LEVEL_MAX"
+            step="1"
+            label="Level"
+            density="compact"
+            hide-details
+          ></v-text-field>
+        </v-col>
+        <v-col cols="6" sm="4" md="2">
+          <v-select
+            v-model="charAlignment"
+            :items="charAlignments"
+            label="Alignment"
+            density="compact"
+            clearable
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" sm="4" md="2">
+          <v-select
+            v-model="charRace"
+            :items="charRaces"
+            label="Race"
+            density="compact"
+            clearable
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" sm="4" md="3">
+          <v-select
+            v-model="charClass"
+            :items="charClasses"
+            label="Class"
+            density="compact"
+            clearable
+            hide-details
+          ></v-select>
+        </v-col>
+        <v-col cols="6" sm="4" md="3">
+          <v-select
+            v-model="charGender"
+            :items="charGenders"
+            label="Gender"
+            density="compact"
+            clearable
+            hide-details
+          ></v-select>
+        </v-col>
+      </v-row>
+
+      <v-row v-if="manualWeightEffective" dense class="mb-2">
+        <v-col cols="12" md="6">
+          <v-autocomplete
+            :model-value="itemPropertyDisplay"
+            :items="itemPropertyItems"
+            label="Item property"
+            density="compact"
+            :clearable="!selectedWeight"
+            hide-details
+            :disabled="!!selectedWeight && !manualWeight"
+            @update:model-value="onItemPropertyUpdate"
+          ></v-autocomplete>
+        </v-col>
+      </v-row>
+
+      <div class="d-flex flex-wrap align-center ga-4 mb-2">
+        <v-checkbox
           v-model="verbose"
           label="Show empty slots"
           density="compact"
           hide-details
         ></v-checkbox>
-        <v-checkbox
-          v-model="sidegrades"
-          label="Include sidegrades (±10%)"
-          density="compact"
-          hide-details
-        ></v-checkbox>
+        <div class="d-flex align-center ga-2 flex-wrap">
+          <v-checkbox
+            v-model="sidegrades"
+            label="Include sidegrades"
+            density="compact"
+            hide-details
+          ></v-checkbox>
+          <v-text-field
+            v-model.number="sidegradePercent"
+            type="number"
+            min="0"
+            max="100"
+            step="1"
+            suffix="%"
+            label="Variance"
+            density="compact"
+            hide-details
+            class="sidegrade-percent-field"
+            :disabled="!sidegrades"
+          ></v-text-field>
+        </div>
       </div>
+
       <div class="d-flex flex-wrap ga-2">
         <v-select
           v-model="filterSlots"
@@ -233,24 +240,44 @@
       </div>
     </div>
 
-    <div ref="runAuditRow" class="audit-run-row d-flex flex-wrap align-center ga-2 mb-4">
-      <v-btn
-        icon
-        variant="tonal"
-        density="comfortable"
-        :aria-label="showAuditOptions ? 'Hide audit options' : 'Show audit options'"
-        :aria-pressed="showAuditOptions"
-        @click="showAuditOptions = !showAuditOptions"
+    <template v-if="showPasteInput">
+      <v-textarea
+        v-model="pasteText"
+        label="Equipment paste"
+        auto-grow
+        rows="8"
+        max-rows="20"
+        density="compact"
+        hide-details="auto"
+        spellcheck="false"
+        class="mono-field mb-2"
+        :placeholder="placeholder"
+      ></v-textarea>
+
+      <div
+        v-if="selectedProfile && pasteNewGearSet"
+        class="d-flex flex-wrap align-center ga-2 mb-3"
       >
-        <v-icon>mdi-cog</v-icon>
-      </v-btn>
-      <v-btn color="primary" variant="elevated" :disabled="!canRun" @click="onRunAuditClick">
-        Run audit
-      </v-btn>
-    </div>
+        <v-text-field
+          v-model="gearSetName"
+          label="Gear set name"
+          density="compact"
+          hide-details
+          class="gear-set-name-field"
+        ></v-text-field>
+        <v-btn
+          color="primary"
+          variant="tonal"
+          :disabled="!canSaveGearSet"
+          @click="saveGearSet"
+        >
+          Save gear set
+        </v-btn>
+      </div>
+    </template>
 
     <v-alert
-      v-if="scoringMode === 'none' && attempted"
+      v-if="scoringMode === 'none' && readyForAudit"
       type="warning"
       variant="tonal"
       density="compact"
@@ -260,13 +287,13 @@
     </v-alert>
 
     <v-alert
-      v-if="!effectivePaste.trim() && attempted && !pasteNewGearSet"
+      v-if="!effectivePaste.trim() && selectedProfile && !pasteNewGearSet"
       type="info"
       variant="tonal"
       density="compact"
       class="mb-4"
     >
-      Select a saved gear set, or enable “Paste new gear set”.
+      Select a saved gear set, or enable “Paste new gear set” in options.
     </v-alert>
 
     <v-alert
@@ -403,7 +430,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   EQUIPMENT_LAYERS,
@@ -459,11 +486,10 @@ const gearSetName = ref('')
 const activeGearSetId = ref<string | null>(null)
 const verbose = ref(true)
 const sidegrades = ref(true)
+const sidegradePercent = ref(10)
 const showAuditOptions = ref(false)
-const attempted = ref(false)
 const report = ref<AuditReport | null>(null)
 const parseErrors = ref<string[]>([])
-const runAuditRow = ref<HTMLElement | null>(null)
 
 /** Result filters — empty = no restriction (show all). */
 const filterSlots = ref<string[]>([])
@@ -513,26 +539,42 @@ const selectedGearSet = computed(
   () => profileGearSets.value.find((g) => g.id === activeGearSetId.value) ?? null,
 )
 
-/** Paste used for audit: typed paste when creating, otherwise the selected set. */
+/** No profile → always paste; with profile → only when “paste new” is on. */
+const showPasteInput = computed(() => !selectedProfile.value || pasteNewGearSet.value)
+
+/** Paste used for audit: typed paste when shown, otherwise the selected set. */
 const effectivePaste = computed(() => {
-  if (pasteNewGearSet.value) return pasteText.value
+  if (showPasteInput.value) return pasteText.value
   return selectedGearSet.value?.paste ?? ''
 })
 
+/** No profile selected → treat manual character as on. */
+const manualCharacterEffective = computed(
+  () => !selectedProfile.value || manualCharacter.value,
+)
+
+/** No weight selected → treat manual scoring as on. */
+const manualWeightEffective = computed(
+  () => !selectedWeight.value || manualWeight.value,
+)
+
 const itemPropertyDisplay = computed(() =>
-  selectedWeight.value ? 'weighted' : itemProperty.value,
+  selectedWeight.value && !manualWeight.value ? 'weighted' : itemProperty.value,
 )
 const itemPropertyItems = computed(() =>
-  selectedWeight.value ? ['weighted'] : (store.itemProperties ?? []),
+  selectedWeight.value && !manualWeight.value
+    ? ['weighted']
+    : (store.itemProperties ?? []),
 )
 
 const scoringMode = computed(() => {
-  if (selectedWeight.value) return 'weighted'
+  if (selectedWeight.value && !manualWeight.value) return 'weighted'
   if (itemProperty.value) return 'property'
   return 'none'
 })
 
-const canRun = computed(
+/** Ready to evaluate once paste + catalog exist (scoring may still be missing). */
+const readyForAudit = computed(
   () => !!effectivePaste.value.trim() && !!store.catalog?.length,
 )
 
@@ -542,6 +584,18 @@ const canSaveGearSet = computed(
     !!pasteText.value.trim() &&
     !!gearSetName.value.trim(),
 )
+
+const onManualCharacterToggle = (on: boolean | null) => {
+  if (!selectedProfile.value) return
+  manualCharacter.value = !!on
+}
+
+const onManualWeightToggle = (on: boolean | null) => {
+  if (!selectedWeight.value) return
+  manualWeight.value = !!on
+  if (on) return
+  itemProperty.value = null
+}
 
 /** Wear/layer pickers in the options panel — prefer report slots when available. */
 const configSlotOptions = computed(() => {
@@ -586,11 +640,6 @@ const sortedSlots = computed((): AuditSlotReport[] => {
 })
 
 const auditReturnQuery = { returnTo: 'audit' }
-
-const scrollRunAuditUnderNav = async () => {
-  await nextTick()
-  runAuditRow.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
 
 const openCharactersEditor = () => {
   router.push({
@@ -678,7 +727,7 @@ const onWeightChange = (id: string | null) => {
 }
 
 const onItemPropertyUpdate = (value: string | null) => {
-  if (selectedWeight.value) return
+  if (selectedWeight.value && !manualWeight.value) return
   itemProperty.value = value
 }
 
@@ -688,7 +737,7 @@ const formatScore = (n: number | null | undefined) => {
 }
 
 const effectiveCharacterFilters = () => {
-  if (manualCharacter.value || !selectedProfile.value) {
+  if (manualCharacterEffective.value) {
     return {
       levelRange: [1, levelMax.value] as [number, number],
       charAlignment: charAlignment.value,
@@ -697,17 +746,19 @@ const effectiveCharacterFilters = () => {
       charGender: charGender.value,
     }
   }
+  const profile = selectedProfile.value!
   return {
-    levelRange: [1, selectedProfile.value.level] as [number, number],
-    charAlignment: selectedProfile.value.alignment,
-    charClass: selectedProfile.value.class,
-    charRace: selectedProfile.value.race,
-    charGender: selectedProfile.value.gender,
+    levelRange: [1, profile.level] as [number, number],
+    charAlignment: profile.alignment,
+    charClass: profile.class,
+    charRace: profile.race,
+    charGender: profile.gender,
   }
 }
 
 const currentFilterState = () => {
   const chars = effectiveCharacterFilters()
+  const useWeights = !!selectedWeight.value && !manualWeight.value
   return {
     searchText: '',
     levelRange: chars.levelRange,
@@ -718,17 +769,31 @@ const currentFilterState = () => {
     itemType: null,
     itemClass: null,
     itemAffect: null,
-    itemProperty: selectedWeight.value ? null : itemProperty.value,
+    itemProperty: useWeights ? null : itemProperty.value,
     itemSlot: null,
     itemLayer: null,
-    weights: selectedWeight.value?.weights ?? null,
+    weights: useWeights ? selectedWeight.value!.weights : null,
     characterStats: characterStats.value,
   }
 }
 
+const clampSidegradePercent = () => {
+  const n = Number(sidegradePercent.value)
+  if (!Number.isFinite(n)) {
+    sidegradePercent.value = 10
+    return
+  }
+  sidegradePercent.value = Math.min(100, Math.max(0, Math.round(n)))
+}
+
+/** Auto-run whenever paste + catalog are ready; clear results otherwise. */
 const runAudit = () => {
-  attempted.value = true
-  if (!store.catalog) return
+  if (!readyForAudit.value || !store.catalog) {
+    report.value = null
+    if (!effectivePaste.value.trim()) parseErrors.value = []
+    return
+  }
+  clampSidegradePercent()
   const paste = effectivePaste.value
   const parse = parseEquipmentPaste(paste)
   parseErrors.value = parse.errors
@@ -746,19 +811,13 @@ const runAudit = () => {
     filterState: currentFilterState(),
     verbose: verbose.value,
     sidegrades: sidegrades.value,
+    sidegradePercent: sidegradePercent.value,
   })
   // Keep filters valid for the new report; leave user picks when still present.
   const slotSet = new Set(configSlotOptions.value)
   filterSlots.value = filterSlots.value.filter((s) => slotSet.has(s))
   const layerSet = new Set(configLayerOptions.value)
   filterLayers.value = filterLayers.value.filter((l) => layerSet.has(l))
-}
-
-/** Button click: run, collapse options, scroll under sticky nav. */
-const onRunAuditClick = () => {
-  showAuditOptions.value = false
-  runAudit()
-  void scrollRunAuditUnderNav()
 }
 
 const saveGearSet = () => {
@@ -802,7 +861,6 @@ const saveGearSet = () => {
 
 watch(pasteNewGearSet, (on) => {
   if (on) {
-    // Start a fresh paste; keep name empty unless editing the active set.
     if (!gearSetName.value && selectedGearSet.value) {
       gearSetName.value = selectedGearSet.value.name
     }
@@ -811,6 +869,18 @@ watch(pasteNewGearSet, (on) => {
   // Leaving paste mode — restore selected gear set paste into the working buffer.
   pasteText.value = selectedGearSet.value?.paste ?? ''
   gearSetName.value = selectedGearSet.value?.name ?? ''
+})
+
+watch(activeCharacterProfileId, (id) => {
+  hydrateFromProfile(id)
+  if (!id) {
+    // No profile → paste mode for a one-off dump (no save controls).
+    pasteNewGearSet.value = false
+  }
+})
+
+watch(activeWeightConfigId, (id) => {
+  if (id && !manualWeight.value) itemProperty.value = null
 })
 
 watch(
@@ -828,25 +898,20 @@ watch(
     manualWeight,
     verbose,
     sidegrades,
+    sidegradePercent,
     pasteNewGearSet,
+    pasteText,
+    () => store.catalog?.length ?? 0,
   ],
   () => {
-    if (report.value) runAudit()
+    runAudit()
   },
 )
-
-// Shared selection changed elsewhere (e.g. filters page) — refresh paste/manual seeds.
-watch(activeCharacterProfileId, (id) => {
-  hydrateFromProfile(id)
-})
-
-watch(activeWeightConfigId, (id) => {
-  if (id) itemProperty.value = null
-})
 
 onMounted(() => {
   if (!store.catalog) store.fetchCatalog()
   hydrateFromProfile(activeCharacterProfileId.value)
+  runAudit()
 })
 </script>
 
@@ -871,16 +936,16 @@ onMounted(() => {
   max-width: 360px;
 }
 
+.sidegrade-percent-field {
+  width: 7.5rem;
+  flex: 0 0 7.5rem;
+}
+
 .audit-options-panel {
   border: 1px solid rgb(var(--v-theme-surface-variant));
   border-radius: 12px;
   background: rgb(var(--v-theme-surface));
   padding: 0.75rem 1rem 1rem;
-}
-
-/* Sit “Run audit” just under the sticky chrome after a run. */
-.audit-run-row {
-  scroll-margin-top: calc(var(--tfecat-chrome-height, var(--tfecat-nav-height, 80px)) + 8px);
 }
 
 .result-filter-field {

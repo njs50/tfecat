@@ -53,27 +53,28 @@ export type AuditReport = {
 /** Soft cap on candidates per slot (UI scrolls; keep a safety bound). */
 const DEFAULT_LIMIT = 100
 
-/** Sidegrades: include scores within this fraction of the equipped score. */
-const SIDEGRADE_TOLERANCE = 0.1
-
 function hasAffect(item: any, name: string): boolean {
   return !!item?.affects?.some(
     (a: any) => typeof a?.name === 'string' && a.name.toLowerCase() === name.toLowerCase(),
   )
 }
 
-/** True when `score` should appear as an upgrade/sidegrade for the equipped score. */
+/**
+ * True when `score` should appear as an upgrade/sidegrade for the equipped score.
+ * `sidegradePercent` 0 → same-or-better only; 100 → any scored item.
+ */
 export function isAuditScoreEligible(
   score: number,
   equippedScore: number,
   empty: boolean,
   sidegrades: boolean,
+  sidegradePercent = 10,
 ): boolean {
   if (empty) return score > 0
   if (!sidegrades) return score > equippedScore
-  // Within 10% below equipped (and anything better), including exact equals.
-  const floor =
-    equippedScore > 0 ? equippedScore * (1 - SIDEGRADE_TOLERANCE) : equippedScore
+  const pct = Math.min(100, Math.max(0, sidegradePercent))
+  if (pct >= 100) return true
+  const floor = equippedScore - Math.abs(equippedScore) * (pct / 100)
   return score >= floor
 }
 
@@ -101,10 +102,12 @@ export function runEquipmentAudit(options: {
   /** Include slots with no upgrade options (“show empty slots”). */
   verbose?: boolean
   /**
-   * Also include near-misses: scores within 10% of the equipped score
+   * Also include near-misses within `sidegradePercent` of the equipped score
    * (and equals / better), not only strict upgrades.
    */
   sidegrades?: boolean
+  /** 0–100; only used when `sidegrades` is true. Default 10. */
+  sidegradePercent?: number
 }): AuditReport {
   const {
     parse,
@@ -113,6 +116,7 @@ export function runEquipmentAudit(options: {
     limit = DEFAULT_LIMIT,
     verbose = false,
     sidegrades = false,
+    sidegradePercent = 10,
   } = options
 
   const scoringMode: AuditReport['scoringMode'] = filterState.weights
@@ -243,7 +247,11 @@ export function runEquipmentAudit(options: {
         ) {
           continue
         }
-        if (!isAuditScoreEligible(score, equippedScore, empty, sidegrades)) continue
+        if (
+          !isAuditScoreEligible(score, equippedScore, empty, sidegrades, sidegradePercent)
+        ) {
+          continue
+        }
         upgrades.push({
           item,
           score,
