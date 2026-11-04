@@ -44,12 +44,31 @@ export type AuditReport = {
   propertyLabel: string | null
 }
 
-const DEFAULT_LIMIT = 10
+/** Soft cap on candidates per slot (UI scrolls; keep a safety bound). */
+const DEFAULT_LIMIT = 100
+
+/** Sidegrades: include scores within this fraction of the equipped score. */
+const SIDEGRADE_TOLERANCE = 0.1
 
 function hasAffect(item: any, name: string): boolean {
   return !!item?.affects?.some(
     (a: any) => typeof a?.name === 'string' && a.name.toLowerCase() === name.toLowerCase(),
   )
+}
+
+/** True when `score` should appear as an upgrade/sidegrade for the equipped score. */
+export function isAuditScoreEligible(
+  score: number,
+  equippedScore: number,
+  empty: boolean,
+  sidegrades: boolean,
+): boolean {
+  if (empty) return score > 0
+  if (!sidegrades) return score > equippedScore
+  // Within 10% below equipped (and anything better), including exact equals.
+  const floor =
+    equippedScore > 0 ? equippedScore * (1 - SIDEGRADE_TOLERANCE) : equippedScore
+  return score >= floor
 }
 
 function scoreItem(
@@ -73,9 +92,12 @@ export function runEquipmentAudit(options: {
   catalog: any[]
   filterState: CatalogFilterState
   limit?: number
-  /** Include slots with no upgrades (CLI --verbose). */
+  /** Include slots with no upgrade options (“show empty slots”). */
   verbose?: boolean
-  /** Treat equal scores as upgrades (CLI --sidegrades). */
+  /**
+   * Also include near-misses: scores within 10% of the equipped score
+   * (and equals / better), not only strict upgrades.
+   */
   sidegrades?: boolean
 }): AuditReport {
   const {
@@ -199,12 +221,7 @@ export function runEquipmentAudit(options: {
         if (equipped?.catalogItem && item.catalogKey === equipped.catalogItem.catalogKey) {
           continue
         }
-        const better = empty
-          ? score > 0
-          : sidegrades
-            ? score >= equippedScore
-            : score > equippedScore
-        if (!better) continue
+        if (!isAuditScoreEligible(score, equippedScore, empty, sidegrades)) continue
         upgrades.push({
           item,
           score,
@@ -229,18 +246,16 @@ export function runEquipmentAudit(options: {
         }
       }
 
-      if (
-        verbose ||
-        trimmed.length > 0 ||
-        (equipped?.score != null && equipped.score < 0) ||
-        (equipped && !equipped.catalogItem)
-      ) {
+      // Hide slots with no options unless “show empty slots”, but always surface
+      // unmatched equipped gear so the paste can be fixed.
+      const unmatchedRaw = equipped && !equipped.catalogItem ? equipped.raw : null
+      if (verbose || trimmed.length > 0 || unmatchedRaw) {
         slots.push({
           slot,
           wearLoc,
           layer,
           equipped,
-          unmatchedRaw: equipped && !equipped.catalogItem ? equipped.raw : null,
+          unmatchedRaw,
           upgrades: trimmed,
           empty,
         })
