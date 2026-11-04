@@ -148,6 +148,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useDisplay } from 'vuetify'
+import { catalogItemAllowedByCharacter } from '../catalog/applyFilters'
 import { useCatalogFilters } from '../composables/useCatalogFilters'
 import { useItemOverlay } from '../composables/useItemOverlay'
 import { getItemPropertyAmount } from '../itemProperties'
@@ -298,11 +299,17 @@ const catalog = computed<any[]>(() => {
     if (itemLayer.value) {
       if (!item.Layer || item.Layer.indexOf(itemLayer.value) < 0) return false
     }
-    if (charAlignment.value && !item.charAlignments[charAlignment.value]) return false
-    if (charRace.value && !item.charRaces[charRace.value.toLowerCase()]) return false
-    if (charClass.value && !item.charClasses[charClass.value.toLowerCase()]) return false
-    if (charGender.value && !item.charGenders[charGender.value.toLowerCase()]) return false
-    if (item.Level < levelRange.value[0] || item.Level > levelRange.value[1]) return false
+    if (
+      !catalogItemAllowedByCharacter(item, {
+        charAlignment: charAlignment.value,
+        charClass: charClass.value,
+        charRace: charRace.value,
+        charGender: charGender.value,
+        levelRange: levelRange.value,
+      })
+    ) {
+      return false
+    }
     return true
   })
 

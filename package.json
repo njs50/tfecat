@@ -21,6 +21,7 @@
     "update-customs": "curl -fsS http://vault-thirteen.net:49160/customs -o ./public/customs.json",
     "update-catalog": "curl -fsS http://vault-thirteen.net:49160/catalog -o ./public/catalog.json",
     "update-summary": "curl -fsS http://vault-thirteen.net:49160/catalog/summary -o ./public/summary.json",
+    "item-extras": "node ./scripts/item-extras.mjs",
     "server": "node ./server/app.js"
   },
   "dependencies": {
