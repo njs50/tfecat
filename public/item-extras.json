@@ -1,12 +1,68 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-14T09:49:10.254Z",
+  "updatedAt": "2026-11-14T10:02:50.152Z",
   "items": {
+    "a crown of the mist-king": {
+      "equipable": false,
+      "updatedAt": "2026-11-14T10:02:50.151Z"
+    },
     "a feather and bone charm of audacity": {
       "size": [
         "large"
       ],
       "updatedAt": "2026-11-14T09:49:10.254Z"
+    },
+    "a fool-baited fae longsword": {
+      "equipable": false,
+      "updatedAt": "2026-11-14T10:01:30.016Z"
+    },
+    "a fool-baited fae rapier": {
+      "equipable": false,
+      "updatedAt": "2026-11-14T10:01:41.217Z"
+    },
+    "a fool-baited glowing fae dagger": {
+      "equipable": false,
+      "updatedAt": "2026-11-14T10:01:58.295Z"
+    },
+    "a fool-baited silvered shortblade": {
+      "equipable": false,
+      "updatedAt": "2026-11-14T10:02:15.172Z"
+    },
+    "a gigantic two-handed obsidian-headed mace": {
+      "size": [
+        "giant"
+      ],
+      "updatedAt": "2026-11-14T09:58:33.370Z"
+    },
+    "a massive stone club": {
+      "size": [
+        "giant"
+      ],
+      "updatedAt": "2026-11-14T09:58:19.975Z"
+    },
+    "a maul of the titans": {
+      "size": [
+        "giant"
+      ],
+      "updatedAt": "2026-11-14T09:59:35.162Z"
+    },
+    "a mystic hammer": {
+      "size": [
+        "giant"
+      ],
+      "updatedAt": "2026-11-14T09:57:32.654Z"
+    },
+    "a stone-handled obsidian battle axe": {
+      "size": [
+        "giant"
+      ],
+      "updatedAt": "2026-11-14T09:58:03.118Z"
+    },
+    "a warhammer of the titans": {
+      "size": [
+        "giant"
+      ],
+      "updatedAt": "2026-11-14T09:59:06.928Z"
     }
   }
 }
