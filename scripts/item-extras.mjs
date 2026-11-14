@@ -8,6 +8,8 @@
  *   pnpm run item-extras -- set <key> --equipable true --size small,medium
  *   pnpm run item-extras -- set <key> --equipable false
  *   pnpm run item-extras -- clear-size <key>
+ *   pnpm run item-extras -- delete <catalogKey|substring>
+ *   pnpm run item-extras -- delete --key <catalogKey> [--key <catalogKey>...]
  *   pnpm run item-extras -- orphans
  *   pnpm run item-extras -- validate
  */
@@ -45,6 +47,8 @@ function usage(exitCode = 1) {
   pnpm run item-extras -- show <catalogKey|substring>
   pnpm run item-extras -- set <catalogKey|substring> [--equipable true|false|null] [--size small,dwarf] [--note "..."]
   pnpm run item-extras -- clear-size <catalogKey|substring>
+  pnpm run item-extras -- delete <catalogKey|substring> [--server URL] [--dry-run]
+  pnpm run item-extras -- delete --key <catalogKey> [--key <catalogKey>...] [--server URL] [--dry-run]
   pnpm run item-extras -- orphans
   pnpm run item-extras -- validate
 
@@ -55,15 +59,6 @@ function usage(exitCode = 1) {
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'))
-}
-
-function catalogServer(flags = {}) {
-  if (flags.server === true) {
-    console.error('--server requires a URL')
-    process.exit(1)
-  }
-  const raw = flags.server || process.env.TFECAT_SERVER || DEFAULT_CATALOG_SERVER
-  return String(raw).replace(/\/$/, '')
 }
 
 async function loadExtras(flags) {
@@ -244,6 +239,8 @@ async function cmdShow(query, flags) {
   }
 }
 
+const BOOLEAN_FLAGS = new Set(['dry-run'])
+
 function parseArgs(argv) {
   const out = { positional: [], flags: {} }
   for (let i = 0; i < argv.length; i++) {
@@ -251,9 +248,15 @@ function parseArgs(argv) {
     if (a.startsWith('--')) {
       const key = a.slice(2)
       const next = argv[i + 1]
-      const value = key === 'dry-run' || next == null || next.startsWith('--') ? true : next
+      const value =
+        BOOLEAN_FLAGS.has(key) || next == null || next.startsWith('--') ? true : next
       if (value !== true) i++
-      out.flags[key] = value
+      if (Object.prototype.hasOwnProperty.call(out.flags, key)) {
+        const prev = out.flags[key]
+        out.flags[key] = Array.isArray(prev) ? [...prev, value] : [prev, value]
+      } else {
+        out.flags[key] = value
+      }
     } else {
       out.positional.push(a)
     }
@@ -390,6 +393,80 @@ async function cmdValidate(flags) {
   if (errors) process.exit(1)
 }
 
+function flagValues(flags, name) {
+  if (!Object.prototype.hasOwnProperty.call(flags, name)) return []
+  const value = flags[name]
+  const values = Array.isArray(value) ? value : [value]
+  if (values.some((v) => v === true)) {
+    console.error(`--${name} requires a value`)
+    process.exit(1)
+  }
+  return values.map((v) => String(v))
+}
+
+function catalogServer(flags) {
+  const fromFlag = flagValues(flags, 'server')
+  if (fromFlag.length > 1) {
+    console.error('--server accepts one URL')
+    process.exit(1)
+  }
+  const raw = fromFlag[0] || process.env.TFECAT_SERVER || DEFAULT_CATALOG_SERVER
+  return String(raw).replace(/\/$/, '')
+}
+
+async function dropExtrasKeys(flags, keys) {
+  if (!keys.length) return
+  await postJson(flags, '/item-extras/delete', keys)
+}
+
+async function cmdDelete(query, flags) {
+  const catalog = loadCatalog()
+  const entries = catalogEntries(catalog)
+  const keys = []
+  for (const explicit of flagValues(flags, 'key')) {
+    keys.push(resolveOneKey(entries, explicit, 'delete'))
+  }
+  if (query) keys.push(resolveOneKey(entries, query, 'delete'))
+  const unique = [...new Set(keys)]
+  if (!unique.length) usage()
+
+  const url = `${catalogServer(flags)}/catalog/deleteItems`
+  console.log(`POST ${url}`)
+  for (const key of unique) console.log(`  ${key}`)
+  if (flags['dry-run'] === true) {
+    console.log('dry-run: not sent')
+    return
+  }
+
+  let response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(unique),
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (err) {
+    console.error(`delete failed: ${err instanceof Error ? err.message : String(err)}`)
+    process.exit(1)
+  }
+  const text = await response.text()
+  if (!response.ok) {
+    console.error(`delete failed: HTTP ${response.status}`)
+    if (text) console.error(text)
+    process.exit(1)
+  }
+  console.log(text.trim() || `deleted ${unique.length} item(s)`)
+  const missing = new Set(
+    text.split('\n').flatMap((line) => {
+      const match = line.match(/^not found: (.*)$/)
+      return match ? [match[1]] : []
+    }),
+  )
+  await dropExtrasKeys(flags, unique.filter((key) => !missing.has(key)))
+  if (missing.size) process.exit(1)
+}
+
 // pnpm may forward a literal "--" before the subcommand (`pnpm run item-extras -- find`).
 const argv = process.argv.slice(2).filter((a, i, arr) => !(a === '--' && (i === 0 || arr[i - 1] === '--')))
 if (!argv.length || argv[0] === '-h' || argv[0] === '--help') usage(0)
@@ -421,6 +498,11 @@ const run = async () => {
       const { positional, flags } = parseArgs(rest)
       if (!positional[0]) usage()
       await cmdClearSize(positional.join(' '), flags)
+      break
+    }
+    case 'delete': {
+      const { positional, flags } = parseArgs(rest)
+      await cmdDelete(positional.join(' '), flags)
       break
     }
     case 'orphans':
