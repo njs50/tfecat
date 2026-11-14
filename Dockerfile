@@ -1,6 +1,6 @@
 FROM node:26-alpine
 RUN apk add --update tini
-RUN corepack enable
+RUN npm install -g pnpm@12.16.1
 
 # Tini is now available at /sbin/tini
 ENTRYPOINT ["/sbin/tini", "--"]
