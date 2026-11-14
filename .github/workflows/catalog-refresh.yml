@@ -1,4 +1,4 @@
-# Data half of ./update.sh: fetch catalog/trainers/customs/summary and
+# Data half of ./update.sh: fetch catalog/trainers/customs/summary/item-extras and
 # commit to main only when files change. Does not build or deploy.
 #
 # GITHUB_TOKEN pushes do not trigger other workflows, so after a real data
@@ -43,6 +43,7 @@ jobs:
           fetch "$BASE/customs" public/customs.json
           fetch "$BASE/catalog" public/catalog.json
           fetch "$BASE/catalog/summary" public/summary.json
+          fetch "$BASE/item-extras" public/item-extras.json
 
       - name: Commit and push if changed
         id: commit
@@ -50,7 +51,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/catalog.json public/customs.json public/summary.json public/trainers.json
+          git add public/catalog.json public/customs.json public/summary.json public/trainers.json public/item-extras.json
           if git diff --staged --quiet; then
             echo 'No catalog file changes; skipping commit and deploy trigger.'
             echo 'changed=false' >> "$GITHUB_OUTPUT"
