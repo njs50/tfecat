@@ -4,7 +4,7 @@
  *
  *   pnpm run item-extras -- find "deerhunter"
  *   pnpm run item-extras -- show <catalogKey|substring>
- *   pnpm run item-extras -- set <key> --equipable true --size gnome,human
+ *   pnpm run item-extras -- set <key> --equipable true --size small,medium
  *   pnpm run item-extras -- set <key> --equipable false
  *   pnpm run item-extras -- clear-size <key>
  *   pnpm run item-extras -- orphans
@@ -19,21 +19,9 @@ const ROOT = path.resolve(__dirname, '..')
 const CATALOG_PATH = path.join(ROOT, 'public', 'catalog.json')
 const EXTRAS_PATH = path.join(ROOT, 'public', 'item-extras.json')
 
-// Keep in sync with GAME_SIZES and PLAYER_RACES in src/catalog/itemExtras.ts.
-const GAME_SIZES = [
-  'ant',
-  'rat',
-  'dog',
-  'gnome',
-  'human',
-  'ogre',
-  'horse',
-  'giant',
-  'elephant',
-  'dinosaur',
-]
+// Keep in sync with PLAYER_SIZES, PLAYER_RACES, and PET_SIZES in src/catalog/itemExtras.ts.
+const PLAYER_SIZES = ['small', 'medium', 'large']
 const PLAYER_RACES = [
-  'centaur',
   'dwarf',
   'elf',
   'ent',
@@ -47,13 +35,14 @@ const PLAYER_RACES = [
   'troll',
   'vyan',
 ]
-const KNOWN_SIZE_TOKENS = new Set([...GAME_SIZES, ...PLAYER_RACES])
+const PET_SIZES = ['ant', 'rat', 'dog', 'horse', 'giant', 'elephant', 'dinosaur']
+const KNOWN_SIZE_TOKENS = new Set([...PLAYER_SIZES, ...PLAYER_RACES, ...PET_SIZES])
 
 function usage(exitCode = 1) {
   console.log(`Usage:
   pnpm run item-extras -- find <substring>
   pnpm run item-extras -- show <catalogKey|substring>
-  pnpm run item-extras -- set <catalogKey|substring> [--equipable true|false|null] [--size gnome,dwarf] [--note "..."]
+  pnpm run item-extras -- set <catalogKey|substring> [--equipable true|false|null] [--size small,dwarf] [--note "..."]
   pnpm run item-extras -- clear-size <catalogKey|substring>
   pnpm run item-extras -- orphans
   pnpm run item-extras -- validate`)
@@ -85,7 +74,7 @@ function loadCatalog() {
   return readJson(CATALOG_PATH)
 }
 
-const SIZE_RANK = Object.fromEntries(GAME_SIZES.map((size, index) => [size, index]))
+const SIZE_RANK = Object.fromEntries(PLAYER_SIZES.map((size, index) => [size, index]))
 
 function normalizeSizeTokens(input) {
   if (input == null) return []

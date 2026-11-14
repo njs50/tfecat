@@ -3,26 +3,11 @@
  * Independent of catalog refresh; keyed by catalogKey.
  */
 
-/** Game sizes, smallest to largest (`help sizes`). */
-export const GAME_SIZES = [
-  'ant',
-  'rat',
-  'dog',
-  'gnome',
-  'human',
-  'ogre',
-  'horse',
-  'giant',
-  'elephant',
-  'dinosaur',
-] as const
+/** Player body sizes. A character's size comes from race. */
+export const PLAYER_SIZES = ['small', 'medium', 'large'] as const
 
-/**
- * Player races. On an item, a race name is a size that fits only that race.
- * gnome, human, and ogre are also game sizes.
- */
+/** Races offered by the character editors. A race name on an item is a size that fits only that race. */
 export const PLAYER_RACES = [
-  'centaur',
   'dwarf',
   'elf',
   'ent',
@@ -37,25 +22,12 @@ export const PLAYER_RACES = [
   'vyan',
 ] as const
 
-const GAME_SIZE_SET = new Set<string>(GAME_SIZES)
+/** Pet and monster sizes. No player matches these. */
+export const PET_SIZES = ['ant', 'rat', 'dog', 'horse', 'giant', 'elephant', 'dinosaur'] as const
 
-/** Game sizes first, then race-only names. */
-export const KNOWN_SIZE_TOKENS = [
-  ...GAME_SIZES,
-  ...PLAYER_RACES.filter((race) => !GAME_SIZE_SET.has(race)),
-] as const
+export const KNOWN_SIZE_TOKENS = [...PLAYER_SIZES, ...PLAYER_RACES, ...PET_SIZES] as const
 
 export type KnownSizeToken = (typeof KNOWN_SIZE_TOKENS)[number]
-
-/**
- * Body size of a race, when the race name is itself a game size.
- * Other races are unset: they match an item only when the item names that race.
- */
-const RACE_BODY_SIZE: Record<string, string> = {
-  gnome: 'gnome',
-  human: 'human',
-  ogre: 'ogre',
-}
 
 export type ItemExtraRow = {
   equipable?: boolean | null
@@ -76,15 +48,22 @@ export const EMPTY_ITEM_EXTRAS: ItemExtrasFile = {
   items: {},
 }
 
-/** Body size for a race, or null when that race has no known game size yet. */
+const LARGE_RACES = new Set(['ent', 'ogre', 'troll'])
+const SMALL_RACES = new Set(['dwarf', 'gnome', 'goblin', 'halfling'])
+const PLAYER_RACE_SET = new Set<string>(PLAYER_RACES)
+
+/** Nick's race → player size. Remaining player races are medium; unknown races have no size. */
 export function characterSizeForRace(race: string | null | undefined): string | null {
   if (!race) return null
-  return RACE_BODY_SIZE[race.toLowerCase()] ?? null
+  const r = race.toLowerCase()
+  if (LARGE_RACES.has(r)) return 'large'
+  if (SMALL_RACES.has(r)) return 'small'
+  return PLAYER_RACE_SET.has(r) ? 'medium' : null
 }
 
-const SIZE_RANK = new Map<string, number>(GAME_SIZES.map((size, index) => [size, index]))
+const SIZE_RANK = new Map<string, number>(PLAYER_SIZES.map((size, index) => [size, index]))
 
-/** Normalize comma-separated or array input to unique lowercase tokens (size-rank order). */
+/** Normalize comma-separated or array input to unique lowercase tokens (small, medium, large first). */
 export function normalizeSizeTokens(input: string | string[] | null | undefined): string[] {
   if (input == null) return []
   const parts = Array.isArray(input) ? input : String(input).split(',')
@@ -101,14 +80,13 @@ export function normalizeSizeTokens(input: string | string[] | null | undefined)
   })
 }
 
-export function formatSizeDisplay(sizes: string[]): string {
-  return sizes.map((size) => size.charAt(0).toUpperCase() + size.slice(1)).join(', ')
+export function displaySizeTokens(sizes: string[]): string[] {
+  return sizes.map((size) => size.charAt(0).toUpperCase() + size.slice(1))
 }
 
 /**
- * Item size OK when extSize is omitted, or (with a race selected) some token
- * is that race or that race's body size. A race token fits only that race.
- * Empty array = blocked by size for everyone.
+ * Item size OK when extSize is omitted, or (with a race selected) some token is
+ * that race or that race's player size. Empty array = blocked for everyone.
  */
 export function itemSizeAllowedForRace(
   extSize: string[] | null | undefined,
@@ -118,8 +96,8 @@ export function itemSizeAllowedForRace(
   if (!charRace) return true
   if (extSize.length === 0) return false
   const race = charRace.toLowerCase()
-  const bodySize = characterSizeForRace(race)
-  return extSize.some((token) => token === race || (bodySize != null && token === bodySize))
+  const size = characterSizeForRace(race)
+  return extSize.some((token) => token === race || (size != null && token === size))
 }
 
 export function mergeItemExtras(item: Record<string, unknown>, extra: ItemExtraRow | undefined): void {
