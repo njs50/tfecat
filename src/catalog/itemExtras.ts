@@ -85,16 +85,15 @@ export function displaySizeTokens(sizes: string[]): string[] {
 }
 
 /**
- * Item size OK when extSize is omitted, or (with a race selected) some token is
- * that race or that race's player size. Empty array = blocked for everyone.
+ * Item size OK when size is omitted or empty, or (with a race selected) some
+ * token is that race or that race's player size. Empty means no restriction.
  */
 export function itemSizeAllowedForRace(
   extSize: string[] | null | undefined,
   charRace: string | null | undefined,
 ): boolean {
-  if (extSize == null) return true
+  if (extSize == null || extSize.length === 0) return true
   if (!charRace) return true
-  if (extSize.length === 0) return false
   const race = charRace.toLowerCase()
   const size = characterSizeForRace(race)
   return extSize.some((token) => token === race || (size != null && token === size))
@@ -107,10 +106,9 @@ export function mergeItemExtras(item: Record<string, unknown>, extra: ItemExtraR
     return
   }
   item.extEquipable = extra.equipable ?? null
-  item.extSize =
-    extra.size === undefined || extra.size === null
-      ? null
-      : normalizeSizeTokens(extra.size)
+  const sizes =
+    extra.size === undefined || extra.size === null ? [] : normalizeSizeTokens(extra.size)
+  item.extSize = sizes.length ? sizes : null
 }
 
 /** Sidecar equipable/size only (anti-flags handled by catalogItemAllowedByCharacter). */

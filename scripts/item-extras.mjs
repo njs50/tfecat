@@ -264,9 +264,10 @@ function cmdSet(query, flags) {
     else row.equipable = v
   }
   if (hasSize) {
-    // Explicit empty --size '' → size: [] (blocked by size).
+    // Empty --size clears the restriction; everyone can use the item.
     const sizes = normalizeSizeTokens(flags.size === true ? '' : flags.size)
-    row.size = sizes
+    if (sizes.length) row.size = sizes
+    else delete row.size
   }
   if (hasNote) {
     const note = flags.note === true ? '' : String(flags.note)
@@ -275,7 +276,7 @@ function cmdSet(query, flags) {
   }
   row.updatedAt = new Date().toISOString()
   const keepEquipable = row.equipable !== undefined && row.equipable !== null
-  const keepSize = row.size !== undefined
+  const keepSize = Array.isArray(row.size) && row.size.length > 0
   const keepNote = !!(row.note && String(row.note).length)
   if (!keepEquipable && !keepSize && !keepNote) {
     delete extras.items[key]
