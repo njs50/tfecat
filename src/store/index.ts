@@ -1,6 +1,19 @@
 import Axios from 'axios'
 import { defineStore } from 'pinia'
+import { EMPTY_ITEM_EXTRAS, mergeItemExtras, type ItemExtrasFile } from '../catalog/itemExtras'
 import { EXTRA_ITEM_PROPERTIES } from '../itemProperties'
+
+async function fetchItemExtras(cacheBust: string): Promise<ItemExtrasFile> {
+  try {
+    const { data } = await Axios.get(`./item-extras.json?_=${cacheBust}`)
+    if (data && typeof data === 'object' && data.items && typeof data.items === 'object') {
+      return data as ItemExtrasFile
+    }
+  } catch {
+    // Missing file (old deploys / 404) → empty extras
+  }
+  return { ...EMPTY_ITEM_EXTRAS, items: {} }
+}
 
 export const useCatalogStore = defineStore('catalog', {
   state: () => ({
@@ -12,7 +25,11 @@ export const useCatalogStore = defineStore('catalog', {
   }),
   actions: {
     async fetchCatalog() {
-      const { data } = await Axios.get('./catalog.json?_=' + (new Date().getTime()).toString())
+      const cacheBust = new Date().getTime().toString()
+      const [{ data }, extras] = await Promise.all([
+        Axios.get('./catalog.json?_=' + cacheBust),
+        fetchItemExtras(cacheBust),
+      ])
 
       const catalog: any[] = []
       const itemTypes: Record<string, boolean> = {}
@@ -25,6 +42,7 @@ export const useCatalogStore = defineStore('catalog', {
 
         // Stable id for /item/:itemKey routes (original catalog.json key).
         item.catalogKey = key
+        mergeItemExtras(item, extras.items[key])
         item.name = item.name.replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
         item['Unidentified Name'] = item['Unidentified Name'].replace(/^(A set of|A pair of|A|An|The|Some) /i, '')
 

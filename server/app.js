@@ -1,10 +1,16 @@
 import express from "express";
 import got from 'got';
 import NPuzzleSolver from './solver.js';
+import {
+  emptyItemExtras,
+  mountItemExtras,
+  normalizeItemExtras,
+} from './itemExtras.js';
 
 const app = express();
 
 let catalog, summary, trainers, customs
+const extrasState = { itemExtras: emptyItemExtras() }
 
 // load catalog from github (got 16: prefer .json() over manual JSON.parse)
 const catSrc = 'https://raw.githubusercontent.com/njs50/tfecat/main/public/catalog.json'
@@ -30,6 +36,15 @@ const customsSrc = 'https://raw.githubusercontent.com/njs50/tfecat/main/public/c
 got(customsSrc).json()
   .then(data => {
     customs = data;
+  }).catch(error => {
+    console.log(error);
+  })
+;
+
+const extrasSrc = 'https://raw.githubusercontent.com/njs50/tfecat/main/public/item-extras.json'
+got(extrasSrc).json()
+  .then(data => {
+    extrasState.itemExtras = normalizeItemExtras(data);
   }).catch(error => {
     console.log(error);
   })
@@ -69,6 +84,8 @@ app.get("/trainers", (req, res, next) => {
 app.get("/catalog/summary", (req, res, next) => {
   res.json(summary);
 });
+
+mountItemExtras(app, extrasState);
 
 app.post("/customs/diff", (req, res, next) => {
   for (let roomNumber in req.body) {
