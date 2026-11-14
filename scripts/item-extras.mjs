@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Local CLI for public/item-extras.json (sidecar equipable / size).
+ * CLI for the vault's item-extras sidecar (equipable / size).
+ * Reads and writes go to the server. update.sh curls the file back into git.
  *
  *   pnpm run item-extras -- find "deerhunter"
  *   pnpm run item-extras -- show <catalogKey|substring>
@@ -17,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 const CATALOG_PATH = path.join(ROOT, 'public', 'catalog.json')
-const EXTRAS_PATH = path.join(ROOT, 'public', 'item-extras.json')
+const DEFAULT_CATALOG_SERVER = 'http://vault-thirteen.net:49160'
 
 // Keep in sync with PLAYER_SIZES, PLAYER_RACES, and PET_SIZES in src/catalog/itemExtras.ts.
 const PLAYER_SIZES = ['small', 'medium', 'large']
@@ -45,7 +46,10 @@ function usage(exitCode = 1) {
   pnpm run item-extras -- set <catalogKey|substring> [--equipable true|false|null] [--size small,dwarf] [--note "..."]
   pnpm run item-extras -- clear-size <catalogKey|substring>
   pnpm run item-extras -- orphans
-  pnpm run item-extras -- validate`)
+  pnpm run item-extras -- validate
+
+  --server URL overrides ${DEFAULT_CATALOG_SERVER} (or TFECAT_SERVER).
+  --dry-run prints the POST and does not send it.`)
   process.exit(exitCode)
 }
 
@@ -53,17 +57,62 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'))
 }
 
-function emptyExtras() {
-  return { version: 1, updatedAt: new Date().toISOString(), items: {} }
+function catalogServer(flags = {}) {
+  if (flags.server === true) {
+    console.error('--server requires a URL')
+    process.exit(1)
+  }
+  const raw = flags.server || process.env.TFECAT_SERVER || DEFAULT_CATALOG_SERVER
+  return String(raw).replace(/\/$/, '')
 }
 
-function loadExtras() {
-  if (!fs.existsSync(EXTRAS_PATH)) return emptyExtras()
-  const data = readJson(EXTRAS_PATH)
-  if (!data || typeof data !== 'object') return emptyExtras()
+async function loadExtras(flags) {
+  const url = `${catalogServer(flags)}/item-extras`
+  let response
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(15000) })
+  } catch (err) {
+    console.error(`GET ${url} failed: ${err instanceof Error ? err.message : String(err)}`)
+    process.exit(1)
+  }
+  if (!response.ok) {
+    console.error(`GET ${url} failed: HTTP ${response.status}`)
+    process.exit(1)
+  }
+  const data = await response.json()
+  if (!data || typeof data !== 'object') return { version: 1, items: {} }
   if (!data.items || typeof data.items !== 'object') data.items = {}
   if (!data.version) data.version = 1
   return data
+}
+
+async function postJson(flags, path, body) {
+  const url = `${catalogServer(flags)}${path}`
+  console.log(`POST ${url}`)
+  console.log(JSON.stringify(body, null, 2))
+  if (flags['dry-run'] === true) {
+    console.log('dry-run: not sent')
+    return
+  }
+  let response
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
+    })
+  } catch (err) {
+    console.error(`POST ${url} failed: ${err instanceof Error ? err.message : String(err)}`)
+    process.exit(1)
+  }
+  const text = await response.text()
+  if (!response.ok) {
+    console.error(`POST ${url} failed: HTTP ${response.status}`)
+    if (text) console.error(text)
+    process.exit(1)
+  }
+  if (text.trim()) console.log(text.trim())
 }
 
 function loadCatalog() {
@@ -90,23 +139,6 @@ function normalizeSizeTokens(input) {
     if (ra !== rb) return ra - rb
     return a.localeCompare(b)
   })
-}
-
-function sortObjectKeys(obj) {
-  const sorted = {}
-  for (const key of Object.keys(obj).sort((a, b) => a.localeCompare(b))) {
-    sorted[key] = obj[key]
-  }
-  return sorted
-}
-
-function writeExtras(extras) {
-  extras.version = extras.version || 1
-  extras.updatedAt = new Date().toISOString()
-  extras.items = sortObjectKeys(extras.items)
-  const text = `${JSON.stringify(extras, null, 2)}\n`
-  fs.writeFileSync(EXTRAS_PATH, text, 'utf8')
-  console.log(`Wrote ${EXTRAS_PATH}`)
 }
 
 function stripArticle(name) {
@@ -176,9 +208,9 @@ function formatExtra(extra) {
   return bits.join(' ')
 }
 
-function cmdFind(query) {
+async function cmdFind(query, flags) {
   const catalog = loadCatalog()
-  const extras = loadExtras()
+  const extras = await loadExtras(flags)
   const entries = catalogEntries(catalog)
   const hits = matchEntries(entries, query)
   if (!hits.length) {
@@ -195,9 +227,9 @@ function cmdFind(query) {
   console.log(`${hits.length} match(es)`)
 }
 
-function cmdShow(query) {
+async function cmdShow(query, flags) {
   const catalog = loadCatalog()
-  const extras = loadExtras()
+  const extras = await loadExtras(flags)
   const entries = catalogEntries(catalog)
   const key = resolveOneKey(entries, query, 'show')
   const entry = entries.find((e) => e.catalogKey === key)
@@ -219,12 +251,9 @@ function parseArgs(argv) {
     if (a.startsWith('--')) {
       const key = a.slice(2)
       const next = argv[i + 1]
-      if (next == null || next.startsWith('--')) {
-        out.flags[key] = true
-      } else {
-        out.flags[key] = next
-        i++
-      }
+      const value = key === 'dry-run' || next == null || next.startsWith('--') ? true : next
+      if (value !== true) i++
+      out.flags[key] = value
     } else {
       out.positional.push(a)
     }
@@ -243,9 +272,8 @@ function parseEquipable(raw) {
   process.exit(1)
 }
 
-function cmdSet(query, flags) {
+async function cmdSet(query, flags) {
   const catalog = loadCatalog()
-  const extras = loadExtras()
   const entries = catalogEntries(catalog)
   const key = resolveOneKey(entries, query, 'set')
 
@@ -257,72 +285,35 @@ function cmdSet(query, flags) {
     process.exit(1)
   }
 
-  const row = { ...(extras.items[key] || {}) }
-  if (hasEquipable) {
-    const v = parseEquipable(flags.equipable)
-    if (v === null) delete row.equipable
-    else row.equipable = v
-  }
+  const patch = {}
+  if (hasEquipable) patch.equipable = parseEquipable(flags.equipable)
   if (hasSize) {
-    // Empty --size clears the restriction; everyone can use the item.
     const sizes = normalizeSizeTokens(flags.size === true ? '' : flags.size)
-    if (sizes.length) row.size = sizes
-    else delete row.size
+    for (const token of sizes) {
+      if (!KNOWN_SIZE_TOKENS.has(token)) {
+        console.warn(`warn: uncommon size token "${token}" (allowed; not in known set)`)
+      }
+    }
+    // Empty size clears the restriction; everyone can use the item.
+    patch.size = sizes.length ? sizes : null
   }
   if (hasNote) {
     const note = flags.note === true ? '' : String(flags.note)
-    if (!note) delete row.note
-    else row.note = note
+    patch.note = note || null
   }
-  row.updatedAt = new Date().toISOString()
-  const keepEquipable = row.equipable !== undefined && row.equipable !== null
-  const keepSize = Array.isArray(row.size) && row.size.length > 0
-  const keepNote = !!(row.note && String(row.note).length)
-  if (!keepEquipable && !keepSize && !keepNote) {
-    delete extras.items[key]
-    writeExtras(extras)
-    console.log(`${key}: removed empty extras row`)
-    return
-  }
-  extras.items[key] = row
-  writeExtras(extras)
-  console.log(`${key}: ${formatExtra(row)}`)
+  await postJson(flags, '/item-extras/diff', { [key]: patch })
 }
 
-function cmdClearSize(query) {
+async function cmdClearSize(query, flags) {
   const catalog = loadCatalog()
-  const extras = loadExtras()
   const entries = catalogEntries(catalog)
   const key = resolveOneKey(entries, query, 'clear-size')
-  const row = extras.items[key]
-  if (!row) {
-    console.log(`${key}: no extras row`)
-    return
-  }
-  if (row.size === undefined) {
-    console.log(`${key}: size already omitted`)
-    return
-  }
-  delete row.size
-  row.updatedAt = new Date().toISOString()
-  // Drop empty rows (no equipable/size/note)
-  if (
-    (row.equipable === undefined || row.equipable === null) &&
-    (row.note === undefined || row.note === null || row.note === '')
-  ) {
-    delete extras.items[key]
-    writeExtras(extras)
-    console.log(`${key}: cleared size; removed empty extras row`)
-    return
-  }
-  extras.items[key] = row
-  writeExtras(extras)
-  console.log(`${key}: ${formatExtra(row)}`)
+  await postJson(flags, '/item-extras/diff', { [key]: { size: null } })
 }
 
-function cmdOrphans() {
+async function cmdOrphans(flags) {
   const catalog = loadCatalog()
-  const extras = loadExtras()
+  const extras = await loadExtras(flags)
   const catalogKeys = new Set(Object.keys(catalog))
   const orphans = Object.keys(extras.items).filter((k) => !catalogKeys.has(k))
   if (!orphans.length) {
@@ -335,9 +326,9 @@ function cmdOrphans() {
   }
 }
 
-function cmdValidate() {
+async function cmdValidate(flags) {
   const catalog = loadCatalog()
-  const extras = loadExtras()
+  const extras = await loadExtras(flags)
   const catalogKeys = new Set(Object.keys(catalog))
   let errors = 0
   let warnings = 0
@@ -406,35 +397,45 @@ if (!argv.length || argv[0] === '-h' || argv[0] === '--help') usage(0)
 const cmd = argv[0]
 const rest = argv.slice(1)
 
-switch (cmd) {
-  case 'find': {
-    if (!rest[0]) usage()
-    cmdFind(rest.join(' '))
-    break
+const run = async () => {
+  switch (cmd) {
+    case 'find': {
+      const { positional, flags } = parseArgs(rest)
+      if (!positional[0]) usage()
+      await cmdFind(positional.join(' '), flags)
+      break
+    }
+    case 'show': {
+      const { positional, flags } = parseArgs(rest)
+      if (!positional[0]) usage()
+      await cmdShow(positional.join(' '), flags)
+      break
+    }
+    case 'set': {
+      const { positional, flags } = parseArgs(rest)
+      if (!positional[0]) usage()
+      await cmdSet(positional.join(' '), flags)
+      break
+    }
+    case 'clear-size': {
+      const { positional, flags } = parseArgs(rest)
+      if (!positional[0]) usage()
+      await cmdClearSize(positional.join(' '), flags)
+      break
+    }
+    case 'orphans':
+      await cmdOrphans(parseArgs(rest).flags)
+      break
+    case 'validate':
+      await cmdValidate(parseArgs(rest).flags)
+      break
+    default:
+      console.error(`Unknown command: ${cmd}`)
+      usage()
   }
-  case 'show': {
-    if (!rest[0]) usage()
-    cmdShow(rest.join(' '))
-    break
-  }
-  case 'set': {
-    const { positional, flags } = parseArgs(rest)
-    if (!positional[0]) usage()
-    cmdSet(positional.join(' '), flags)
-    break
-  }
-  case 'clear-size': {
-    if (!rest[0]) usage()
-    cmdClearSize(rest.join(' '))
-    break
-  }
-  case 'orphans':
-    cmdOrphans()
-    break
-  case 'validate':
-    cmdValidate()
-    break
-  default:
-    console.error(`Unknown command: ${cmd}`)
-    usage()
 }
+
+run().catch((err) => {
+  console.error(err instanceof Error ? err.message : String(err))
+  process.exit(1)
+})
