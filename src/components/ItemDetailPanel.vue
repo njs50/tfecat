@@ -41,6 +41,7 @@ import { catalogQueryToState } from '../composables/useCatalogQuery'
 import { copyShareLink, useShareFeedback } from '../composables/useShareLink'
 import { usePresets } from '../presets/usePresets'
 import { formatWeightSummary } from '../presets/weightedScore'
+import { formatSizeDisplay } from '../catalog/itemExtras'
 import { useCatalogStore } from '../store'
 
 const props = defineProps<{ itemKey: string }>()
@@ -158,9 +159,9 @@ const buildRequiresBlock = (it: any): string | null => {
   if (gender) lines.push(formatRequirementLine('Gender', gender))
   const race = allowedRestrictionValues(it.charRaces)
   if (race) lines.push(formatRequirementLine('Race', race))
-  // Sidecar size from item-extras.json (game-style "small, medium").
+  // Sidecar size from item-extras.json (game-style "Gnome, Dwarf").
   if (Array.isArray(it.extSize)) {
-    lines.push(formatRequirementLine('Size', it.extSize))
+    lines.push(formatRequirementLine('Size', formatSizeDisplay(it.extSize).split(', ')))
   }
   const klass = allowedRestrictionValues(it.charClasses)
   if (klass) lines.push(formatRequirementLine('Class', klass))
