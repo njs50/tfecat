@@ -25,9 +25,9 @@
 
       <v-col class="d-flex align-center ga-1" cols="12" md="4">
         <v-select
-          :model-value="activeGearSetId"
+          :model-value="selectedProfile ? activeGearSetId : null"
           :items="gearSetSelectItems"
-          label="Gear set"
+          :label="selectedProfile ? 'Gear set' : 'Gear set (select a profile)'"
           density="compact"
           clearable
           hide-details
@@ -67,6 +67,79 @@
         >
           <v-icon>mdi-pencil</v-icon>
         </v-btn>
+      </v-col>
+    </v-row>
+
+    <!-- Editable character / scoring fields stay visible whenever needed (no profile/weight,
+         or “manually configure” on). Checkboxes that toggle them remain in the options cog. -->
+    <v-row v-if="manualCharacterEffective" dense class="mb-1">
+      <v-col cols="6" sm="4" md="2">
+        <v-text-field
+          v-model.number="levelMax"
+          type="number"
+          :min="1"
+          :max="LEVEL_MAX"
+          step="1"
+          label="Level"
+          density="compact"
+          hide-details
+        ></v-text-field>
+      </v-col>
+      <v-col cols="6" sm="4" md="2">
+        <v-select
+          v-model="charAlignment"
+          :items="charAlignments"
+          label="Alignment"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+      <v-col cols="6" sm="4" md="2">
+        <v-select
+          v-model="charRace"
+          :items="charRaces"
+          label="Race"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+      <v-col cols="6" sm="4" md="3">
+        <v-select
+          v-model="charClass"
+          :items="charClasses"
+          label="Class"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+      <v-col cols="6" sm="4" md="3">
+        <v-select
+          v-model="charGender"
+          :items="charGenders"
+          label="Gender"
+          density="compact"
+          clearable
+          hide-details
+        ></v-select>
+      </v-col>
+    </v-row>
+
+    <v-row v-if="manualWeightEffective" dense class="mb-2">
+      <v-col cols="12" md="6">
+        <v-autocomplete
+          :model-value="itemPropertyDisplay"
+          :items="itemPropertyItems"
+          label="Item property"
+          density="compact"
+          :clearable="!selectedWeight || manualWeight"
+          hide-details
+          :disabled="!!selectedWeight && !manualWeight"
+          :placeholder="selectedWeight ? undefined : 'Pick a property to score by'"
+          @update:model-value="onItemPropertyUpdate"
+        ></v-autocomplete>
       </v-col>
     </v-row>
 
@@ -113,7 +186,8 @@
       density="compact"
       class="mb-4"
     >
-      Select a weight config, or enable manual scoring and pick an item property.
+      Select a weight config above, or pick an item property to score by.
+      Equipped items still list; upgrade ranking stays off until scoring is set.
     </v-alert>
 
     <v-alert
@@ -174,54 +248,18 @@
             :disabled="!selectedProfile"
             @update:model-value="onManualCharacterToggle"
           ></v-checkbox>
-          <template v-if="manualCharacterEffective">
-            <v-text-field
-              v-model.number="levelMax"
-              type="number"
-              :min="1"
-              :max="LEVEL_MAX"
-              step="1"
-              label="Level"
-              density="compact"
-              hide-details
-              class="mb-2"
-            ></v-text-field>
-            <v-select
-              v-model="charAlignment"
-              :items="charAlignments"
-              label="Alignment"
-              density="compact"
-              clearable
-              hide-details
-              class="mb-2"
-            ></v-select>
-            <v-select
-              v-model="charRace"
-              :items="charRaces"
-              label="Race"
-              density="compact"
-              clearable
-              hide-details
-              class="mb-2"
-            ></v-select>
-            <v-select
-              v-model="charClass"
-              :items="charClasses"
-              label="Class"
-              density="compact"
-              clearable
-              hide-details
-              class="mb-2"
-            ></v-select>
-            <v-select
-              v-model="charGender"
-              :items="charGenders"
-              label="Gender"
-              density="compact"
-              clearable
-              hide-details
-            ></v-select>
-          </template>
+          <p
+            v-if="!selectedProfile"
+            class="text-caption text-medium-emphasis mb-0"
+          >
+            Character fields stay above the paste area until a profile is selected.
+          </p>
+          <p
+            v-else-if="manualCharacter"
+            class="text-caption text-medium-emphasis mb-0"
+          >
+            Editing level / align / race / class / gender above the paste area.
+          </p>
         </v-col>
 
         <v-col cols="12" md="4" class="audit-options-col">
@@ -234,18 +272,18 @@
             :disabled="!selectedWeight"
             @update:model-value="onManualWeightToggle"
           ></v-checkbox>
-          <v-autocomplete
-            v-if="manualWeightEffective"
-            :model-value="itemPropertyDisplay"
-            :items="itemPropertyItems"
-            label="Item property"
-            density="compact"
-            :clearable="!selectedWeight || manualWeight"
-            hide-details
-            class="mb-2"
-            :disabled="!!selectedWeight && !manualWeight"
-            @update:model-value="onItemPropertyUpdate"
-          ></v-autocomplete>
+          <p
+            v-if="!selectedWeight"
+            class="text-caption text-medium-emphasis mb-2"
+          >
+            Item property stays above the paste area until a weight config is selected.
+          </p>
+          <p
+            v-else-if="manualWeight"
+            class="text-caption text-medium-emphasis mb-2"
+          >
+            Scoring by the item property above the paste area.
+          </p>
           <v-checkbox
             v-if="selectedProfile"
             v-model="pasteNewGearSet"
@@ -418,7 +456,13 @@
             </li>
           </ul>
         </div>
-        <p v-else class="text-body-2 text-medium-emphasis mb-0">No options for this slot.</p>
+        <p v-else class="text-body-2 text-medium-emphasis mb-0">
+          {{
+            scoringMode === 'none'
+              ? 'Select a weight config or item property to rank upgrades.'
+              : 'No options for this slot.'
+          }}
+        </p>
       </article>
     </template>
   </v-container>
