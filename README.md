@@ -59,7 +59,7 @@ pnpm run deploy
 
 #### building docker image
 ```
-docker build -t tfecat .
+docker buildx build -t tfecat .
 ```
 
 #### deploying to docker server
